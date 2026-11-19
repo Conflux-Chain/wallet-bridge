@@ -9,14 +9,17 @@ import (
 	"path/filepath"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/buildinfo"
+	"github.com/Conflux-Chain/wallet-bridge/internal/client"
 )
 
 type Dependencies struct {
-	BuildInfo  buildinfo.Info
-	RunService func(dataDir string) error
+	BuildInfo     buildinfo.Info
+	RunService    func(dataDir string) error
+	ManageService func(action, dataDir string) (client.Status, error)
 }
 
-const usage = "Usage: wallet-bridge version [--json]\n       wallet-bridge service run [--data-dir <absolute path>]"
+const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status|stop [--data-dir <absolute path>] [--json]"
+const usage = "Usage: wallet-bridge version [--json]\n" + serviceUsage
 
 func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
 	info := dependencies.BuildInfo
@@ -60,18 +63,23 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 }
 
 func runService(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
-	const help = "Usage: wallet-bridge service run [--data-dir <absolute path>]"
+	const help = serviceUsage
 	if len(args) == 0 || (len(args) == 1 && (args[0] == "--help" || args[0] == "-h")) {
 		fmt.Fprintln(stdout, help)
 		return 0
 	}
-	if args[0] != "run" {
+	action := args[0]
+	if action != "run" && action != "ensure" && action != "status" && action != "stop" {
 		fmt.Fprintln(stderr, help)
 		return 2
 	}
-	flags := flag.NewFlagSet("service run", flag.ContinueOnError)
+	flags := flag.NewFlagSet("service "+action, flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	dir := flags.String("data-dir", "", "Use an absolute private data directory")
+	var jsonOutput bool
+	if action != "run" {
+		flags.BoolVar(&jsonOutput, "json", false, "Print structured output")
+	}
 	if err := flags.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			fmt.Fprintln(stdout, help)
@@ -81,8 +89,39 @@ func runService(args []string, dependencies Dependencies, stdout, stderr io.Writ
 		return 2
 	}
 	if flags.NArg() != 0 || (*dir != "" && !filepath.IsAbs(*dir)) {
-		fmt.Fprintln(stderr, "service run accepts only an absolute --data-dir and no positional arguments")
+		fmt.Fprintln(stderr, "service commands accept only an absolute --data-dir and no positional arguments")
 		return 2
+	}
+	if action != "run" {
+		var result client.Status
+		var err error
+		if dependencies.ManageService == nil {
+			err = &client.Error{Code: "configuration_error", Message: "Service client is unavailable"}
+		} else {
+			result, err = dependencies.ManageService(action, *dir)
+		}
+		if err != nil {
+			var failure *client.Error
+			if !errors.As(err, &failure) {
+				failure = &client.Error{Code: "request_failed", Message: "Service operation failed"}
+			}
+			if jsonOutput {
+				json.NewEncoder(stderr).Encode(failure)
+			} else {
+				fmt.Fprintln(stderr, failure)
+			}
+			return 1
+		}
+		if jsonOutput {
+			err = json.NewEncoder(stdout).Encode(result)
+		} else {
+			_, err = fmt.Fprintf(stdout, "wallet-bridge %s at %s\n", result.State, result.Origin)
+		}
+		if err != nil {
+			fmt.Fprintln(stderr, "output_error: Cannot write service status")
+			return 1
+		}
+		return 0
 	}
 	if dependencies.RunService == nil {
 		fmt.Fprintln(stderr, "configuration_error: service runner is unavailable")

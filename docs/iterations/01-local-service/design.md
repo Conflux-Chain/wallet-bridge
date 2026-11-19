@@ -37,6 +37,15 @@ CLI 拟提供 `version`、`service run`、`service ensure`、`service status`、
 - Windows 使用 `LockFileEx`，macOS 使用非阻塞 `flock`；句柄随进程存活，正常关闭或异常退出均释放锁。锁竞争返回 `already_running`，端口占用或 Windows 端口保留返回 `port_in_use`；不终止占用者或换端口。
 - 支持 Ctrl+C／终止信号及 HTTP 管理停止，先停止接收请求并有界等待完成；关闭失败报错并清理本进程的 HTTP 资源，不强杀其他进程。后台启动及客户端停止等待在 PR 1-4 接入。
 
+### PR 1-4：后台启动与复用
+
+- `internal/client/` 提供 Ensure／Status／Stop。每次调用直连固定 IPv4 地址，使用新随机 challenge 验证 HMAC、API major 和必需能力；同一连接通过身份校验后才发送 Bearer。连接关闭后不在新连接上重试带凭据的请求，不使用代理、不跟随重定向；响应头及 JSON 大小有界。
+- `service ensure|status|stop [--data-dir <绝对路径>] [--json]` 共用该 client。status 不创建目录／凭据或启动进程；无监听且目录未被持锁时返回 `stopped`，成功退出。stop 对已停止服务同样成功；监听不可验证或仍被持锁时不能报已停止。JSON 成功结果写 stdout，错误 `{code,message}` 写 stderr；参数错误仍返回 2。
+- ensure 最多等待 15 秒，仅在服务未运行且锁空闲时启动一个候选进程；锁竞争输家继续等待胜者就绪。身份不符、接口不兼容、权限和启动错误明确失败；超时或调用者退出不强杀已启动的服务。
+- `internal/platform/` 启动当前可执行程序的 `service run`：macOS 使用独立 session，Windows 使用 detached process／独立进程组并隐藏窗口。stdin／stdout 接空设备，stderr 使用独立、有界的启动诊断管道，不继承调用者 STDIO，也不写入持久启动日志。调用者结束时关闭诊断管道，服务继续运行。
+- stop 仅在身份／兼容校验后读取 control 凭据并请求正常关闭；最多等 5 秒确认该目录的内核锁释放。HTTP 202 只表示已接收停止请求；超时返回 `stop_timeout`，不再次请求或按 PID 强杀。
+- 默认单次 HTTP 操作限时 2 秒，JSON 最多 16 KiB、响应头最多 8 KiB。`identity_unverified`、`incompatible_service`、`service_unavailable`、`credential_error`、`startup_failed`／`startup_timeout` 和 `stop_timeout` 区分故障；完整 code 以实现及测试为准。
+
 ## 3. HTTP 边界
 
 拟采用 `/api/v1/`，接口由 `internal/api/` 实现并通过注释生成文档。下表仅记录本轮协议方向，实际字段以相关 PR 的 Go 类型及注释为准。

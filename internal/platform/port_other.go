@@ -8,3 +8,5 @@ import (
 )
 
 func IsPortInUse(err error) bool { return errors.Is(err, syscall.EADDRINUSE) }
+
+func IsConnectionRefused(err error) bool { return errors.Is(err, syscall.ECONNREFUSED) }
