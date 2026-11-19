@@ -12,7 +12,7 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](01-local-service/spec.md)、[design](01-local-service/design.md)、[plan](01-local-service/plan.md)。
-- 当前步骤：PR 1-0 文档评审；详细拆分与验证证据见 plan。
+- 当前步骤：PR 1-0 [#4](https://github.com/Conflux-Chain/wallet-bridge/pull/4) 文档评审；详细拆分与验证证据见 plan。
 
 ## 3. 下一步
 
