@@ -76,4 +76,8 @@ go test -tags no_web ./internal/platform ./internal/credentials -count=1 -v
 
 预期：重复／部分初始化、损坏文件保护、权限拒绝、失败清理和六进程并发初始化测试通过。测试使用临时目录，结束后自动清理，不创建正式用户凭据。Windows 无符号链接创建权限时该项显示 `SKIP`，需要在具备权限的原生环境补验；不必为运行测试申请管理员权限。
 
+### 授权存储测试
+
+[SQLite 存储指南](docs/local-service.md#sqlite-存储测试与数据)提供迁移、到期／撤销、崩溃恢复和文件保护测试，以及正式数据库的位置与失败处理方式。
+
 当前 CLI 提供 `version` 和 `service run／ensure／status／stop`；浏览器授权及钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。

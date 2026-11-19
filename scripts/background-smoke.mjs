@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative } from 'node:path';
@@ -72,6 +72,12 @@ try {
   assert.equal((await run('stop')).state, 'stopped');
   mayHaveService = false;
 
+  await writeFile(join(data, 'bridge.db'), 'damaged database retained for inspection');
+  mayHaveService = true;
+  assert.equal((await run('ensure', data, 1)).code, 'storage_error');
+  mayHaveService = false;
+  assert.equal(await readFile(join(data, 'bridge.db'), 'utf8'), 'damaged database retained for inspection');
+
   let requests = 0, credentialsSent = false;
   foreign = createServer((req, res) => {
     requests++;
@@ -86,7 +92,7 @@ try {
   }
   assert.equal(requests, 3);
   assert.equal(credentialsSent, false, 'A forged service received a credential');
-  console.log(`Background smoke passed: ${goos}/${goarch}, six callers, persistent service, reuse, stop, restart, forged service, empty PATH`);
+  console.log(`Background smoke passed: ${goos}/${goarch}, six callers, persistent service, reuse, stop, restart, corrupt database, forged service, empty PATH`);
 } finally {
   if (foreign) await new Promise((resolve) => foreign.close(resolve));
   if (mayHaveService) {

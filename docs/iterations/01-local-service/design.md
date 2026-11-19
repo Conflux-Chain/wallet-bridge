@@ -104,9 +104,17 @@ info 可携带一次 32 字节小写十六进制 `challenge`，响应以 client 
 
 ## 6. 存储、页面与构建
 
-- SQLite 本轮仅引入 schema 版本、浏览器授权所需表及迁移；不预建 Session／交易表。驱动优先评估 modernc.org/sqlite，验证三个目标构建与真实读写后固定版本。
+- SQLite 本轮仅引入 schema 版本、浏览器授权所需表及迁移；不预建 Session／交易表。采用 `modernc.org/sqlite v1.62.0`（纯 Go、`database/sql`），三个目标构建与真实读写证据记入 plan。
 - React 页面先实现未授权说明、服务状态和退出；经注入的 `fs.FS` 由 HTTP 层提供。管理内容须经后端鉴权，前端路由不能充当权限边界。
 - 完整构建先构建前端，再编译带页面资源的 Go 程序；后端独立测试使用明确的无 UI 构建模式。开发预览不通过放宽生产 Origin 规则接入真实服务。
 - `internal/buildinfo/` 提供发行版本、Go／平台与 VCS 信息；CLI 的 `version --json` 同时报告是否内嵌页面。`web.Assets()` 返回页面资源，`no_web` 构建模式返回空资源集。
 - 各功能 PR 随带必要测试。并发启动、权限失败、假服务探测、授权重放和跨站访问需要行为验证；工程骨架以构建及命令 smoke 验证，不为简单脚手架增加镜像式单元测试。
 - 三平台 CI 覆盖实际可用的原生 runner；最低版本及缺失的目标环境另记实测证据。新系统 runner 和交叉编译均不能代替最低系统版本验收。
+
+### PR 1-5：授权存储
+
+- `internal/app/` 定义授权记录和使用方存储接口，`internal/store/` 实现 SQLite；本 PR 不增加授权流程、HTTP 或页面。记录仅含随机非敏感 ID、签发／到期／撤销时间；摘要作为写入／查找参数，不进入列表结果。原始 cookie 和一次性授权不落库。
+- 数据保存为私有目录下的 `bridge.db`，启动先预建／验证数据库及 `bridge.db-journal` 的受限权限，再以 `mode=rw` 打开。单连接、`journal_mode=PERSIST`、`synchronous=FULL`、1 秒 busy timeout，临时表使用内存；保留回滚日志减少重建文件。SQLite 崩溃恢复可能删除已消费的日志，应用写入前重新预建／验证保护。当前不接 WAL，已有 WAL／SHM 文件或不安全路径明确拒绝，不自动删除／修复。
+- schema 1 仅含 `browser_grants`：唯一 ID、唯一 SHA-256 token 摘要、UTC 毫秒时间戳。授权固定 30 天；查找要求签发时间已到、未撤销且尚未到期，不更新期限。撤销保留记录并保持首次撤销时间；用户入口在 PR 1-6 细化。
+- 用 SQLite `application_id` 标识本项目，`user_version` 记录 schema；迁移与版本更新在同一事务提交。拒绝较新 schema、其他应用或未标记的非空数据库；损坏文件保留，失败不报告服务就绪。只追加迁移，不自动降级。
+- 服务持锁且取得端口后，完成凭据及数据库初始化才接收 HTTP；数据库在释放服务锁前关闭。初始化失败返回 `storage_error`，后台 ensure 保留该 code。本 PR 用真实临时数据库验证迁移回滚、重开、到期／撤销、并发及文件保护，既有服务 smoke 同时验证无工具链启动。

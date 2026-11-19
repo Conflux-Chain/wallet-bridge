@@ -148,6 +148,9 @@ try {
   await assert.rejects(stat(join(otherData, 'client.key')), { code: 'ENOENT' });
 
   await stop(first, control);
+  const database = await readFile(join(data, 'bridge.db'));
+  assert.equal(database.subarray(0, 16).toString(), 'SQLite format 3\0', 'Production service did not initialize SQLite');
+  assert.ok((await stat(join(data, 'bridge.db-journal'))).isFile(), 'Protected rollback journal is missing');
   const restarted = await start(data);
   assert.ok(await credential(data, 'client') === client, 'Restart replaced the client credential');
   assert.ok(await credential(data, 'control') === control, 'Restart replaced the control credential');
