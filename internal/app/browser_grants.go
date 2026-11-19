@@ -27,4 +27,5 @@ type BrowserGrantStore interface {
 	FindActiveBrowserGrant(context.Context, [32]byte, time.Time) (BrowserGrant, error)
 	ListBrowserGrants(context.Context) ([]BrowserGrant, error)
 	RevokeBrowserGrant(context.Context, string, time.Time) error
+	RevokeAllBrowserGrants(context.Context, time.Time) (int64, error)
 }

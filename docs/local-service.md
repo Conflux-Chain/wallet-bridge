@@ -79,10 +79,12 @@ go test -tags no_web ./internal/api ./internal/platform ./internal/service ./int
 前置环境与工作目录同上，无需启动服务或浏览器：
 
 ```sh
-go test -tags no_web ./internal/store -count=1 -v
+go test -tags no_web ./internal/app ./internal/store -count=1 -v
 ```
 
-预期：迁移回滚、较新／未知 schema 拒绝、重复／并发写入、固定到期、撤销重开和真实子进程崩溃恢复测试通过，输出实际 SQLite 版本。测试使用临时数据库并自动清理；Windows 符号链接权限不足时该项跳过，其他权限检查仍执行。
+预期：授权核心的一次性凭据到期／限额／并发交换、失败不能重放、持久授权重开／退出／撤销，以及存储层的迁移回滚、schema 拒绝和真实子进程崩溃恢复测试通过，输出实际 SQLite 版本。测试使用可控时钟与临时数据库，无需等待 30 天，结束自动清理；Windows 符号链接权限不足时该项跳过，其他权限检查仍执行。
+
+授权核心目前是内部模块，服务尚未接入签发／交换和管理入口，现阶段通过上述命令验证；启动 CLI 或浏览器页面还不能完成授权。
 
 正式服务会在用户数据目录生成 `bridge.db` 和 `bridge.db-journal`，启动迁移完成后才报告就绪。当前只存浏览器授权摘要及元数据，授权交换接口尚未接入；不会保存钱包私钥或原始 cookie。正常停止和重启保留数据。
 

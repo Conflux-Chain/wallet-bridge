@@ -1,6 +1,6 @@
 # 迭代 1 PR 计划
 
-状态：2026-11-19 PR 1-4 已合并；PR 1-5 待评审。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
+状态：2026-11-19 PR 1-5 已合并；PR 1-6a 待评审。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
 
 ## 拆分
 
@@ -11,18 +11,21 @@
 | PR 1-2：本机凭据 | 用户数据目录、受限凭据文件与原子初始化；不接 HTTP 或 SQLite | 目录及文件权限、并发初始化、不覆盖已有密钥、失败清理；三个目标构建 | [#6](https://github.com/Conflux-Chain/wallet-bridge/pull/6) 已合并 |
 | PR 1-3：前台 HTTP 服务 | 进程锁、service run、版本／状态接口、鉴权与 Host／Origin 边界、正常停止；引入代码注释生成文档 | 并发锁、真实监听、占用、权限隔离、错误映射和正常退出；A-02～04 基础 | [#7](https://github.com/Conflux-Chain/wallet-bridge/pull/7) 已合并 |
 | PR 1-4：后台启动与复用 | 共享 client、后台进程、ensure／status／stop、身份探测、就绪与版本兼容；不增加页面授权入口 | 多进程并发、client 退出后常驻、假服务／不兼容／启动超时；A-02～03 | [#8](https://github.com/Conflux-Chain/wallet-bridge/pull/8) 已合并 |
-| PR 1-5：授权存储 | SQLite 驱动、schema 迁移与浏览器授权存储；不接页面或授权交换接口 | 迁移原子性、记录读写／重开、到期／撤销持久化；三个目标构建 | [#9](https://github.com/Conflux-Chain/wallet-bridge/pull/9) 待评审 |
-| PR 1-6：浏览器授权 | ui、一次性授权交换、管理 cookie、撤销与状态页；不调用钱包 | 重放／过期／跨站拒绝，重启保留、固定到期和撤销；A-04 本轮范围 | 待开发 |
+| PR 1-5：授权存储 | SQLite 驱动、schema 迁移与浏览器授权存储；不接页面或授权交换接口 | 迁移原子性、记录读写／重开、到期／撤销持久化；三个目标构建 | [#9](https://github.com/Conflux-Chain/wallet-bridge/pull/9) 已合并 |
+| PR 1-6a：授权核心 | 一次性凭据签发／消费、持久授权校验和撤销；暂不接 HTTP、CLI 或页面 | 重放／到期／并发消费、重启边界、存储失败、单个／全部撤销 | [#10](https://github.com/Conflux-Chain/wallet-bridge/pull/10) 待评审 |
+| PR 1-6b：授权 HTTP | 接入授权核心，提供交换／cookie／管理接口，同步生成接口文档 | 权限分离、同 origin、cookie 属性、受保护状态、错误和凭据不泄漏 | 待开发 |
+| PR 1-6c：授权 CLI | ui、浏览器启动及授权管理命令，共用已验证身份的 HTTP client | 一次性链接仅显式输出、打开失败处理、CLI 管理、三平台运行 | 待开发 |
+| PR 1-6d：授权页面 | 未授权说明、交换／状态及退出页面 | 地址 fragment 清理、30 天授权复用、到期／撤销反馈、真实浏览器呈现 | 待开发 |
 | PR 1-7：组合验收 | 三平台本轮组合流程、无工具链运行及交接资料；不补交此前 PR 应有的基础测试 | 汇总 A-01～04 证据，明确最低系统版本与缺失环境的待验收项 | 待开发 |
 
-PR 1-1～1-7 按顺序依赖；每个实现 PR 只引入当前能力需要的目录和依赖。PR 合并、自动检查、真实环境及用户验收分别记录。
+PR 1-1～1-7 按顺序依赖，其中 PR 1-6 按 a～d 分步交付，保持评审单元集中；每个实现 PR 只引入当前能力需要的目录和依赖。PR 合并、自动检查、真实环境及用户验收分别记录。
 
 ## 当前步骤
 
-- PR 1-4 已按用户“继续”的指令 Squash 合并为 `9e97185`，并清理其本地／远端分支；本地 main 已同步。
-- 当前分支：`feat/authorization-store`，从上述 main 创建，仅交付 PR 1-5。
-- [PR #9](https://github.com/Conflux-Chain/wallet-bridge/pull/9) 已创建；最新 head 的三平台原生结果见 [checks](https://github.com/Conflux-Chain/wallet-bridge/pull/9/checks)。
-- 本 PR 实现迁移与浏览器授权存储；授权流程／页面、钱包及 MCP 按后续 PR 交付。
+- PR 1-5 已按用户“继续”的指令 Squash 合并为 `8e4f4fe`，并清理其本地／远端分支；本地 main 已同步。
+- 当前分支：`feat/browser-authorization`，从上述 main 创建，交付 PR 1-6a；撤销入口已按 spec 第 6 节确认。
+- [PR #10](https://github.com/Conflux-Chain/wallet-bridge/pull/10) 已创建；三平台最新原生检查结果见 [checks](https://github.com/Conflux-Chain/wallet-bridge/pull/10/checks)，包括本机跳过的符号链接测试。
+- 授权 HTTP、CLI 和页面分别交付，钱包及 MCP 沿用后续迭代安排。
 
 ## 验证与限制
 
@@ -66,4 +69,11 @@ PR 1-1～1-7 按顺序依赖；每个实现 PR 只引入当前能力需要的目
 - 空 PATH 的三组 smoke 通过；正式程序启动完成 SQLite 初始化后才报告就绪，损坏数据库保持原内容，后台 ensure 返回 `storage_error`。
 - [SQLite 存储指南](../../local-service.md#sqlite-存储测试与数据)提供可复现命令、预期、临时数据清理、正式数据库位置及失败处理；README 提供入口。
 - 依赖校验、17 份 Markdown 的 118 个本地链接／37 个标题锚点及 Git 空白检查通过。
-- 三平台[原生 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/44496356848) 通过（`9c95549`），含真实读写、崩溃恢复、文件权限和数据库／日志符号链接拒绝；本机 Windows 跳过项已补验。后续文档提交的最新结果见本 PR checks；最低系统版本及真实浏览器授权尚未验收。
+- 三平台[原生 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/44497310341) 通过（最终 head `0e793c4`），含真实读写、崩溃恢复、文件权限和数据库／日志符号链接拒绝；本机 Windows 跳过项已补验。最低系统版本及真实浏览器授权尚未验收。
+
+### PR 1-6a
+
+- 核心行为和真实 SQLite 组合测试通过：一次性凭据到期／限额／并发消费、交换失败不能重放、每次校验持久状态、重启丢弃临时凭据并保留授权、退出／单个／全部撤销及历史保留。
+- Windows 完整／no_web Go 测试、go vet 和 app／store 的 race 检查通过；本机数据库符号链接测试因权限不足跳过，原生补验以本 PR checks 为准。
+- 前端与三目标无 CGO 构建、空 PATH 的三组 smoke，以及 17 份 Markdown 的 119 个本地链接／38 个标题锚点和 Git 空白检查通过。
+- 本 PR 只提供内部授权核心；HTTP、CLI 和页面分别在后续 PR 接入。撤销入口已确认，接入前通过[存储与核心测试指南](../../local-service.md#sqlite-存储测试与数据)验证。
