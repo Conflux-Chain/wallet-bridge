@@ -24,7 +24,7 @@
 | Windows | `%LOCALAPPDATA%\WalletBridge` |
 | macOS | `~/Library/Application Support/WalletBridge` |
 
-因此安装包可包含一个程序，运行后仍会有本地数据文件；除凭据外，后续还会有数据库等运行数据。数据独立于可执行文件，正常重启或同机更换程序版本时复用。
+因此安装包可包含一个程序，运行后仍会有本地数据文件；除凭据外，服务还会初始化数据库和回滚日志，见[存储测试与数据](local-service.md#sqlite-存储测试与数据)。数据独立于可执行文件，正常重启或同机更换程序版本时复用。
 
 ## 保存与恢复
 

@@ -20,7 +20,7 @@ import (
 
 func TestEnsureReportsStartupFailureOrTimeout(t *testing.T) {
 	for _, tc := range []struct{ name, code string }{
-		{"launch failed", "startup_failed"}, {"credential_error", "credential_error"}, {"unknown diagnostic", "startup_failed"}, {"already_running", "startup_timeout"}, {"waiting", "startup_timeout"}, {"port_in_use", "port_in_use"},
+		{"launch failed", "startup_failed"}, {"credential_error", "credential_error"}, {"storage_error", "storage_error"}, {"unknown diagnostic", "startup_failed"}, {"already_running", "startup_timeout"}, {"waiting", "startup_timeout"}, {"port_in_use", "port_in_use"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := newTestClient(t)

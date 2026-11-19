@@ -1,6 +1,6 @@
 # 本地服务开发与测试
 
-当前提供前台／后台服务、进程锁、HTTP 基础接口及内嵌页面。浏览器授权及钱包接入按[迭代计划](iterations/01-local-service/plan.md)交付。
+当前提供前台／后台服务、进程锁、HTTP 基础接口、内嵌页面及授权存储。浏览器授权流程及钱包接入按[迭代计划](iterations/01-local-service/plan.md)交付。
 
 ## 前置条件
 
@@ -14,7 +14,7 @@ npm --prefix web run service:smoke
 npm --prefix web run background:smoke
 ```
 
-预期分别输出 `Service smoke passed`、`Background smoke passed`，退出码均为 0。测试在空 PATH 下运行打包程序：前者检查 HTTP、资源、锁与控制停止；后者检查六个 CLI 并发 ensure、调用者退出后常驻、复用、重启、停止及假服务拒绝。macOS 另验前台 SIGTERM 正常退出。
+预期分别输出 `Service smoke passed`、`Background smoke passed`，退出码均为 0。测试在空 PATH 下运行打包程序：前者检查 HTTP、资源、锁、SQLite 初始化与控制停止；后者检查六个 CLI 并发 ensure、常驻、复用、重启、停止、损坏数据库保留及假服务拒绝。macOS 另验前台 SIGTERM 正常退出。
 
 脚本使用独立临时数据目录，结束时停止自身服务并清理目录，不初始化正式用户凭据。遇到已有端口占用时明确失败，不停止占用者。后台测试如无法确认自身服务已停止，会保留目录并报告错误，供排查。
 
@@ -73,3 +73,17 @@ go test -tags no_web ./internal/api ./internal/platform ./internal/service ./int
 ```
 
 生成步骤应成功退出；行为测试应通过，临时目录自动清理。Windows 符号链接测试可能因创建权限不足而跳过，规则同 [README 凭据测试](../README.md#本机凭据测试)。修改接口注释后重新生成并提交 JSON／YAML；CI 检查是否同步。
+
+## SQLite 存储测试与数据
+
+前置环境与工作目录同上，无需启动服务或浏览器：
+
+```sh
+go test -tags no_web ./internal/store -count=1 -v
+```
+
+预期：迁移回滚、较新／未知 schema 拒绝、重复／并发写入、固定到期、撤销重开和真实子进程崩溃恢复测试通过，输出实际 SQLite 版本。测试使用临时数据库并自动清理；Windows 符号链接权限不足时该项跳过，其他权限检查仍执行。
+
+正式服务会在用户数据目录生成 `bridge.db` 和 `bridge.db-journal`，启动迁移完成后才报告就绪。当前只存浏览器授权摘要及元数据，授权交换接口尚未接入；不会保存钱包私钥或原始 cookie。正常停止和重启保留数据。
+
+`storage_error` 表示数据库初始化／迁移失败，ensure 不会将其当作就绪。损坏文件、不安全权限、较新 schema 或不支持的日志文件不会被自动清理或降级；先用同目录 `service run` 排查，保留原数据。恢复或替换数据文件须在服务停止后进行。

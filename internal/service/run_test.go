@@ -17,6 +17,7 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/credentials"
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
+	"github.com/Conflux-Chain/wallet-bridge/internal/store"
 )
 
 func TestLifecycle(t *testing.T) {
@@ -58,6 +59,9 @@ func TestLifecycle(t *testing.T) {
 				t.Fatal("startup failed:", err)
 			case <-time.After(5 * time.Second):
 				t.Fatal("readiness timed out")
+			}
+			if info, err := os.Stat(filepath.Join(dir, store.DatabaseName)); err != nil || info.Size() == 0 {
+				t.Fatal("service became ready before database initialization", err)
 			}
 			clientToken, err := credentials.Read(dir, credentials.Client)
 			if err != nil {
@@ -118,22 +122,30 @@ func TestLifecycle(t *testing.T) {
 }
 
 func TestStartupFailureReleasesResources(t *testing.T) {
-	for _, stage := range []string{"port", "credentials", "readiness output"} {
+	for _, stage := range []string{"port", "credentials", "storage", "readiness output"} {
 		t.Run(stage, func(t *testing.T) {
 			dir := filepath.Join(t.TempDir(), "data")
 			config := Config{DataDir: dir, Version: "test"}
 			want := "port_in_use"
-			if stage == "credentials" {
+			if stage == "credentials" || stage == "storage" {
 				if err := platform.EnsurePrivateDir(dir); err != nil {
 					t.Fatal(err)
 				}
-				f, err := platform.CreatePrivateFile(filepath.Join(dir, "client.key"))
+				name := "client.key"
+				if stage == "storage" {
+					name = store.DatabaseName
+				}
+				f, err := platform.CreatePrivateFile(filepath.Join(dir, name))
 				if err != nil {
 					t.Fatal(err)
 				}
 				f.WriteString("damaged")
 				f.Close()
 				want = "credential_error"
+				if stage == "storage" {
+					want = "storage_error"
+					config.Ready = func() error { t.Error("reported readiness with corrupt storage"); return nil }
+				}
 			}
 			if stage == "readiness output" {
 				config.Ready = func() error { return io.ErrClosedPipe }

@@ -14,6 +14,7 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/credentials"
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
+	"github.com/Conflux-Chain/wallet-bridge/internal/store"
 )
 
 type Config struct {
@@ -74,6 +75,13 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 	if err != nil {
 		return &Error{"credential_error", "Cannot read the control credential", err}
 	}
+	initializing, cancelInitialization := context.WithTimeout(ctx, 5*time.Second)
+	database, err := store.Open(initializing, config.DataDir)
+	cancelInitialization()
+	if err != nil {
+		return &Error{"storage_error", "Cannot initialize or migrate the private database; existing data was retained", err}
+	}
+	defer database.Close()
 	stop := make(chan struct{})
 	var once sync.Once
 	handler, err := api.New(api.Config{

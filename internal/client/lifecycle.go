@@ -89,7 +89,7 @@ func (c *Client) Ensure(ctx context.Context) (Status, error) {
 				if !errors.As(err, &failure) || failure.Code != "service_unavailable" {
 					return Status{}, err
 				}
-			case "credential_error", "data_unavailable", "listen_failed", "configuration_error":
+			case "credential_error", "data_unavailable", "listen_failed", "configuration_error", "storage_error":
 				return Status{}, &Error{code, "The background service could not initialize; run service run to diagnose locally", result.Err}
 			default:
 				return Status{}, &Error{"startup_failed", "The background service exited before readiness was confirmed; run service run to diagnose locally", result.Err}

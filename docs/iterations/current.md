@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](01-local-service/spec.md)、[design](01-local-service/design.md)、[plan](01-local-service/plan.md)。
-- 当前步骤：PR 1-4 后台启动与服务复用已提交评审；PR 状态与验证证据见 plan，本地测试见[服务指南](../local-service.md)。
+- 当前步骤：PR 1-5 SQLite 授权存储；PR 状态与验证证据见 plan，本地测试见[服务指南](../local-service.md)。
 
 ## 3. 下一步
 
-完成 PR 1-4 的实现、检查与评审；合并后从最新 main 开始 PR 1-5 授权存储。
+完成 PR 1-5 的实现、检查与评审；合并后细化 PR 1-6 的撤销入口，再实现浏览器授权。
 
 ## 4. 验证记录
 
