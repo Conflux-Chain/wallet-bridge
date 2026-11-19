@@ -19,6 +19,16 @@
 | D-010 | 用户确认 | 按轮补充 spec、必要的 design doc，并计划以多个单一职责 PR 分步实现，见[迭代工作流](iterations/README.md) | 2026-11-18，用户补充的迭代开发要求 |
 | D-011 | 用户确认 | 首批跨平台、MetaMask／Fluent 验收、标准化钱包发现与同机运行范围，见[需求基线 §2](requirements.md#2-面向的-client-与交付方式) | 2026-11-19，用户对 S0-01 的两次答复 |
 | D-012 | 用户确认 | 首版附带 MCP Server，采用通用桥接；UI 跟踪、解码／严格模式、长期应用身份后续实现，见[迭代 0 结论](iterations/00-foundation/spec.md) | 2026-11-19，用户对 S0-02～03 的答复 |
+| D-013 | 用户确认 | 暂时仅本地开发，以独立分支与提交保留评审单元，见[迭代工作流](iterations/README.md) | 2026-11-19，用户对远端仓库问题的答复 |
+| D-014 | 用户确认 | Go 实现 CLI／HTTP／MCP，TypeScript 实现浏览器页面；配套工具另行选择，见[技术设计](iterations/00-foundation/design.md#1-语言与工具) | 2026-11-19，用户对语言建议答复“完全同意” |
+| D-015 | 用户确认 | 单仓库、单 Go module、独立 TS 前端工程，以及[模块职责与依赖](iterations/00-foundation/design.md#3-模块职责) | 2026-11-19，用户认可职责划分并要求继续细化目录 |
+| D-016 | 用户确认 | 采用 cmd／internal／web 等[目录骨架](iterations/00-foundation/design.md#4-目录结构)，按自审与本轮讨论修订 | 2026-11-19，先原则认可并要求客观复核，后答复“确认没问题，请继续” |
+| D-017 | 用户确认 | HTTP 层由 `internal/httpapi/` 改为 `internal/api/`；移除根目录 `api/`，采用 swaggo/swag 从代码注释生成到 `docs/swagger/`，见[接口文档设计](iterations/00-foundation/design.md#接口文档) | 2026-11-19，按用户建议调整后获确认；具体版本及生成流程待接口迭代验证 |
+| D-018 | 用户确认 | SQLite，经 `database/sql` 访问；纯 Go 驱动优先评估，见[持久化方案](iterations/00-foundation/design.md#6-持久化方案) | 2026-11-19，用户选择“SQLite（推荐）”；驱动版本及构建尚未验证 |
+| D-019 | 用户确认 | 多 client 共享服务，按请求／Session 凭据隔离；可显式共享凭据，浏览器管理页统一查看与审批，见[需求 §2](requirements.md#2-面向的-client-与交付方式) | 2026-11-19，用户选择“共享服务，按请求／Session 凭据隔离（推荐）”；具体凭据机制后续设计 |
+| D-020 | 用户确认 | MCP 使用官方 Go SDK 与 STDIO，通过统一可执行程序的子命令运行，见[进程与打包](iterations/00-foundation/design.md#2-进程与打包方向) | 2026-11-19，用户选择“单一程序，通过子命令启动 MCP（推荐）”；具体 tool 在迭代 5 细化 |
+| D-021 | 用户确认 | 前端采用 React + TypeScript + Vite，见[语言与工具](iterations/00-foundation/design.md#1-语言与工具) | 2026-11-19，用户选择该方案；版本与构建在迭代 1 验证 |
+| D-022 | 用户确认 | 原生构建与验收目标为 Windows amd64、macOS amd64／arm64，见[构建与平台范围](iterations/00-foundation/design.md#8-构建与平台范围) | 2026-11-19，用户选择三个目标；最低系统版本与实际运行待迭代 1 验证 |
 
 ## 新增记录时应包含
 
