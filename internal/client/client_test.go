@@ -21,8 +21,10 @@ import (
 	"time"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
+	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 	"github.com/Conflux-Chain/wallet-bridge/internal/credentials"
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
+	"github.com/Conflux-Chain/wallet-bridge/internal/store"
 )
 
 func newTestClient(t *testing.T) *Client {
@@ -35,6 +37,20 @@ func newTestClient(t *testing.T) *Client {
 	c.ensureTimeout = 300 * time.Millisecond
 	c.stopTimeout = 300 * time.Millisecond
 	return c
+}
+
+func testBrowserAuthorization(t *testing.T) *app.BrowserAuthorization {
+	t.Helper()
+	database, err := store.Open(context.Background(), filepath.Join(t.TempDir(), "data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { database.Close() })
+	core, err := app.NewBrowserAuthorization(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return core
 }
 
 func useServer(t *testing.T, c *Client, handler http.Handler) {
@@ -66,7 +82,7 @@ func TestStatusAndStopUseSeparateCredentials(t *testing.T) {
 	clientToken, _ := credentials.Read(c.dir, credentials.Client)
 	controlToken, _ := credentials.Read(c.dir, credentials.Control)
 	var stopped atomic.Bool
-	handler, err := api.New(api.Config{Version: "test", ClientToken: clientToken, ControlToken: controlToken, StartedAt: time.Now(), Stop: func() { stopped.Store(true) }})
+	handler, err := api.New(api.Config{Version: "test", ClientToken: clientToken, ControlToken: controlToken, StartedAt: time.Now(), Stop: func() { stopped.Store(true) }, BrowserAuthorization: testBrowserAuthorization(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

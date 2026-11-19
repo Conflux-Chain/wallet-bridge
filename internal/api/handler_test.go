@@ -11,17 +11,29 @@ import (
 	"testing"
 	"testing/fstest"
 	"time"
+
+	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 )
 
 var clientFixture = strings.Repeat("11", 32)
 var controlFixture = strings.Repeat("22", 32)
 
-func testHandler(t *testing.T, stop func()) http.Handler {
+func testHandler(t *testing.T, stop func(), browser ...*app.BrowserAuthorization) http.Handler {
 	t.Helper()
+	// These basic boundary tests never access storage. Browser behavior tests
+	// supply a real SQLite-backed core below instead of this unused dependency.
+	authorization, err := app.NewBrowserAuthorization(struct{ app.BrowserGrantStore }{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(browser) != 0 {
+		authorization = browser[0]
+	}
 	h, err := New(Config{
 		Version: "test", ClientToken: clientFixture, ControlToken: controlFixture,
 		StartedAt: time.Date(2026, 11, 19, 0, 0, 0, 0, time.UTC), Stop: stop,
-		Assets: fstest.MapFS{"index.html": {Data: []byte("<h1>Wallet Bridge</h1>")}, "assets/app.js": {Data: []byte("console.log('bridge')")}},
+		Assets:               fstest.MapFS{"index.html": {Data: []byte("<h1>Wallet Bridge</h1>")}, "assets/app.js": {Data: []byte("console.log('bridge')")}},
+		BrowserAuthorization: authorization,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -138,7 +150,7 @@ func TestInfoProofBindsMetadata(t *testing.T) {
 		t.Fatal("info response invalid", err)
 	}
 	proof := info.Proof
-	data := []byte(`{"name":"wallet-bridge","version":"test","apiVersion":{"major":1,"minor":0},"capabilities":["service.status","service.stop"],"ready":true,"challenge":"` + challenge + `"}`)
+	data := []byte(`{"name":"wallet-bridge","version":"test","apiVersion":{"major":1,"minor":1},"capabilities":["service.status","service.stop","browser.authorization"],"ready":true,"challenge":"` + challenge + `"}`)
 	key, _ := hex.DecodeString(clientFixture)
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte("wallet-bridge.info.v1\n"))

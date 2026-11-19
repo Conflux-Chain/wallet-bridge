@@ -8,23 +8,24 @@ const (
 
 type APIVersion struct {
 	Major int `json:"major" example:"1"`
-	Minor int `json:"minor" example:"0"`
+	Minor int `json:"minor" example:"1"`
 }
 
 type InfoResponse struct {
 	Name         string     `json:"name" example:"wallet-bridge"`
 	Version      string     `json:"version" example:"dev"`
 	APIVersion   APIVersion `json:"apiVersion"`
-	Capabilities []string   `json:"capabilities" example:"service.status,service.stop"`
+	Capabilities []string   `json:"capabilities" example:"service.status,service.stop,browser.authorization"`
 	Ready        bool       `json:"ready" example:"true"`
 	Challenge    string     `json:"challenge,omitempty"`
 	Proof        string     `json:"proof,omitempty"`
 }
 
 type StatusResponse struct {
-	State     string       `json:"state" example:"running"`
-	StartedAt string       `json:"startedAt" format:"date-time"`
-	Info      InfoResponse `json:"info"`
+	State     string                `json:"state" example:"running"`
+	StartedAt string                `json:"startedAt" format:"date-time"`
+	Info      InfoResponse          `json:"info"`
+	Browser   *BrowserGrantResponse `json:"browser,omitempty"`
 }
 
 type StopResponse struct {
@@ -34,4 +35,35 @@ type StopResponse struct {
 type ErrorResponse struct {
 	Code    string `json:"code" example:"unauthenticated"`
 	Message string `json:"message" example:"A valid Bearer token is required"`
+}
+
+type BrowserTicketResponse struct {
+	URL       string `json:"url"`
+	ExpiresAt string `json:"expiresAt" format:"date-time"`
+}
+
+type BrowserAuthorizeRequest struct {
+	Ticket string `json:"ticket" minlength:"64" maxlength:"64"`
+}
+
+type BrowserGrantResponse struct {
+	ID        string `json:"id"`
+	IssuedAt  string `json:"issuedAt" format:"date-time"`
+	ExpiresAt string `json:"expiresAt" format:"date-time"`
+	RevokedAt string `json:"revokedAt,omitempty" format:"date-time"`
+	State     string `json:"state" enums:"active,expired,revoked,not_yet_valid"`
+}
+
+type BrowserGrantListResponse struct {
+	Grants    []BrowserGrantResponse `json:"grants"`
+	NextAfter string                 `json:"nextAfter,omitempty"`
+}
+
+type BrowserRevokeRequest struct {
+	ID  string `json:"id,omitempty"`
+	All bool   `json:"all,omitempty"`
+}
+
+type BrowserRevokeResponse struct {
+	State string `json:"state" example:"revoked"`
 }

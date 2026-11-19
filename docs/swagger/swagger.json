@@ -4,14 +4,411 @@
     ],
     "swagger": "2.0",
     "info": {
-        "description": "Local service access. Wallet and browser authorization APIs are delivered in later iterations.",
+        "description": "Local service access and browser authorization. Wallet APIs are delivered in later iterations.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.0"
+        "version": "1.1"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
     "paths": {
+        "/browser/authorize": {
+            "post": {
+                "description": "Requires Origin http://127.0.0.1:18765, including for native HTTP callers. The ticket is consumed once; after a failed or lost exchange request a new link. Cookie is host-only, HttpOnly, SameSite=Strict, Path=/api/v1, with fixed expiration. The HTTP loopback cookie does not use Secure. JSON never returns the cookie secret. Request body is limited to 1024 bytes; query parameters are rejected.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Exchange a one-time ticket for browser authorization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exact local service origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "One-use ticket from the link fragment",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.BrowserAuthorizeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.BrowserGrantResponse"
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "Persistent browser management cookie"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/browser/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Requires the browser cookie and exact local Origin, even when a Bearer token is also present. Revokes the persistent grant before expiring its cookie. Accepts no body or an empty JSON object, limited to 1024 bytes; query parameters are rejected.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Log out the current browser",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exact local service origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.BrowserRevokeResponse"
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "Expires the current browser management cookie"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/control/browser-grants": {
+            "get": {
+                "security": [
+                    {
+                        "ControlBearer": []
+                    }
+                ],
+                "description": "Includes active, expired and revoked records, newest first. The cursor is the last grant ID from the preceding page. Browser cookies and client tokens cannot list grants. Secrets and their digests are never returned.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "List browser authorizations",
+                "parameters": [
+                    {
+                        "maximum": 50,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page size (default 50)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Last grant ID of the preceding page",
+                        "name": "after",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.BrowserGrantListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ControlBearer": []
+                    }
+                ],
+                "description": "Only the control token can issue links. The URL contains a two-minute, one-use secret in its fragment. Do not log or expose it in ordinary status output. Accepts no body or an empty JSON object.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Issue a browser authorization link",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/api.BrowserTicketResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/control/browser-grants/revoke": {
+            "post": {
+                "security": [
+                    {
+                        "ControlBearer": []
+                    }
+                ],
+                "description": "Requires the control token. Choose a single grant id or all=true, exclusively. Repeating revocation of an existing record succeeds without changing its first revocation time. Revoke-all also invalidates all outstanding authorization links. Request body is limited to 1024 bytes; query parameters are rejected.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Revoke browser authorization",
+                "parameters": [
+                    {
+                        "description": "Grant ID or all=true",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.BrowserRevokeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.BrowserRevokeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/control/stop": {
             "post": {
                 "security": [
@@ -126,6 +523,9 @@
                     },
                     {
                         "ControlBearer": []
+                    },
+                    {
+                        "BrowserCookie": []
                     }
                 ],
                 "produces": [
@@ -156,6 +556,12 @@
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
                     }
                 }
             }
@@ -171,7 +577,90 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 0
+                    "example": 1
+                }
+            }
+        },
+        "api.BrowserAuthorizeRequest": {
+            "type": "object",
+            "properties": {
+                "ticket": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.BrowserGrantListResponse": {
+            "type": "object",
+            "properties": {
+                "grants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.BrowserGrantResponse"
+                    }
+                },
+                "nextAfter": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.BrowserGrantResponse": {
+            "type": "object",
+            "properties": {
+                "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "issuedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "revokedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "expired",
+                        "revoked",
+                        "not_yet_valid"
+                    ]
+                }
+            }
+        },
+        "api.BrowserRevokeRequest": {
+            "type": "object",
+            "properties": {
+                "all": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.BrowserRevokeResponse": {
+            "type": "object",
+            "properties": {
+                "state": {
+                    "type": "string",
+                    "example": "revoked"
+                }
+            }
+        },
+        "api.BrowserTicketResponse": {
+            "type": "object",
+            "properties": {
+                "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "url": {
+                    "type": "string"
                 }
             }
         },
@@ -201,7 +690,8 @@
                     },
                     "example": [
                         "service.status",
-                        "service.stop"
+                        "service.stop",
+                        "browser.authorization"
                     ]
                 },
                 "challenge": {
@@ -227,6 +717,9 @@
         "api.StatusResponse": {
             "type": "object",
             "properties": {
+                "browser": {
+                    "$ref": "#/definitions/api.BrowserGrantResponse"
+                },
                 "info": {
                     "$ref": "#/definitions/api.InfoResponse"
                 },
@@ -251,6 +744,12 @@
         }
     },
     "securityDefinitions": {
+        "BrowserCookie": {
+            "description": "Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=\u003csecret\u003e; only browser status and logout accept it. Browser clients receive it through Set-Cookie, never through JSON.",
+            "type": "apiKey",
+            "name": "Cookie",
+            "in": "header"
+        },
         "ClientBearer": {
             "description": "Bearer token from the current user's client.key.",
             "type": "apiKey",

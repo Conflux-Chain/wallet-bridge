@@ -6,8 +6,64 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 0
+        example: 1
         type: integer
+    type: object
+  api.BrowserAuthorizeRequest:
+    properties:
+      ticket:
+        type: string
+    type: object
+  api.BrowserGrantListResponse:
+    properties:
+      grants:
+        items:
+          $ref: '#/definitions/api.BrowserGrantResponse'
+        type: array
+      nextAfter:
+        type: string
+    type: object
+  api.BrowserGrantResponse:
+    properties:
+      expiresAt:
+        format: date-time
+        type: string
+      id:
+        type: string
+      issuedAt:
+        format: date-time
+        type: string
+      revokedAt:
+        format: date-time
+        type: string
+      state:
+        enum:
+        - active
+        - expired
+        - revoked
+        - not_yet_valid
+        type: string
+    type: object
+  api.BrowserRevokeRequest:
+    properties:
+      all:
+        type: boolean
+      id:
+        type: string
+    type: object
+  api.BrowserRevokeResponse:
+    properties:
+      state:
+        example: revoked
+        type: string
+    type: object
+  api.BrowserTicketResponse:
+    properties:
+      expiresAt:
+        format: date-time
+        type: string
+      url:
+        type: string
     type: object
   api.ErrorResponse:
     properties:
@@ -26,6 +82,7 @@ definitions:
         example:
         - service.status
         - service.stop
+        - browser.authorization
         items:
           type: string
         type: array
@@ -45,6 +102,8 @@ definitions:
     type: object
   api.StatusResponse:
     properties:
+      browser:
+        $ref: '#/definitions/api.BrowserGrantResponse'
       info:
         $ref: '#/definitions/api.InfoResponse'
       startedAt:
@@ -63,11 +122,284 @@ definitions:
 host: 127.0.0.1:18765
 info:
   contact: {}
-  description: Local service access. Wallet and browser authorization APIs are delivered
+  description: Local service access and browser authorization. Wallet APIs are delivered
     in later iterations.
   title: Wallet Bridge Local API
-  version: "1.0"
+  version: "1.1"
 paths:
+  /browser/authorize:
+    post:
+      consumes:
+      - application/json
+      description: Requires Origin http://127.0.0.1:18765, including for native HTTP
+        callers. The ticket is consumed once; after a failed or lost exchange request
+        a new link. Cookie is host-only, HttpOnly, SameSite=Strict, Path=/api/v1,
+        with fixed expiration. The HTTP loopback cookie does not use Secure. JSON
+        never returns the cookie secret. Request body is limited to 1024 bytes; query
+        parameters are rejected.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: One-use ticket from the link fragment
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.BrowserAuthorizeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            Set-Cookie:
+              description: Persistent browser management cookie
+              type: string
+          schema:
+            $ref: '#/definitions/api.BrowserGrantResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Exchange a one-time ticket for browser authorization
+  /browser/logout:
+    post:
+      consumes:
+      - application/json
+      description: Requires the browser cookie and exact local Origin, even when a
+        Bearer token is also present. Revokes the persistent grant before expiring
+        its cookie. Accepts no body or an empty JSON object, limited to 1024 bytes;
+        query parameters are rejected.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            Set-Cookie:
+              description: Expires the current browser management cookie
+              type: string
+          schema:
+            $ref: '#/definitions/api.BrowserRevokeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Log out the current browser
+  /control/browser-grants:
+    get:
+      description: Includes active, expired and revoked records, newest first. The
+        cursor is the last grant ID from the preceding page. Browser cookies and client
+        tokens cannot list grants. Secrets and their digests are never returned.
+      parameters:
+      - description: Page size (default 50)
+        in: query
+        maximum: 50
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Last grant ID of the preceding page
+        in: query
+        name: after
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.BrowserGrantListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ControlBearer: []
+      summary: List browser authorizations
+    post:
+      consumes:
+      - application/json
+      description: Only the control token can issue links. The URL contains a two-minute,
+        one-use secret in its fragment. Do not log or expose it in ordinary status
+        output. Accepts no body or an empty JSON object.
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.BrowserTicketResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ControlBearer: []
+      summary: Issue a browser authorization link
+  /control/browser-grants/revoke:
+    post:
+      consumes:
+      - application/json
+      description: Requires the control token. Choose a single grant id or all=true,
+        exclusively. Repeating revocation of an existing record succeeds without changing
+        its first revocation time. Revoke-all also invalidates all outstanding authorization
+        links. Request body is limited to 1024 bytes; query parameters are rejected.
+      parameters:
+      - description: Grant ID or all=true
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.BrowserRevokeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.BrowserRevokeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ControlBearer: []
+      summary: Revoke browser authorization
   /control/stop:
     post:
       consumes:
@@ -162,13 +494,25 @@ paths:
           description: Method Not Allowed
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
       security:
       - ClientBearer: []
       - ControlBearer: []
+      - BrowserCookie: []
       summary: Read authenticated service status
 schemes:
 - http
 securityDefinitions:
+  BrowserCookie:
+    description: Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=<secret>;
+      only browser status and logout accept it. Browser clients receive it through
+      Set-Cookie, never through JSON.
+    in: header
+    name: Cookie
+    type: apiKey
   ClientBearer:
     description: Bearer token from the current user's client.key.
     in: header

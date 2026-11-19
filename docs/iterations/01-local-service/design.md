@@ -110,6 +110,16 @@ info 可携带一次 32 字节小写十六进制 `challenge`，响应以 client 
 - 授权期限从成功交换时起固定 30 天。单个撤销保留首次时间；全部撤销用一个 SQL 更新持久授权，成功后同时清空未消费的一次性凭据，避免旧链接重新授予管理权限。已有历史记录保留，其他实例在重启后也须查询持久撤销状态。
 - 本 PR 用核心行为测试和真实 SQLite 组合测试验证上述边界；HTTP 接线、cookie 属性、命令和页面分别在后续三个 PR 交付。
 
+### PR 1-6b：授权 HTTP
+
+- 服务启动时构造一个授权核心并注入 API。接口版本为 1.1，增加 `browser.authorization` capability；既有 client 的状态／停止协议保持兼容。
+- `POST /control/browser-grants` 使用 control 权限，返回一次性 `url`（`/#authorize=<ticket>`）和 `expiresAt`；`GET` 同路径分页列举授权元数据，`limit` 默认／最多 50，`after` 为上一页最后的授权 ID。响应不含 cookie 或摘要。
+- `POST /control/browser-grants/revoke` 使用 control 权限，JSON 体的 `id` 与 `all: true` 二选一；成功返回 `state: revoked`。全部撤销同时作废未消费链接，沿用核心的串行化保证。
+- `POST /browser/authorize` 以 JSON `ticket` 交换管理 cookie，只返回授权元数据；`POST /browser/logout` 只使用当前 cookie 撤销并清除它。两者要求精确同 origin，缺失 Origin 也拒绝；变更请求最多 1 KiB，拒绝查询参数、未知字段及多余 JSON。
+- cookie 名 `wallet_bridge_browser`，Path 为 `/api/v1`，HttpOnly、SameSite=Strict、不设置 Domain；固定 HTTP loopback 下不设置 Secure。到期时间来自持久授权，查询不重发 cookie；服务端到期／撤销检查是最终依据。
+- `/status` 接受本机 Bearer 或有效浏览器 cookie，使用 cookie 时附带当前授权元数据。显式 Authorization 优先，错误 Bearer 不回退 cookie；重复同名 cookie 拒绝。control 接口始终只接受 control Bearer。
+- HTTP 边界、真实数据库和空 PATH 的原生服务测试覆盖交换／重放、权限、跨站、cookie 属性、重启和撤销；浏览器实际 cookie／页面行为在 PR 1-6d 验证。字段和错误 code 随 Go 类型／注释生成到 Swagger。
+
 ## 6. 存储、页面与构建
 
 - SQLite 本轮仅引入 schema 版本、浏览器授权所需表及迁移；不预建 Session／交易表。采用 `modernc.org/sqlite v1.62.0`（纯 Go、`database/sql`），三个目标构建与真实读写证据记入 plan。

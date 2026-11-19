@@ -77,7 +77,7 @@ func TestStopWaitsForLockAndDoesNotRepeatRequest(t *testing.T) {
 	clientToken, _ := credentials.Read(c.dir, credentials.Client)
 	controlToken, _ := credentials.Read(c.dir, credentials.Control)
 	var stops atomic.Int32
-	handler, err := api.New(api.Config{Version: "test", ClientToken: clientToken, ControlToken: controlToken, StartedAt: time.Now(), Stop: func() { stops.Add(1) }})
+	handler, err := api.New(api.Config{Version: "test", ClientToken: clientToken, ControlToken: controlToken, StartedAt: time.Now(), Stop: func() { stops.Add(1) }, BrowserAuthorization: testBrowserAuthorization(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
