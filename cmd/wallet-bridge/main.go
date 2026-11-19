@@ -1,11 +1,17 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"io/fs"
 	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/buildinfo"
 	"github.com/Conflux-Chain/wallet-bridge/internal/cli"
+	"github.com/Conflux-Chain/wallet-bridge/internal/service"
 	"github.com/Conflux-Chain/wallet-bridge/web"
 )
 
@@ -13,5 +19,18 @@ func main() {
 	info := buildinfo.Current()
 	entry, err := fs.Stat(web.Assets(), "index.html")
 	info.UIEmbedded = err == nil && !entry.IsDir()
-	os.Exit(cli.Run(os.Args[1:], info, os.Stdout, os.Stderr))
+	os.Exit(cli.Run(os.Args[1:], cli.Dependencies{
+		BuildInfo: info,
+		RunService: func(dir string) error {
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
+			return service.Run(ctx, service.Config{
+				DataDir: dir, Version: info.Version, Assets: web.Assets(),
+				Ready: func() error {
+					_, err := fmt.Fprintf(os.Stdout, "wallet-bridge ready at %s\n", api.Origin)
+					return err
+				},
+			})
+		},
+	}, os.Stdout, os.Stderr))
 }
