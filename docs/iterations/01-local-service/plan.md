@@ -1,6 +1,6 @@
 # 迭代 1 PR 计划
 
-状态：2026-11-19 PR 1-6a 已合并；PR 1-6b 开发中。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
+状态：2026-11-19 PR 1-6a 已合并；PR 1-6b 已提交，待评审。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
 
 ## 拆分
 
@@ -13,7 +13,7 @@
 | PR 1-4：后台启动与复用 | 共享 client、后台进程、ensure／status／stop、身份探测、就绪与版本兼容；不增加页面授权入口 | 多进程并发、client 退出后常驻、假服务／不兼容／启动超时；A-02～03 | [#8](https://github.com/Conflux-Chain/wallet-bridge/pull/8) 已合并 |
 | PR 1-5：授权存储 | SQLite 驱动、schema 迁移与浏览器授权存储；不接页面或授权交换接口 | 迁移原子性、记录读写／重开、到期／撤销持久化；三个目标构建 | [#9](https://github.com/Conflux-Chain/wallet-bridge/pull/9) 已合并 |
 | PR 1-6a：授权核心 | 一次性凭据签发／消费、持久授权校验和撤销；暂不接 HTTP、CLI 或页面 | 重放／到期／并发消费、重启边界、存储失败、单个／全部撤销 | [#10](https://github.com/Conflux-Chain/wallet-bridge/pull/10) 已合并 |
-| PR 1-6b：授权 HTTP | 接入授权核心，提供交换／cookie／管理接口，同步生成接口文档 | 权限分离、同 origin、cookie 属性、受保护状态、错误和凭据不泄漏 | 开发中 |
+| PR 1-6b：授权 HTTP | 接入授权核心，提供交换／cookie／管理接口，同步生成接口文档 | 权限分离、同 origin、cookie 属性、受保护状态、错误和凭据不泄漏 | [#11](https://github.com/Conflux-Chain/wallet-bridge/pull/11) 待评审 |
 | PR 1-6c：授权 CLI | ui、浏览器启动及授权管理命令，共用已验证身份的 HTTP client | 一次性链接仅显式输出、打开失败处理、CLI 管理、三平台运行 | 待开发 |
 | PR 1-6d：授权页面 | 未授权说明、交换／状态及退出页面 | 地址 fragment 清理、30 天授权复用、到期／撤销反馈、真实浏览器呈现 | 待开发 |
 | PR 1-7：组合验收 | 三平台本轮组合流程、无工具链运行及交接资料；不补交此前 PR 应有的基础测试 | 汇总 A-01～04 证据，明确最低系统版本与缺失环境的待验收项 | 待开发 |
@@ -23,7 +23,7 @@ PR 1-1～1-7 按顺序依赖，其中 PR 1-6 按 a～d 分步交付，保持评�
 ## 当前步骤
 
 - PR 1-6a 已按用户“继续”的指令 Squash 合并为 `6583dec`，并清理其本地／远端分支；本地 main 已同步。
-- 当前分支：`feat/browser-authorization-http`，从上述 main 创建，交付 PR 1-6b；撤销入口已按 spec 第 6 节确认。
+- 当前分支：`feat/browser-authorization-http`，从上述 main 创建；PR 1-6b 已提交为 #11，待评审；撤销入口已按 spec 第 6 节确认。
 - 授权 HTTP、CLI 和页面分别交付，钱包及 MCP 沿用后续迭代安排。
 
 ## 验证与限制
@@ -84,4 +84,4 @@ PR 1-1～1-7 按顺序依赖，其中 PR 1-6 按 a～d 分步交付，保持评�
 - 真实 SQLite 的 HTTP 测试验证交换／重放、同 origin、cookie 属性、权限分离、重复 cookie、失败输出、到期／重启／撤销、分页及链接限额；既有 client 的身份和状态／停止测试通过。
 - 空 PATH 的原生 service smoke 验证签发链接、交换 cookie、重放拒绝、重启保留期限、临时链接失效、退出及撤销持久化。Swagger 已按类型／注释生成；本地复现与清理见[授权 HTTP 测试](../../local-service.md#浏览器授权-http-测试)。
 - version／background smoke、17 份 Markdown 的 123 个本地链接／42 个标题锚点及 Git 空白检查通过。
-- 三平台原生结果随本 PR checks 记录；真实浏览器 cookie／页面验收、授权 CLI 及最低系统版本仍待相应 PR／环境验证。
+- 三平台原生结果见 [#11 checks](https://github.com/Conflux-Chain/wallet-bridge/pull/11/checks)；真实浏览器 cookie／页面验收、授权 CLI 及最低系统版本仍待相应 PR／环境验证。
