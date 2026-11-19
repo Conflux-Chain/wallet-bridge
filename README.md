@@ -20,4 +20,20 @@
 
 ## 开发命令
 
-工程建立后补充经实际验证的准备、构建、测试与运行命令。
+工具版本见 [go.mod](go.mod)、[.node-version](.node-version) 和 [web/package.json](web/package.json)。在仓库根目录执行：
+
+```sh
+npm ci --prefix web
+npm --prefix web run bundle
+go test ./...
+go vet ./...
+npm --prefix web run smoke
+```
+
+`bundle` 先构建页面，再将其内嵌到当前平台的 `dist/wallet-bridge-<os>-<arch>` 程序中（Windows 后缀为 `.exe`）。运行该程序的 `version --json` 查看构建信息；`smoke` 在空 PATH 下检查命令与页面打包结果。
+
+- 三目标构建：`npm --prefix web run bundle:all`（Windows amd64、macOS amd64／arm64）。
+- 前端开发预览：`npm --prefix web run dev`。
+- 无页面的后端开发：`go test -tags no_web ./...`、`go run -tags no_web ./cmd/wallet-bridge version --json`。
+
+当前仅提供工程骨架与 `version`；本地服务及钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。

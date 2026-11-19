@@ -1,13 +1,13 @@
 # 迭代 1 PR 计划
 
-状态：2026-11-19 文档待评审，尚未编码。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
+状态：2026-11-19 PR 1-0 已合并；PR 1-1 已实现，准备提交评审。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
 
 ## 拆分
 
 | 步骤 | 单一目标与边界 | 检查与验收 | 状态 |
 |---|---|---|---|
-| PR 1-0：需求与设计 | 确认本轮行为、凭据交付、系统版本及分步计划；同步全局资料 | 文档一致、链接有效，未实现与待验证项明确 | [#4](https://github.com/Conflux-Chain/wallet-bridge/pull/4) 待评审 |
-| PR 1-1：工程骨架 | Go module、最小 CLI version、React／Vite 页面、资源封装、构建脚本与基础 CI；固定所需工具版本 | 前端检查、完整构建、三目标构建及 version smoke；A-01 基础 | 待开发 |
+| PR 1-0：需求与设计 | 确认本轮行为、凭据交付、系统版本及分步计划；同步全局资料 | 文档一致、链接有效，未实现与待验证项明确 | [#4](https://github.com/Conflux-Chain/wallet-bridge/pull/4) 已合并 |
+| PR 1-1：工程骨架 | Go module、最小 CLI version、React／Vite 页面、资源封装、构建脚本与基础 CI；固定所需工具版本 | 前端检查、完整构建、三目标构建及 version smoke；A-01 基础 | 已实现，待创建 PR |
 | PR 1-2：本机凭据 | 用户数据目录、受限凭据文件与原子初始化；不接 HTTP 或 SQLite | 目录及文件权限、并发初始化、不覆盖已有密钥、失败清理；三个目标构建 | 待开发 |
 | PR 1-3：前台 HTTP 服务 | 进程锁、service run、版本／状态接口、鉴权与 Host／Origin 边界、正常停止；引入代码注释生成文档 | 并发锁、真实监听、占用、权限隔离、错误映射和正常退出；A-02～04 基础 | 待开发 |
 | PR 1-4：后台启动与复用 | 共享 client、后台进程、ensure／status／stop、身份探测、就绪与版本兼容；不增加页面授权入口 | 多进程并发、client 退出后常驻、假服务／不兼容／启动超时；A-02～03 | 待开发 |
@@ -19,13 +19,14 @@ PR 1-1～1-7 按顺序依赖；每个实现 PR 只引入当前能力需要的目
 
 ## 当前步骤
 
-- 分支：`docs/iteration-1-local-service`，从已同步的 `main`（`12a00a9`）创建。
-- S1-01～02 已获用户答复；服务默认值与协议方向供本 PR 评审，不表示已实现。
-- PR 1-0 已创建；评审合并后从最新 main 开 PR 1-1 的独立分支。
+- PR 1-0 已按用户授权 Squash 合并为 `3233abb`；本地 main 已同步。
+- 当前分支：`feat/project-skeleton`，从上述 main 创建，仅交付 PR 1-1。
+- 工程骨架包含 version、内嵌页面、原生／交叉构建脚本与三平台 CI；HTTP、凭据、SQLite、钱包及 MCP 不在本 PR 范围。
 
 ## 验证与限制
 
-- 已读取本机工具版本，核对 Go 最低系统要求与当前补丁版本，以及 Vite 的 Node.js 要求；未安装或更新工具链。
-- Chrome／钱包版本和真实兼容性仍待实测。
-- 本 PR 只检查文档；尚未执行构建、数据库、锁、HTTP、浏览器或最低系统版本测试。
-- 2026-11-19：15 份 Markdown、82 个本地链接及 23 个标题锚点检查通过，无行尾空白；Git 空白检查通过。
+- PR 1-0：15 份 Markdown、82 个本地链接及 23 个标题锚点检查通过，无行尾空白；Git 空白检查通过。
+- PR 1-1 本地 Windows amd64：npm ci、前端类型检查与生产构建、完整 Go 测试（含内嵌资源引用检查）、no_web 构建／运行、go vet、原生打包与空 PATH 的 CLI smoke 均通过。
+- Windows amd64、macOS amd64／arm64 三目标交叉构建通过。Go 按 go.mod 自动下载并使用 1.27.4；前端依赖审计未发现已知漏洞。
+- CI 配置 Windows x64、macOS Intel／Apple Silicon 原生 runner；实际执行结果随 PR checks 记录，交叉编译不算原生运行证据。
+- 最低系统版本、浏览器呈现、Chrome／钱包兼容性及真实 agent 尚未验收；数据库、锁、HTTP、浏览器授权按后续 PR 验证。

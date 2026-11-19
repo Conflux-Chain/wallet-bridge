@@ -1,6 +1,6 @@
 # 迭代 1 技术设计
 
-状态：2026-11-19 评审草案，尚未实现或验证。范围见 [spec](spec.md)，模块与目录沿用[迭代 0 设计](../00-foundation/design.md)。本轮只细化本地服务。
+状态：2026-11-19 已确认，实现与验证进度见 [plan](plan.md)。范围见 [spec](spec.md)，模块与目录沿用[迭代 0 设计](../00-foundation/design.md)。本轮只细化本地服务。
 
 ## 1. 默认值与工具
 
@@ -10,10 +10,10 @@
 | 数据目录 | Windows：`%LOCALAPPDATA%/WalletBridge`；macOS：`~/Library/Application Support/WalletBridge` |
 | 就绪／停止等待 | ensure 最多 15 秒；正常停止最多等待 5 秒，超时不自动强杀 |
 | 浏览器授权 | 一次性链接 2 分钟有效；浏览器授权固定有效 30 天 |
-| Go | 1.27 系列，PR 1-1 固定并验证补丁版本，候选 1.27.4 |
-| 前端工具 | Node.js 24、npm 11；使用 package-lock.json，PR 1-1 固定兼容版本 |
+| Go | 1.27.4，固定于 go.mod |
+| 前端工具 | Node.js 24.19.0、npm 11.17.0；依赖固定于 web/package.json 和 package-lock.json |
 
-系统版本下限由用户确认，依据 [Go 最低系统要求](https://go.dev/wiki/MinimumRequirements)。本机 Go 1.27.0、Node.js 24.19.0、npm 11.17.0 已可运行；这不代表目标系统运行验证已通过。Vite 的 Node.js 要求以[官方说明](https://vite.dev/guide/)及实际依赖版本核对。
+系统版本下限由用户确认，依据 [Go 最低系统要求](https://go.dev/wiki/MinimumRequirements)。Vite 的 Node.js 要求已按[官方说明](https://vite.dev/guide/)及实际依赖版本核对；构建结果不代替最低系统版本验收。
 
 ## 2. 进程与就绪
 
@@ -77,5 +77,6 @@ JSON 错误使用 `code`、`message`；校验失败、未认证、权限不足�
 - SQLite 本轮仅引入 schema 版本、浏览器授权所需表及迁移；不预建 Session／交易表。驱动优先评估 modernc.org/sqlite，验证三个目标构建与真实读写后固定版本。
 - React 页面先实现未授权说明、服务状态和退出；经注入的 `fs.FS` 由 HTTP 层提供。管理内容须经后端鉴权，前端路由不能充当权限边界。
 - 完整构建先构建前端，再编译带页面资源的 Go 程序；后端独立测试使用明确的无 UI 构建模式。开发预览不通过放宽生产 Origin 规则接入真实服务。
+- `internal/buildinfo/` 提供发行版本、Go／平台与 VCS 信息；CLI 的 `version --json` 同时报告是否内嵌页面。`web.Assets()` 返回页面资源，`no_web` 构建模式返回空资源集。
 - 各功能 PR 随带必要测试。并发启动、权限失败、假服务探测、授权重放和跨站访问需要行为验证；工程骨架以构建及命令 smoke 验证，不为简单脚手架增加镜像式单元测试。
 - 三平台 CI 覆盖实际可用的原生 runner；最低版本及缺失的目标环境另记实测证据。新系统 runner 和交叉编译均不能代替最低系统版本验收。

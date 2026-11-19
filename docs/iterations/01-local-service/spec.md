@@ -1,6 +1,6 @@
 # 迭代 1：本地服务
 
-状态：2026-11-19 需求与方案细化中，尚未编码。沿用[需求基线](../../requirements.md)和[迭代 0 设计](../00-foundation/design.md)；技术细节见 [design](design.md)，交付安排见 [plan](plan.md)。
+状态：2026-11-19 已确认。沿用[需求基线](../../requirements.md)和[迭代 0 设计](../00-foundation/design.md)；技术细节见 [design](design.md)，交付与验收进度见 [plan](plan.md)。
 
 ## 1. 目标与边界
 
