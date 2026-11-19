@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { createServer } from 'node:http';
+import { createServer, request } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,8 +18,8 @@ const data = join(temporary, 'data');
 let mayHaveService = false;
 let foreign;
 
-async function run(action, directory = data, expected = 0) {
-  const child = spawn(binary, ['service', action, '--data-dir', directory, '--json'], {
+async function runCLI(args, expected = 0, json = true) {
+  const child = spawn(binary, args, {
     cwd: root, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
   });
   let stdout = '', stderr = '';
@@ -35,13 +35,48 @@ async function run(action, directory = data, expected = 0) {
     assert.equal(result.signal, null, 'CLI exceeded its deadline');
     assert.equal(result.code, expected, stderr);
     assert.equal(expected === 0 ? stderr : stdout, '', 'CLI mixed success and error streams');
-    return JSON.parse(expected === 0 ? stdout : stderr);
+    const output = expected === 0 ? stdout : stderr;
+    return json ? JSON.parse(output) : output;
   } finally { clearTimeout(timer); }
+}
+
+function run(action, directory = data, expected = 0) {
+  return runCLI(['service', action, '--data-dir', directory, '--json'], expected);
+}
+
+function browserCommand(action, args = [], expected = 0) {
+  return runCLI(['browser', action, ...args, '--data-dir', data, '--json'], expected);
+}
+
+async function authorizationLink() {
+  const output = await runCLI(['ui', '--print-url', '--data-dir', data], 0, false);
+  const url = new URL(output.trim());
+  assert.ok(url.origin === 'http://127.0.0.1:18765' && url.pathname === '/' && url.search === '' && /^#authorize=[0-9a-f]{64}$/.test(url.hash), 'Invalid CLI authorization link');
+  return url.hash.slice('#authorize='.length);
+}
+
+function browserHTTP(path, { ticket, cookie } = {}) {
+  return new Promise((resolve, reject) => {
+    const req = request({
+      hostname: '127.0.0.1', port: 18765, path, method: ticket === undefined ? 'GET' : 'POST', agent: false,
+      headers: { Origin: 'http://127.0.0.1:18765', ...(cookie ? { Cookie: cookie } : {}), ...(ticket === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    }, (res) => {
+      let body = '';
+      res.setEncoding('utf8').on('data', (chunk) => { body += chunk; });
+      res.on('error', reject);
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
+    });
+    req.setTimeout(3000, () => req.destroy(new Error('Browser HTTP test timed out')));
+    req.on('error', reject);
+    req.end(ticket === undefined ? undefined : JSON.stringify({ ticket }));
+  });
 }
 
 try {
   assert.equal((await run('status')).state, 'stopped');
   assert.equal((await run('stop')).state, 'stopped');
+  assert.equal((await browserCommand('list', [], 1)).code, 'service_not_running');
+  assert.equal((await browserCommand('revoke', ['--all'], 1)).code, 'service_not_running');
   await assert.rejects(stat(data), { code: 'ENOENT' });
 
   mayHaveService = true;
@@ -63,12 +98,46 @@ try {
   assert.equal((await run('status')).state, 'stopped');
   assert.equal((await run('stop')).state, 'stopped');
   mayHaveService = true;
+  const firstTicket = await authorizationLink();
   const restarted = await run('ensure');
   assert.equal(restarted.state, 'running');
   assert.notEqual(restarted.startedAt, statuses[0].startedAt);
   for (const [index, name] of ['client', 'control'].entries()) {
     assert.ok(await readFile(join(data, `${name}.key`), 'utf8') === credentials[index], 'Restart replaced a credential');
   }
+
+  const browsers = [];
+  for (const ticket of [firstTicket, await authorizationLink()]) {
+    const response = await browserHTTP('/api/v1/browser/authorize', { ticket });
+    assert.equal(response.status, 200, 'CLI link could not be exchanged');
+    const cookie = response.headers['set-cookie']?.[0]?.split(';')[0];
+    assert.ok(cookie, 'Browser cookie was not set');
+    browsers.push({ cookie, grant: JSON.parse(response.body) });
+  }
+  const page = await browserCommand('list', ['--limit', '1']);
+  assert.equal(page.grants.length, 1);
+  assert.ok(page.nextAfter, 'CLI pagination cursor missing');
+  const next = await browserCommand('list', ['--limit', '1', '--after', page.nextAfter]);
+  assert.equal(next.grants.length, 1);
+  assert.notEqual(next.grants[0].id, page.grants[0].id);
+  assert.equal(next.nextAfter, undefined);
+  const table = await runCLI(['browser', 'list', '--data-dir', data], 0, false);
+  assert.ok(table.includes('ISSUED AT') && table.includes('active'), 'Readable authorization list is missing');
+  assert.ok(!table.includes(firstTicket) && !browsers.some(({ cookie }) => table.includes(cookie.split('=')[1])), 'CLI list disclosed credentials');
+  await run('stop');
+  await run('ensure');
+  const restored = await browserHTTP('/api/v1/status', browsers[0]);
+  assert.equal(restored.status, 200);
+  assert.equal(JSON.parse(restored.body).browser.expiresAt, browsers[0].grant.expiresAt, 'Restart renewed authorization');
+  assert.equal((await browserCommand('revoke', [browsers[0].grant.id])).state, 'revoked');
+  assert.equal((await browserHTTP('/api/v1/status', browsers[0])).status, 401);
+  assert.equal((await browserHTTP('/api/v1/status', browsers[1])).status, 200);
+  const pendingTicket = await authorizationLink();
+  assert.equal((await browserCommand('revoke', ['--all'])).state, 'revoked');
+  assert.equal((await browserHTTP('/api/v1/status', browsers[1])).status, 401);
+  assert.equal((await browserHTTP('/api/v1/browser/authorize', { ticket: pendingTicket })).status, 401);
+  assert.ok((await browserCommand('list')).grants.every((grant) => grant.state === 'revoked'), 'CLI revocation history was not retained');
+  assert.equal((await browserCommand('revoke', ['f'.repeat(32)], 1)).code, 'browser_grant_not_found');
   assert.equal((await run('stop')).state, 'stopped');
   mayHaveService = false;
 
@@ -90,9 +159,12 @@ try {
   for (const action of ['status', 'ensure', 'stop']) {
     assert.equal((await run(action, data, 1)).code, 'identity_unverified');
   }
-  assert.equal(requests, 3);
+  assert.equal((await browserCommand('list', [], 1)).code, 'identity_unverified');
+  assert.equal((await browserCommand('revoke', ['--all'], 1)).code, 'identity_unverified');
+  await runCLI(['ui', '--data-dir', data, '--print-url'], 1, false);
+  assert.equal(requests, 6);
   assert.equal(credentialsSent, false, 'A forged service received a credential');
-  console.log(`Background smoke passed: ${goos}/${goarch}, six callers, persistent service, reuse, stop, restart, corrupt database, forged service, empty PATH`);
+  console.log(`Background smoke passed: ${goos}/${goarch}, six callers, persistent service, reuse, stop, restart, CLI authorization links, pagination, revoke, corrupt database, forged service, empty PATH`);
 } finally {
   if (foreign) await new Promise((resolve) => foreign.close(resolve));
   if (mayHaveService) {

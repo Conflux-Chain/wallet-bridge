@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](01-local-service/spec.md)、[design](01-local-service/design.md)、[plan](01-local-service/plan.md)。
-- 当前步骤：[PR 1-6b／#11](https://github.com/Conflux-Chain/wallet-bridge/pull/11) 授权 HTTP 已提交，待评审；浏览器授权按 a～d 四个 PR 交付，详见 plan。本地测试见[服务指南](../local-service.md)。
+- 当前步骤：PR 1-6c 授权 CLI 开发中；浏览器授权按 a～d 四个 PR 交付，详见 plan。本地测试见[服务指南](../local-service.md)。
 
 ## 3. 下一步
 
-完成 PR 1-6b 的评审；合并后再交付授权 CLI。
+完成 PR 1-6c 的实现与评审；合并后再交付授权页面。
 
 ## 4. 验证记录
 

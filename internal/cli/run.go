@@ -8,6 +8,7 @@ import (
 	"io"
 	"path/filepath"
 
+	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/buildinfo"
 	"github.com/Conflux-Chain/wallet-bridge/internal/client"
 )
@@ -16,10 +17,14 @@ type Dependencies struct {
 	BuildInfo     buildinfo.Info
 	RunService    func(dataDir string) error
 	ManageService func(action, dataDir string) (client.Status, error)
+	BrowserLink   func(dataDir string) (api.BrowserTicketResponse, error)
+	ListBrowsers  func(dataDir string, limit int, after string) (api.BrowserGrantListResponse, error)
+	RevokeBrowser func(dataDir, id string, all bool) (api.BrowserRevokeResponse, error)
+	OpenBrowser   func(url string) error
 }
 
 const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status|stop [--data-dir <absolute path>] [--json]"
-const usage = "Usage: wallet-bridge version [--json]\n" + serviceUsage
+const usage = "Usage: wallet-bridge version [--json]\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage
 
 func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
 	info := dependencies.BuildInfo
@@ -29,6 +34,12 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 	}
 	if args[0] == "service" {
 		return runService(args[1:], dependencies, stdout, stderr)
+	}
+	if args[0] == "ui" {
+		return runUI(args[1:], dependencies, stdout, stderr)
+	}
+	if args[0] == "browser" {
+		return runBrowser(args[1:], dependencies, stdout, stderr)
 	}
 	if args[0] != "version" {
 		fmt.Fprintf(stderr, "Unknown command: %s\n%s\n", args[0], usage)

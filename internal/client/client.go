@@ -2,6 +2,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
@@ -14,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -68,9 +70,16 @@ func New(dir string) (*Client, error) {
 var errNotRunning = errors.New("service is not listening")
 var errConnectionChanged = errors.New("the verified connection closed")
 
+type requestOptions struct {
+	control  bool
+	browser  bool
+	body     []byte
+	expected int
+}
+
 // request pins the proof and authenticated request to a single connection.
 // A transport retry cannot dial a replacement endpoint with a Bearer token.
-func (c *Client) request(ctx context.Context, method, path string, control bool) ([]byte, api.InfoResponse, error) {
+func (c *Client) request(ctx context.Context, method, path string, options requestOptions) ([]byte, api.InfoResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.operationTimeout)
 	defer cancel()
 	var empty api.InfoResponse
@@ -125,18 +134,24 @@ func (c *Client) request(ctx context.Context, method, path string, control bool)
 	if info.APIVersion.Major != 1 || info.APIVersion.Minor < 0 || !hasCapabilities(info.Capabilities) {
 		return nil, empty, &Error{"incompatible_service", "The service API or required capabilities are incompatible; use its matching program to stop it before changing versions", nil}
 	}
+	if options.browser && !slices.Contains(info.Capabilities, "browser.authorization") {
+		return nil, empty, &Error{"incompatible_service", "The service does not support browser authorization; use its matching program to stop it before changing versions", nil}
+	}
 	if !info.Ready {
 		return nil, empty, &Error{"service_unavailable", "The verified service is not ready", nil}
 	}
 	token := clientToken
-	if control {
+	if options.control {
 		token, err = credentials.Read(c.dir, credentials.Control)
 		if err != nil {
 			return nil, empty, &Error{"credential_error", "Cannot read the control credential", err}
 		}
 	}
-	req, _ := http.NewRequestWithContext(ctx, method, api.Origin+path, nil)
+	req, _ := http.NewRequestWithContext(ctx, method, api.Origin+path, bytes.NewReader(options.body))
 	req.Header.Set("Authorization", "Bearer "+token)
+	if len(options.body) != 0 {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	response, err = httpClient.Do(req)
 	if err != nil {
 		if errors.Is(err, errConnectionChanged) {
@@ -144,12 +159,11 @@ func (c *Client) request(ctx context.Context, method, path string, control bool)
 		}
 		return nil, empty, &Error{"request_failed", "The verified service request failed", err}
 	}
-	expected := http.StatusOK
-	if control {
-		expected = http.StatusAccepted
-	}
-	data, err = readResponse(response, expected)
+	data, err = readResponse(response, options.expected)
 	if err != nil {
+		if options.browser {
+			return nil, empty, browserResponseError(err)
+		}
 		return nil, empty, &Error{"request_failed", "The verified service returned an unexpected response", err}
 	}
 	info.Challenge, info.Proof = "", ""
@@ -158,9 +172,6 @@ func (c *Client) request(ctx context.Context, method, path string, control bool)
 
 func readResponse(response *http.Response, expected int) ([]byte, error) {
 	defer response.Body.Close()
-	if response.StatusCode != expected {
-		return nil, errors.New("unexpected HTTP status")
-	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, (16<<10)+1))
 	if err != nil {
 		return nil, err
@@ -168,8 +179,18 @@ func readResponse(response *http.Response, expected int) ([]byte, error) {
 	if len(data) > 16<<10 {
 		return nil, errors.New("response exceeds 16 KiB")
 	}
+	if response.StatusCode != expected {
+		return nil, &responseError{status: response.StatusCode, body: data}
+	}
 	return data, nil
 }
+
+type responseError struct {
+	status int
+	body   []byte
+}
+
+func (*responseError) Error() string { return "unexpected HTTP status" }
 
 func verify(info api.InfoResponse, challenge, token string) bool {
 	if info.Name != "wallet-bridge" || info.Challenge != challenge {
