@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](01-local-service/spec.md)、[design](01-local-service/design.md)、[plan](01-local-service/plan.md)。
-- 当前步骤：PR 1-1 工程骨架；实现范围、PR 状态与验证证据见 plan，开发命令见 [README](../../README.md#开发命令)。
+- 当前步骤：PR 1-2 本机凭据；实现范围、PR 状态与验证证据见 plan，开发命令见 [README](../../README.md#开发命令)。
 
 ## 3. 下一步
 
-完成 PR 1-1 评审与合并后，再从最新 main 开始 PR 1-2 本机凭据；HTTP、浏览器授权和钱包调用按后续 PR 交付。
+完成 PR 1-2 的实现、检查与评审；合并后从最新 main 开始 PR 1-3 前台 HTTP 服务。
 
 ## 4. 验证记录
 

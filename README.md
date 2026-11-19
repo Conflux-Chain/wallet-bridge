@@ -57,4 +57,14 @@ go run ./cmd/wallet-bridge version --json
 - 三目标构建：`npm --prefix web run bundle:all`（Windows amd64、macOS amd64／arm64）。
 - 无页面的后端开发：`go test -tags no_web ./...`、`go run -tags no_web ./cmd/wallet-bridge version --json`。
 
-当前仅提供工程骨架与 `version`；本地服务及钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。
+### 本机凭据测试
+
+本轮提供内部 API，通过真实文件和多进程测试检查初始化及权限；在仓库根目录执行，前置环境同上，无需启动页面：
+
+```sh
+go test -tags no_web ./internal/platform ./internal/credentials -count=1 -v
+```
+
+预期：重复／部分初始化、损坏文件保护、权限拒绝、失败清理和六进程并发初始化测试通过。测试使用临时目录，结束后自动清理，不创建正式用户凭据。Windows 无符号链接创建权限时该项显示 `SKIP`，需要在具备权限的原生环境补验；不必为运行测试申请管理员权限。
+
+当前 CLI 提供 `version`；本地服务及钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。

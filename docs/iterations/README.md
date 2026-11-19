@@ -39,7 +39,7 @@
 
 本仓库通过 [GitHub PR](https://github.com/Conflux-Chain/wallet-bridge/pulls) 交付：从最新 `main` 创建独立任务分支，完成单一评审单元后提交 PR，检查及评审通过后按用户授权合并。
 
-合并后同步本地 `main`；下一个评审单元从更新后的 `main` 另开分支。仓库当前采用 Squash merge，依赖分支需基于合并后的 `main` 整理，再提交后续 PR。
+合并后同步本地 `main`；核对任务分支没有未合入的改动后清理其本地／远端分支。下一个评审单元从更新后的 `main` 另开分支。仓库当前采用 Squash merge，依赖分支需基于合并后的 `main` 整理，再提交后续 PR。
 
 ## 迭代收尾
 

@@ -1,14 +1,14 @@
 # 迭代 1 PR 计划
 
-状态：2026-11-19 PR 1-0 已合并；PR 1-1 待评审。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
+状态：2026-11-19 PR 1-1 已合并；PR 1-2 已实现，待创建 PR。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
 
 ## 拆分
 
 | 步骤 | 单一目标与边界 | 检查与验收 | 状态 |
 |---|---|---|---|
 | PR 1-0：需求与设计 | 确认本轮行为、凭据交付、系统版本及分步计划；同步全局资料 | 文档一致、链接有效，未实现与待验证项明确 | [#4](https://github.com/Conflux-Chain/wallet-bridge/pull/4) 已合并 |
-| PR 1-1：工程骨架 | Go module、最小 CLI version、React／Vite 页面、资源封装、构建脚本与基础 CI；固定所需工具版本 | 前端检查、完整构建、三目标构建及 version smoke；A-01 基础 | [#5](https://github.com/Conflux-Chain/wallet-bridge/pull/5) 待评审 |
-| PR 1-2：本机凭据 | 用户数据目录、受限凭据文件与原子初始化；不接 HTTP 或 SQLite | 目录及文件权限、并发初始化、不覆盖已有密钥、失败清理；三个目标构建 | 待开发 |
+| PR 1-1：工程骨架 | Go module、最小 CLI version、React／Vite 页面、资源封装、构建脚本与基础 CI；固定所需工具版本 | 前端检查、完整构建、三目标构建及 version smoke；A-01 基础 | [#5](https://github.com/Conflux-Chain/wallet-bridge/pull/5) 已合并 |
+| PR 1-2：本机凭据 | 用户数据目录、受限凭据文件与原子初始化；不接 HTTP 或 SQLite | 目录及文件权限、并发初始化、不覆盖已有密钥、失败清理；三个目标构建 | 已实现，待创建 PR |
 | PR 1-3：前台 HTTP 服务 | 进程锁、service run、版本／状态接口、鉴权与 Host／Origin 边界、正常停止；引入代码注释生成文档 | 并发锁、真实监听、占用、权限隔离、错误映射和正常退出；A-02～04 基础 | 待开发 |
 | PR 1-4：后台启动与复用 | 共享 client、后台进程、ensure／status／stop、身份探测、就绪与版本兼容；不增加页面授权入口 | 多进程并发、client 退出后常驻、假服务／不兼容／启动超时；A-02～03 | 待开发 |
 | PR 1-5：授权存储 | SQLite 驱动、schema 迁移与浏览器授权存储；不接页面或授权交换接口 | 迁移原子性、记录读写／重开、到期／撤销持久化；三个目标构建 | 待开发 |
@@ -19,9 +19,9 @@ PR 1-1～1-7 按顺序依赖；每个实现 PR 只引入当前能力需要的目
 
 ## 当前步骤
 
-- PR 1-0 已按用户授权 Squash 合并为 `3233abb`；本地 main 已同步。
-- 当前分支：`feat/project-skeleton`，从上述 main 创建，仅交付 PR 1-1。
-- 工程骨架包含 version、内嵌页面、原生／交叉构建脚本与三平台 CI；HTTP、凭据、SQLite、钱包及 MCP 不在本 PR 范围。
+- PR 1-1 已按用户“继续”的指令 Squash 合并为 `8b08f32`，并清理其本地／远端分支；本地 main 已同步。
+- 当前分支：`feat/local-credentials`，从上述 main 创建，仅交付 PR 1-2。
+- 本 PR 先细化凭据文件方案，再实现平台权限、独立密钥初始化与行为测试；HTTP、SQLite、钱包及 MCP 按后续 PR 交付。
 
 ## 验证与限制
 
@@ -32,3 +32,9 @@ PR 1-1～1-7 按顺序依赖；每个实现 PR 只引入当前能力需要的目
 - CI 配置 Windows x64、macOS Intel／Apple Silicon 原生 runner；实际执行结果随 PR checks 记录，交叉编译不算原生运行证据。
 - 用户已确认按 Vite 开发服务器方式预览时页面正常显示；本地测试步骤、预期结果及停止方式已补齐到 [README](../../../README.md#开发命令)。
 - 最低系统版本、完整浏览器／钱包兼容性及真实 agent 尚未验收；数据库、锁、HTTP、浏览器授权按后续 PR 验证。
+
+### PR 1-2
+
+- Windows 本地完整／no_web Go 测试、go vet、前端／三目标程序构建及空 PATH smoke 通过；两种 macOS 架构的新增测试程序交叉编译通过。
+- 真实文件测试覆盖权限拒绝、重复／部分初始化、损坏文件保留、独立读取、随机源失败清理及六进程同时初始化。测试在临时目录执行，步骤与预期见 [README](../../../README.md#本机凭据测试)。
+- 本机 Windows 符号链接测试因缺少创建权限跳过；原生 CI 将显示各项执行／跳过结果。macOS ACL 与最低系统版本尚未本地实测；其他普通用户身份的访问隔离仍需验收。
