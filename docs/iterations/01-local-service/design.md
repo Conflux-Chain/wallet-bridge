@@ -7,7 +7,7 @@
 | 项目 | 本轮方案 |
 |---|---|
 | Origin | 固定 `http://127.0.0.1:18765`；占用时报错 |
-| 数据目录 | Windows：`%LOCALAPPDATA%/WalletBridge`；macOS：`~/Library/Application Support/WalletBridge` |
+| 数据目录 | 见[本机服务访问凭据](../../local-credentials.md#用户需要准备什么) |
 | 就绪／停止等待 | ensure 最多 15 秒；正常停止最多等待 5 秒，超时不自动强杀 |
 | 浏览器授权 | 一次性链接 2 分钟有效；浏览器授权固定有效 30 天 |
 | Go | 1.27.4，固定于 go.mod |

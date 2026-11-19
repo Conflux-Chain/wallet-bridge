@@ -56,7 +56,7 @@ UI 链上跟踪留待后续，再补充 RPC 来源与确认语义。
 
 共享与隔离方向已确认；凭据交付、撤销、页面会话及执行归属仍待详细设计。真实环境约束在迭代 0～1 补充。
 
-浏览器管理授权的有效期与重启行为见[需求 §2](requirements.md#2-面向的-client-与交付方式)；本轮本机凭据与浏览器权限分离、一次性授权及服务就绪方案见[迭代 1 设计](iterations/01-local-service/design.md)。这些机制尚未实现或验证。
+浏览器管理授权的有效期与重启行为见[需求 §2](requirements.md#2-面向的-client-与交付方式)；本机令牌的用途和自动管理方式见[凭据说明](local-credentials.md)，权限分离、一次性授权及服务就绪方案见[迭代 1 设计](iterations/01-local-service/design.md)。各项实现与验证进度见[当前迭代](iterations/current.md)。
 
 ## 4. 设计维护
 
