@@ -41,3 +41,4 @@ jobs:
       - run: go vet ./...
       - run: npm --prefix web run smoke
       - run: npm --prefix web run service:smoke
+      - run: npm --prefix web run background:smoke

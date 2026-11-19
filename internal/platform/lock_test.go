@@ -78,6 +78,9 @@ func TestServiceLockAcrossProcesses(t *testing.T) {
 				}
 				t.Fatalf("contender unexpectedly acquired lock: %v", err)
 			}
+			if locked, err := ServiceLocked(dir); err != nil || !locked {
+				t.Fatalf("cannot observe another process's lock: %v", err)
+			}
 			if crash {
 				if err := cmd.Process.Kill(); err != nil {
 					t.Fatal(err)
@@ -94,6 +97,9 @@ func TestServiceLockAcrossProcesses(t *testing.T) {
 			}
 			if err := lock.Close(); err != nil {
 				t.Fatal(err)
+			}
+			if locked, err := ServiceLocked(dir); err != nil || locked {
+				t.Fatalf("released lock still appears held: %v", err)
 			}
 			if _, err := os.Stat(filepath.Join(dir, "service.lock")); err != nil {
 				t.Fatal("lock file must remain after release", err)

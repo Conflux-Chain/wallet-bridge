@@ -33,3 +33,28 @@ func AcquireServiceLock(dir string) (*ServiceLock, error) {
 func (l *ServiceLock) Close() error {
 	return errors.Join(unlockFile(l.file), l.file.Close())
 }
+
+// ServiceLocked checks an existing lock without creating a directory or file.
+func ServiceLocked(dir string) (bool, error) {
+	if err := CheckPrivateDir(dir); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+	f, err := OpenPrivateFile(filepath.Join(dir, "service.lock"))
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+	if err := lockFile(f); err != nil {
+		if errors.Is(err, ErrLocked) {
+			return true, nil
+		}
+		return false, err
+	}
+	return false, unlockFile(f)
+}

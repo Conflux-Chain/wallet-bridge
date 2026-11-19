@@ -16,6 +16,7 @@
     "bundle:all": "node ../scripts/build.mjs --all",
     "swagger": "node ../scripts/swagger.mjs",
     "service:smoke": "node ../scripts/service-smoke.mjs",
+    "background:smoke": "node ../scripts/background-smoke.mjs",
     "smoke": "node ../scripts/smoke.mjs",
     "preview": "vite preview --host 127.0.0.1"
   },

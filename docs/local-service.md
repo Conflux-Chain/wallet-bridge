@@ -1,6 +1,6 @@
 # 本地服务开发与测试
 
-PR 1-3 提供前台服务、进程锁、HTTP 基础接口及内嵌页面。后台 ensure／status／stop 命令、浏览器授权及钱包接入按[迭代计划](iterations/01-local-service/plan.md)交付。
+当前提供前台／后台服务、进程锁、HTTP 基础接口及内嵌页面。浏览器授权及钱包接入按[迭代计划](iterations/01-local-service/plan.md)交付。
 
 ## 前置条件
 
@@ -11,11 +11,33 @@ PR 1-3 提供前台服务、进程锁、HTTP 基础接口及内嵌页面。后�
 ```sh
 npm --prefix web run bundle
 npm --prefix web run service:smoke
+npm --prefix web run background:smoke
 ```
 
-预期输出 `Service smoke passed`，退出码为 0。测试在空 PATH 下运行打包程序，检查 HTTP 鉴权、Host／Origin、页面与 JavaScript 资源、锁竞争、端口冲突、重启复用凭据及控制停止；macOS 另验 SIGTERM 正常退出。
+预期分别输出 `Service smoke passed`、`Background smoke passed`，退出码均为 0。测试在空 PATH 下运行打包程序：前者检查 HTTP、资源、锁与控制停止；后者检查六个 CLI 并发 ensure、调用者退出后常驻、复用、重启、停止及假服务拒绝。macOS 另验前台 SIGTERM 正常退出。
 
-脚本使用独立临时数据目录，结束时关闭自身启动的进程并清理该目录，不初始化正式用户凭据。遇到已有端口占用时明确失败，不停止占用者。
+脚本使用独立临时数据目录，结束时停止自身服务并清理目录，不初始化正式用户凭据。遇到已有端口占用时明确失败，不停止占用者。后台测试如无法确认自身服务已停止，会保留目录并报告错误，供排查。
+
+## 后台启动、查询与停止
+
+完成构建后，以 Windows PowerShell 为例：
+
+```powershell
+.\dist\wallet-bridge-windows-amd64.exe service status --json
+.\dist\wallet-bridge-windows-amd64.exe service ensure --json
+.\dist\wallet-bridge-windows-amd64.exe service status --json
+.\dist\wallet-bridge-windows-amd64.exe service stop --json
+```
+
+macOS 将程序路径替换为 `./dist/wallet-bridge-darwin-arm64`（Intel 为 `darwin-amd64`），其余参数相同。
+
+预期：原本未运行时，首个 status 返回 `state: stopped`，且不创建目录／凭据；ensure 返回 `running` 及服务信息，CLI 随后退出。再次 status 仍为 `running`，重复 ensure 保持相同 `startedAt`。stop 在确认服务锁释放后返回 `stopped`；对已停止的服务再次 stop 仍成功。上述命令退出码均为 0。
+
+命令可追加 `--data-dir <绝对路径>`；同一组操作使用同一目录，端口始终固定。停止后保留数据，重启复用凭据。只执行后台 ensure／status 的终端可直接关闭，服务继续运行；使用 stop 明确停止。
+
+ensure 最多等待 15 秒，stop 最多 5 秒。超时或调用者退出不会强杀候选／服务；之后先查询 status。运行错误返回 1；带 `--json` 时，错误 `{code,message}` 只写 stderr，成功结果只写 stdout；参数错误返回 2。
+
+`identity_unverified` 表示无法确认端口服务身份；`incompatible_service` 表示接口或能力不兼容，须用匹配版本程序的 stop（或原前台终端 Ctrl+C）正常停止，再启动新版本。这两类失败均不发送访问令牌或自动替换服务。`service_unavailable` 表示仍持锁或暂时无法应答；后台初始化失败可用同目录的 `service run` 查看错误。
 
 ## 手动启动与访问
 
@@ -47,7 +69,7 @@ npm --prefix web run service:smoke
 
 ```sh
 npm --prefix web run swagger
-go test -tags no_web ./internal/api ./internal/platform ./internal/service ./internal/cli -count=1 -v
+go test -tags no_web ./internal/api ./internal/platform ./internal/service ./internal/client ./internal/cli -count=1 -v
 ```
 
 生成步骤应成功退出；行为测试应通过，临时目录自动清理。Windows 符号链接测试可能因创建权限不足而跳过，规则同 [README 凭据测试](../README.md#本机凭据测试)。修改接口注释后重新生成并提交 JSON／YAML；CI 检查是否同步。

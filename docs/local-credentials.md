@@ -1,6 +1,6 @@
 # 本机服务访问凭据
 
-本文说明迭代 1 的凭据方案，实现进度见 [plan](iterations/01-local-service/plan.md)。当前 `service run` 会初始化凭据并为 HTTP 接口鉴权，启动与测试步骤见[本地服务指南](local-service.md)。后台 CLI／MCP 自动读取接入按后续 PR 交付。运行 `version` 或 Vite 预览不会生成正式凭据。
+本文说明迭代 1 的凭据方案，实现进度见 [plan](iterations/01-local-service/plan.md)。前台／后台启动均自动初始化凭据；ensure／status／stop 自动读取所需令牌并先验证服务身份。启动与测试步骤见[本地服务指南](local-service.md)。MCP 接入按后续迭代交付；运行 `version` 或 Vite 预览不会生成正式凭据。
 
 ## 用途
 

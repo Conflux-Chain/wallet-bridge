@@ -11,6 +11,7 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/buildinfo"
 	"github.com/Conflux-Chain/wallet-bridge/internal/cli"
+	"github.com/Conflux-Chain/wallet-bridge/internal/client"
 	"github.com/Conflux-Chain/wallet-bridge/internal/service"
 	"github.com/Conflux-Chain/wallet-bridge/web"
 )
@@ -21,6 +22,22 @@ func main() {
 	info.UIEmbedded = err == nil && !entry.IsDir()
 	os.Exit(cli.Run(os.Args[1:], cli.Dependencies{
 		BuildInfo: info,
+		ManageService: func(action, dir string) (client.Status, error) {
+			c, err := client.New(dir)
+			if err != nil {
+				return client.Status{}, err
+			}
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
+			switch action {
+			case "ensure":
+				return c.Ensure(ctx)
+			case "stop":
+				return c.Stop(ctx)
+			default:
+				return c.Status(ctx)
+			}
+		},
 		RunService: func(dir string) error {
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()

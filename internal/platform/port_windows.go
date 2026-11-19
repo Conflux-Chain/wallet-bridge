@@ -12,3 +12,7 @@ import (
 func IsPortInUse(err error) bool {
 	return errors.Is(err, syscall.EADDRINUSE) || errors.Is(err, windows.WSAEADDRINUSE) || errors.Is(err, windows.WSAEACCES)
 }
+
+func IsConnectionRefused(err error) bool {
+	return errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, windows.WSAECONNREFUSED)
+}

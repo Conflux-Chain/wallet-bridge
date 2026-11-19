@@ -19,7 +19,7 @@
 | [架构概览](docs/architecture.md) | 组件职责、流程与信任边界 |
 | [决策记录](docs/decisions.md) | 决策依据及待定事项 |
 | [验收清单](docs/acceptance.md) | 验收场景及证据要求 |
-| [本地服务测试](docs/local-service.md) | 前台启动、访问、停止及自动测试步骤 |
+| [本地服务测试](docs/local-service.md) | 前台／后台启动、查询、访问、停止及自动测试步骤 |
 
 ## 开发命令
 
@@ -49,16 +49,17 @@ go test ./...
 go vet ./...
 npm --prefix web run smoke
 npm --prefix web run service:smoke
+npm --prefix web run background:smoke
 go run ./cmd/wallet-bridge version --json
 ```
 
-预期：命令全部成功退出，两个 smoke 分别输出 `Smoke passed` 和 `Service smoke passed`；version 输出 JSON，其中 `uiEmbedded` 为 `true`。服务测试要求固定端口空闲，使用临时目录并自动清理，详见[本地服务测试](docs/local-service.md)。
+预期：命令全部成功退出，三个 smoke 分别输出 `Smoke passed`、`Service smoke passed` 和 `Background smoke passed`；version 输出 JSON，其中 `uiEmbedded` 为 `true`。服务测试要求固定端口空闲，使用临时目录，停止测试服务后清理，详见[本地服务测试](docs/local-service.md)。
 
 `bundle` 先构建页面，再将其内嵌到当前平台的 `dist/wallet-bridge-<os>-<arch>` 程序中（Windows 后缀为 `.exe`）。该程序支持 `version --json`；`smoke` 在空 PATH 下检查独立程序的命令与页面打包结果。构建检查与浏览器预览分别验证。
 
-### 前台服务
+### 本地服务
 
-构建后按[本地服务指南](docs/local-service.md#手动启动与访问)启动 `service run`，通过固定地址访问内嵌页面，并在终端按 `Ctrl+C` 停止。指南同时说明凭据生成、常见启动错误和接口文档生成方式。
+构建后按[本地服务指南](docs/local-service.md)使用前台 `service run` 或后台 `service ensure`。指南包含查询／停止、页面地址、预期结果、凭据生成、常见错误及接口文档生成方式。
 
 ### 其他开发方式
 
@@ -75,4 +76,4 @@ go test -tags no_web ./internal/platform ./internal/credentials -count=1 -v
 
 预期：重复／部分初始化、损坏文件保护、权限拒绝、失败清理和六进程并发初始化测试通过。测试使用临时目录，结束后自动清理，不创建正式用户凭据。Windows 无符号链接创建权限时该项显示 `SKIP`，需要在具备权限的原生环境补验；不必为运行测试申请管理员权限。
 
-当前 CLI 提供 `version` 和 `service run`；后台服务管理、浏览器授权及钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。
+当前 CLI 提供 `version` 和 `service run／ensure／status／stop`；浏览器授权及钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。
