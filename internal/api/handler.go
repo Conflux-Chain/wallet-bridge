@@ -15,15 +15,18 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 )
 
 type Config struct {
-	Version      string
-	ClientToken  string
-	ControlToken string
-	Assets       fs.FS
-	StartedAt    time.Time
-	Stop         func()
+	Version              string
+	ClientToken          string
+	ControlToken         string
+	Assets               fs.FS
+	StartedAt            time.Time
+	Stop                 func()
+	BrowserAuthorization *app.BrowserAuthorization
 }
 
 type handler struct {
@@ -37,18 +40,20 @@ func New(config Config) (http.Handler, error) {
 	control, controlErr := hex.DecodeString(config.ControlToken)
 	if err != nil || controlErr != nil || len(key) != 32 || len(control) != 32 ||
 		hex.EncodeToString(key) != config.ClientToken || hex.EncodeToString(control) != config.ControlToken ||
-		config.ClientToken == config.ControlToken || config.Stop == nil {
+		config.ClientToken == config.ControlToken || config.Stop == nil || config.BrowserAuthorization == nil {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 0},
-		Capabilities: []string{"service.status", "service.stop"}, Ready: true,
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 1},
+		Capabilities: []string{"service.status", "service.stop", "browser.authorization"}, Ready: true,
 	}}, nil
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("X-Frame-Options", "DENY")
 	if r.Host != Address {
 		failure(w, http.StatusForbidden, "invalid_host", "The fixed loopback Host is required")
 		return
@@ -63,12 +68,37 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.getInfo(w, r)
 		}
 	case "/api/v1/status":
-		if method(w, r, http.MethodGet) && h.authorize(w, r, false) {
-			h.getStatus(w, r)
+		if method(w, r, http.MethodGet) {
+			if grant, ok := h.authorizeStatus(w, r); ok {
+				h.getStatus(w, r, grant)
+			}
 		}
 	case "/api/v1/control/stop":
 		if method(w, r, http.MethodPost) && h.authorize(w, r, true) {
 			h.stop(w, r)
+		}
+	case "/api/v1/control/browser-grants":
+		if r.Method != http.MethodGet && r.Method != http.MethodPost {
+			w.Header().Set("Allow", "GET, POST")
+			failure(w, http.StatusMethodNotAllowed, "method_not_allowed", "Unsupported HTTP method")
+		} else if h.authorize(w, r, true) {
+			if r.Method == http.MethodPost {
+				h.issueBrowserTicket(w, r)
+			} else {
+				h.listBrowserGrants(w, r)
+			}
+		}
+	case "/api/v1/control/browser-grants/revoke":
+		if method(w, r, http.MethodPost) && h.authorize(w, r, true) {
+			h.revokeBrowserGrants(w, r)
+		}
+	case "/api/v1/browser/authorize":
+		if method(w, r, http.MethodPost) && sameOrigin(w, r) {
+			h.authorizeBrowser(w, r)
+		}
+	case "/api/v1/browser/logout":
+		if method(w, r, http.MethodPost) && sameOrigin(w, r) {
+			h.logoutBrowser(w, r)
 		}
 	default:
 		if strings.HasPrefix(r.URL.Path, "/api/") {
@@ -151,15 +181,22 @@ func (h *handler) getInfo(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security ClientBearer
 // @Security ControlBearer
+// @Security BrowserCookie
 // @Success 200 {object} StatusResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 403 {object} ErrorResponse
 // @Failure 405 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /status [get]
-func (h *handler) getStatus(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, StatusResponse{
+func (h *handler) getStatus(w http.ResponseWriter, _ *http.Request, browser *app.BrowserGrant) {
+	response := StatusResponse{
 		State: "running", StartedAt: h.config.StartedAt.UTC().Format(time.RFC3339Nano), Info: h.info,
-	})
+	}
+	if browser != nil {
+		metadata := browserGrantResponse(*browser, time.Now())
+		response.Browser = &metadata
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 // stop requests graceful shutdown; the response acknowledges the request.
@@ -177,36 +214,45 @@ func (h *handler) getStatus(w http.ResponseWriter, _ *http.Request) {
 // @Failure 415 {object} ErrorResponse
 // @Router /control/stop [post]
 func (h *handler) stop(w http.ResponseWriter, r *http.Request) {
+	if !decodeBody(w, r, &struct{}{}, true) {
+		return
+	}
+	writeJSON(w, http.StatusAccepted, StopResponse{State: "stopping"})
+	h.config.Stop()
+}
+
+func decodeBody(w http.ResponseWriter, r *http.Request, target any, allowEmpty bool) bool {
 	if r.URL.RawQuery != "" {
 		failure(w, http.StatusBadRequest, "bad_request", "Query parameters are not accepted")
-		return
+		return false
 	}
 	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, MaxControlBody))
 	if err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			failure(w, http.StatusRequestEntityTooLarge, "request_too_large", "Control request exceeds 1024 bytes")
+			failure(w, http.StatusRequestEntityTooLarge, "request_too_large", "Request exceeds 1024 bytes")
 		} else {
 			failure(w, http.StatusBadRequest, "bad_request", "Cannot read request body")
 		}
-		return
+		return false
 	}
 	if data = bytes.TrimSpace(data); len(data) != 0 {
 		contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 		if err != nil || contentType != "application/json" {
 			failure(w, http.StatusUnsupportedMediaType, "unsupported_media_type", "A JSON request body requires application/json")
-			return
+			return false
 		}
 		decoder := json.NewDecoder(bytes.NewReader(data))
 		decoder.DisallowUnknownFields()
-		var request struct{}
-		if data[0] != '{' || decoder.Decode(&request) != nil || decoder.Decode(&request) != io.EOF {
-			failure(w, http.StatusBadRequest, "bad_request", "Expected an empty JSON object")
-			return
+		if data[0] != '{' || decoder.Decode(target) != nil || decoder.Decode(&struct{}{}) != io.EOF {
+			failure(w, http.StatusBadRequest, "bad_request", "Expected one JSON object with only supported fields")
+			return false
 		}
+	} else if !allowEmpty {
+		failure(w, http.StatusBadRequest, "bad_request", "A JSON request body is required")
+		return false
 	}
-	writeJSON(w, http.StatusAccepted, StopResponse{State: "stopping"})
-	h.config.Stop()
+	return true
 }
 
 func (h *handler) static(w http.ResponseWriter, r *http.Request) {

@@ -59,11 +59,11 @@ async function start(directory) {
   return process;
 }
 
-function http(path, { method = 'GET', token, headers = {} } = {}) {
+function http(path, { method = 'GET', token, headers = {}, body } = {}) {
   return new Promise((resolve, reject) => {
     const req = request({
       hostname: '127.0.0.1', port: 18765, path, method, agent,
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...headers },
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
     }, (response) => {
       let body = '';
       response.setEncoding('utf8');
@@ -73,7 +73,7 @@ function http(path, { method = 'GET', token, headers = {} } = {}) {
     });
     req.setTimeout(3000, () => req.destroy(new Error('HTTP request timed out')));
     req.on('error', reject);
-    req.end();
+    req.end(body === undefined ? undefined : JSON.stringify(body));
   });
 }
 
@@ -128,6 +128,32 @@ try {
   assert.equal((await http('/api/v1/info', { headers: { Host: 'example.com:18765' } })).status, 403);
   assert.equal((await http('/api/v1/info', { headers: { Origin: 'https://example.com' } })).status, 403);
 
+  const link = await http('/api/v1/control/browser-grants', { method: 'POST', token: control, body: {} });
+  assert.equal(link.status, 201);
+  const authorizationURL = new URL(JSON.parse(link.body).url);
+  assert.ok(authorizationURL.origin === 'http://127.0.0.1:18765' && /^#authorize=[0-9a-f]{64}$/.test(authorizationURL.hash), 'Invalid one-time authorization URL');
+  const ticket = authorizationURL.hash.slice('#authorize='.length);
+  assert.equal((await http('/api/v1/browser/authorize', { method: 'POST', body: { ticket } })).status, 403);
+  const browserOrigin = { Origin: 'http://127.0.0.1:18765' };
+  const authorized = await http('/api/v1/browser/authorize', { method: 'POST', headers: browserOrigin, body: { ticket } });
+  assert.equal(authorized.status, 200);
+  const cookieHeaders = authorized.headers['set-cookie'];
+  assert.ok(cookieHeaders?.length === 1 && cookieHeaders[0].includes('HttpOnly') && cookieHeaders[0].includes('SameSite=Strict') && cookieHeaders[0].includes('Path=/api/v1'), 'Missing protected browser cookie');
+  const cookie = cookieHeaders[0].split(';')[0];
+  const browser = { ...browserOrigin, Cookie: cookie };
+  assert.ok(!authorized.body.includes(cookie.split('=')[1]) && !authorized.body.includes(ticket), 'Exchange JSON disclosed a secret');
+  const browserStatus = await http('/api/v1/status', { headers: browser });
+  assert.equal(browserStatus.status, 200);
+  assert.ok(browserStatus.headers['set-cookie'] === undefined, 'Status renewed the browser cookie');
+  const grant = JSON.parse(authorized.body);
+  assert.equal(JSON.parse(browserStatus.body).browser.id, grant.id);
+  assert.equal((await http('/api/v1/control/stop', { method: 'POST', headers: browser })).status, 401);
+  assert.equal((await http('/api/v1/control/browser-grants', { headers: browser })).status, 401);
+  assert.equal((await http('/api/v1/browser/authorize', { method: 'POST', headers: browserOrigin, body: { ticket } })).status, 401);
+  const pendingLink = await http('/api/v1/control/browser-grants', { method: 'POST', token: control });
+  assert.equal(pendingLink.status, 201);
+  const pendingTicket = new URL(JSON.parse(pendingLink.body).url).hash.slice('#authorize='.length);
+
   const page = await http('/');
   assert.equal(page.status, 200);
   assert.match(page.headers['content-type'], /^text\/html/);
@@ -155,6 +181,17 @@ try {
   assert.ok(await credential(data, 'client') === client, 'Restart replaced the client credential');
   assert.ok(await credential(data, 'control') === control, 'Restart replaced the control credential');
   await identity(client);
+  const restored = await http('/api/v1/status', { headers: browser });
+  assert.equal(restored.status, 200);
+  assert.equal(JSON.parse(restored.body).browser.expiresAt, grant.expiresAt, 'Restart extended browser authorization');
+  assert.equal((await http('/api/v1/browser/authorize', { method: 'POST', headers: browserOrigin, body: { ticket: pendingTicket } })).status, 401);
+  const logout = await http('/api/v1/browser/logout', { method: 'POST', headers: browser, body: {} });
+  assert.equal(logout.status, 200);
+  assert.ok(logout.headers['set-cookie']?.some((value) => value.includes('Max-Age=0')), 'Logout did not expire its cookie');
+  assert.equal((await http('/api/v1/status', { headers: browser })).status, 401);
+  const grantList = await http('/api/v1/control/browser-grants', { token: control });
+  assert.equal(grantList.status, 200);
+  assert.ok(JSON.parse(grantList.body).grants.some((entry) => entry.id === grant.id && entry.state === 'revoked'), 'Logout did not persist revocation');
   await stop(restarted, control);
   assert.ok((await stat(join(data, 'service.lock'))).isFile(), 'The released lock file must remain');
 
@@ -163,7 +200,7 @@ try {
     signaled.child.kill('SIGTERM');
     await exited(signaled);
   }
-  console.log(`Service smoke passed: ${goos}/${goarch}, HTTP boundaries, contention, restart, shutdown, empty PATH`);
+  console.log(`Service smoke passed: ${goos}/${goarch}, HTTP boundaries, browser authorization, replay rejection, persistent cookie, logout, contention, restart, shutdown, empty PATH`);
 } finally {
   agent.destroy();
   for (const child of children) child.kill();

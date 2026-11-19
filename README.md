@@ -80,4 +80,6 @@ go test -tags no_web ./internal/platform ./internal/credentials -count=1 -v
 
 [授权核心与 SQLite 测试指南](docs/local-service.md#sqlite-存储测试与数据)提供一次性凭据、持久授权、迁移、到期／撤销、崩溃恢复和文件保护测试，以及正式数据库的位置与失败处理方式。
 
+[授权 HTTP 测试](docs/local-service.md#浏览器授权-http-测试)提供接口行为测试、独立程序验证方式及当前交付边界。
+
 当前 CLI 提供 `version` 和 `service run／ensure／status／stop`；浏览器授权及钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。

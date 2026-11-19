@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
+	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 	"github.com/Conflux-Chain/wallet-bridge/internal/credentials"
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
 	"github.com/Conflux-Chain/wallet-bridge/internal/store"
@@ -82,11 +83,16 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 		return &Error{"storage_error", "Cannot initialize or migrate the private database; existing data was retained", err}
 	}
 	defer database.Close()
+	browserAuthorization, err := app.NewBrowserAuthorization(database)
+	if err != nil {
+		return &Error{"configuration_error", "Cannot configure browser authorization", err}
+	}
 	stop := make(chan struct{})
 	var once sync.Once
 	handler, err := api.New(api.Config{
 		Version: config.Version, ClientToken: client, ControlToken: control, Assets: config.Assets,
 		StartedAt: time.Now(), Stop: func() { once.Do(func() { close(stop) }) },
+		BrowserAuthorization: browserAuthorization,
 	})
 	if err != nil {
 		return &Error{"configuration_error", "Cannot configure the local API", err}
