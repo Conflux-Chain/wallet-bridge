@@ -1,6 +1,6 @@
 # 迭代 0：范围与方案
 
-状态：2026-11-19 范围与技术方向已确认，文档供本地评审。依据[需求基线](../../requirements.md)与[路线图](../../roadmap.md)，技术设计见 [design](design.md)。
+状态：2026-11-19 范围与技术方向已确认，文档已通过 PR 交付，记录见 [plan](plan.md)。依据[需求基线](../../requirements.md)与[路线图](../../roadmap.md)，技术设计见 [design](design.md)。
 
 ## 目标与范围
 
