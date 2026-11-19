@@ -1,6 +1,6 @@
 # 迭代 1 PR 计划
 
-状态：2026-11-19 PR 1-2 已合并；PR 1-3 已实现，本地检查通过，待提交评审及原生 CI。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
+状态：2026-11-19 PR 1-2 已合并；PR 1-3 已实现并提交评审，检查证据见下文及 PR checks。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
 
 ## 拆分
 
@@ -9,7 +9,7 @@
 | PR 1-0：需求与设计 | 确认本轮行为、凭据交付、系统版本及分步计划；同步全局资料 | 文档一致、链接有效，未实现与待验证项明确 | [#4](https://github.com/Conflux-Chain/wallet-bridge/pull/4) 已合并 |
 | PR 1-1：工程骨架 | Go module、最小 CLI version、React／Vite 页面、资源封装、构建脚本与基础 CI；固定所需工具版本 | 前端检查、完整构建、三目标构建及 version smoke；A-01 基础 | [#5](https://github.com/Conflux-Chain/wallet-bridge/pull/5) 已合并 |
 | PR 1-2：本机凭据 | 用户数据目录、受限凭据文件与原子初始化；不接 HTTP 或 SQLite | 目录及文件权限、并发初始化、不覆盖已有密钥、失败清理；三个目标构建 | [#6](https://github.com/Conflux-Chain/wallet-bridge/pull/6) 已合并 |
-| PR 1-3：前台 HTTP 服务 | 进程锁、service run、版本／状态接口、鉴权与 Host／Origin 边界、正常停止；引入代码注释生成文档 | 并发锁、真实监听、占用、权限隔离、错误映射和正常退出；A-02～04 基础 | 本地检查通过，待评审及 CI |
+| PR 1-3：前台 HTTP 服务 | 进程锁、service run、版本／状态接口、鉴权与 Host／Origin 边界、正常停止；引入代码注释生成文档 | 并发锁、真实监听、占用、权限隔离、错误映射和正常退出；A-02～04 基础 | [#7](https://github.com/Conflux-Chain/wallet-bridge/pull/7) 待评审 |
 | PR 1-4：后台启动与复用 | 共享 client、后台进程、ensure／status／stop、身份探测、就绪与版本兼容；不增加页面授权入口 | 多进程并发、client 退出后常驻、假服务／不兼容／启动超时；A-02～03 | 待开发 |
 | PR 1-5：授权存储 | SQLite 驱动、schema 迁移与浏览器授权存储；不接页面或授权交换接口 | 迁移原子性、记录读写／重开、到期／撤销持久化；三个目标构建 | 待开发 |
 | PR 1-6：浏览器授权 | ui、一次性授权交换、管理 cookie、撤销与状态页；不调用钱包 | 重放／过期／跨站拒绝，重启保留、固定到期和撤销；A-04 本轮范围 | 待开发 |
@@ -20,7 +20,7 @@ PR 1-1～1-7 按顺序依赖；每个实现 PR 只引入当前能力需要的目
 ## 当前步骤
 
 - PR 1-2 已按用户“继续”的指令 Squash 合并为 `35c1bdb`，并清理其本地／远端分支；本地 main 已同步。
-- 当前分支：`feat/foreground-service`，从上述 main 创建，仅交付 PR 1-3。
+- 当前分支：`feat/foreground-service`，从上述 main 创建，仅交付 PR 1-3；实现提交 `90017ae`。
 - 本 PR 实现前台服务、锁和 HTTP 基础接口；后台复用、SQLite、浏览器授权、钱包及 MCP 按后续 PR 交付。
 
 ## 验证与限制
@@ -48,4 +48,4 @@ PR 1-1～1-7 按顺序依赖；每个实现 PR 只引入当前能力需要的目
 - 原生独立程序在空 PATH 下的 service smoke 通过：固定端口与同目录竞争、HTML／JavaScript 资源、鉴权、控制停止、凭据保留及重启。修正 Windows 独占端口冲突返回 WSAEACCES 时的错误映射。
 - handler 注释生成 Swagger 2.0 JSON／YAML；[本地服务指南](../../local-service.md)提供构建、自动测试、手动启动、访问与停止步骤，README 链接该入口。
 - Windows 终端实际启动、Ctrl+C 退出码 0、同目录再次启动及再次正常停止通过；文档链接／锚点与行尾空白检查通过。
-- macOS 两种架构的原生运行及 SIGTERM 退出待本 PR 的 CI；最低系统版本、浏览器呈现和用户验收尚未补验。HTTP 资源检查不代替浏览器呈现验收。
+- 三平台原生 CI（含 macOS 两种架构的实际运行及 SIGTERM 退出）结果随 [#7 checks](https://github.com/Conflux-Chain/wallet-bridge/pull/7/checks)记录；最低系统版本、浏览器呈现和用户验收尚未补验。HTTP 资源检查不代替浏览器呈现验收。
