@@ -66,4 +66,4 @@ PR 1-1～1-7 按顺序依赖；每个实现 PR 只引入当前能力需要的目
 - 空 PATH 的三组 smoke 通过；正式程序启动完成 SQLite 初始化后才报告就绪，损坏数据库保持原内容，后台 ensure 返回 `storage_error`。
 - [SQLite 存储指南](../../local-service.md#sqlite-存储测试与数据)提供可复现命令、预期、临时数据清理、正式数据库位置及失败处理；README 提供入口。
 - 依赖校验、17 份 Markdown 的 118 个本地链接／37 个标题锚点及 Git 空白检查通过。
-- 两种 macOS 架构的原生读写／崩溃恢复及本机 Windows 跳过的数据库符号链接测试，待本 PR CI 补验；最低系统版本及真实浏览器授权尚未验收。
+- 三平台[原生 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/44496356848) 通过（`9c95549`），含真实读写、崩溃恢复、文件权限和数据库／日志符号链接拒绝；本机 Windows 跳过项已补验。后续文档提交的最新结果见本 PR checks；最低系统版本及真实浏览器授权尚未验收。
