@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](01-local-service/spec.md)、[design](01-local-service/design.md)、[plan](01-local-service/plan.md)。
-- 当前步骤：PR 1-5 SQLite 授权存储（[#9](https://github.com/Conflux-Chain/wallet-bridge/pull/9) 待评审）；验证证据见 plan，本地测试见[服务指南](../local-service.md)。
+- 当前步骤：PR 1-6a 授权核心；浏览器授权按 a～d 四个 PR 交付，后续撤销入口待确认，见 spec／plan。本地测试见[服务指南](../local-service.md)。
 
 ## 3. 下一步
 
-评审 PR #9；合并后细化 PR 1-6 的撤销入口，再实现浏览器授权。
+完成 PR 1-6a 检查与评审；确认撤销入口后，在 PR 1-6b 接入 HTTP。
 
 ## 4. 验证记录
 

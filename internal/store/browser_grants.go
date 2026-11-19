@@ -68,6 +68,19 @@ func (s *Store) RevokeBrowserGrant(ctx context.Context, id string, now time.Time
 	return nil
 }
 
+func (s *Store) RevokeAllBrowserGrants(ctx context.Context, now time.Time) (int64, error) {
+	if !validTime(now) {
+		return 0, app.ErrInvalidBrowserGrant
+	}
+	// Revoke every outstanding grant, including expired records. If the system
+	// clock moved back, keep the persisted revocation at or after issuance.
+	result, err := s.db.ExecContext(ctx, "UPDATE browser_grants SET revoked_at = MAX(issued_at, ?) WHERE revoked_at IS NULL", now.UnixMilli())
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 func scanGrant(row interface{ Scan(...any) error }) (app.BrowserGrant, error) {
 	var grant app.BrowserGrant
 	var issued, expires int64
