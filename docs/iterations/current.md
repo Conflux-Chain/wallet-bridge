@@ -11,7 +11,7 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](01-local-service/spec.md)、[design](01-local-service/design.md)、[plan](01-local-service/plan.md)。
-- 当前步骤：PR 1-4 后台启动与服务复用；PR 状态与验证证据见 plan，本地测试见[服务指南](../local-service.md)。
+- 当前步骤：PR 1-4 后台启动与服务复用已提交评审；PR 状态与验证证据见 plan，本地测试见[服务指南](../local-service.md)。
 
 ## 3. 下一步
 
