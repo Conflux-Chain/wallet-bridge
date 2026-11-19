@@ -1,6 +1,6 @@
 # 本机服务访问凭据
 
-本文说明迭代 1 的凭据方案，实现进度见 [plan](iterations/01-local-service/plan.md)。当前 PR 1-2 提供文件与权限模块；服务启动时的自动初始化、HTTP 鉴权与 CLI／MCP 接入按后续 PR 交付。运行 `version` 或预览页面不会生成正式凭据。
+本文说明迭代 1 的凭据方案，实现进度见 [plan](iterations/01-local-service/plan.md)。当前 `service run` 会初始化凭据并为 HTTP 接口鉴权，启动与测试步骤见[本地服务指南](local-service.md)。后台 CLI／MCP 自动读取接入按后续 PR 交付。运行 `version` 或 Vite 预览不会生成正式凭据。
 
 ## 用途
 

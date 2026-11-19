@@ -1,0 +1,267 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Local service access. Wallet and browser authorization APIs are delivered in later iterations.",
+        "title": "Wallet Bridge Local API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "127.0.0.1:18765",
+    "basePath": "/api/v1",
+    "paths": {
+        "/control/stop": {
+            "post": {
+                "security": [
+                    {
+                        "ControlBearer": []
+                    }
+                ],
+                "description": "Requires the control token. Accepts no body or an empty JSON object, limited to 1024 bytes. HTTP 202 means shutdown was requested, not that the process has exited.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Request graceful service shutdown",
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/api.StopResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/info": {
+            "get": {
+                "description": "A 64-character lowercase hexadecimal challenge produces an HMAC-SHA256 proof binding the response metadata. No credentials or data directory are returned.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Read service version and capabilities",
+                "parameters": [
+                    {
+                        "maxLength": 64,
+                        "minLength": 64,
+                        "type": "string",
+                        "description": "32-byte nonce encoded as lowercase hexadecimal",
+                        "name": "challenge",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.InfoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/status": {
+            "get": {
+                "security": [
+                    {
+                        "ClientBearer": []
+                    },
+                    {
+                        "ControlBearer": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Read authenticated service status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.StatusResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "api.APIVersion": {
+            "type": "object",
+            "properties": {
+                "major": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "minor": {
+                    "type": "integer",
+                    "example": 0
+                }
+            }
+        },
+        "api.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "unauthenticated"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "A valid Bearer token is required"
+                }
+            }
+        },
+        "api.InfoResponse": {
+            "type": "object",
+            "properties": {
+                "apiVersion": {
+                    "$ref": "#/definitions/api.APIVersion"
+                },
+                "capabilities": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "service.status",
+                        "service.stop"
+                    ]
+                },
+                "challenge": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "wallet-bridge"
+                },
+                "proof": {
+                    "type": "string"
+                },
+                "ready": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "version": {
+                    "type": "string",
+                    "example": "dev"
+                }
+            }
+        },
+        "api.StatusResponse": {
+            "type": "object",
+            "properties": {
+                "info": {
+                    "$ref": "#/definitions/api.InfoResponse"
+                },
+                "startedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "state": {
+                    "type": "string",
+                    "example": "running"
+                }
+            }
+        },
+        "api.StopResponse": {
+            "type": "object",
+            "properties": {
+                "state": {
+                    "type": "string",
+                    "example": "stopping"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ClientBearer": {
+            "description": "Bearer token from the current user's client.key.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        },
+        "ControlBearer": {
+            "description": "Bearer token from the current user's control.key; required for administrative operations.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

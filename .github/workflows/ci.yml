@@ -33,8 +33,11 @@ jobs:
           go-version-file: go.mod
           cache: false
       - run: npm ci --prefix web
+      - run: npm --prefix web run swagger
+      - run: git diff --exit-code -- docs/swagger
       - run: npm --prefix web run bundle
       - run: go test -v ./...
       - run: go test -tags no_web ./...
       - run: go vet ./...
       - run: npm --prefix web run smoke
+      - run: npm --prefix web run service:smoke

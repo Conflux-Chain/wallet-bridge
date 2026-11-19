@@ -1,0 +1,158 @@
+package api
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"testing/fstest"
+	"time"
+)
+
+var clientFixture = strings.Repeat("11", 32)
+var controlFixture = strings.Repeat("22", 32)
+
+func testHandler(t *testing.T, stop func()) http.Handler {
+	t.Helper()
+	h, err := New(Config{
+		Version: "test", ClientToken: clientFixture, ControlToken: controlFixture,
+		StartedAt: time.Date(2026, 11, 19, 0, 0, 0, 0, time.UTC), Stop: stop,
+		Assets: fstest.MapFS{"index.html": {Data: []byte("<h1>Wallet Bridge</h1>")}, "assets/app.js": {Data: []byte("console.log('bridge')")}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return h
+}
+
+func TestHTTPBoundaryAndRoles(t *testing.T) {
+	for _, tc := range []struct {
+		name, method, path, token, host, origin, body, contentType, code string
+		status                                                           int
+		stop                                                             bool
+	}{
+		{name: "public info", path: "/api/v1/info", status: 200},
+		{name: "missing token", path: "/api/v1/status", status: 401, code: "unauthenticated"},
+		{name: "query is not authentication", path: "/api/v1/status?token=" + clientFixture, status: 401, code: "unauthenticated"},
+		{name: "wrong token", path: "/api/v1/status", token: "incorrect", status: 401, code: "unauthenticated"},
+		{name: "client status", path: "/api/v1/status", token: clientFixture, status: 200},
+		{name: "control status", path: "/api/v1/status", token: controlFixture, status: 200},
+		{name: "wrong host", path: "/api/v1/info", host: "localhost:18765", status: 403, code: "invalid_host"},
+		{name: "wrong origin", path: "/api/v1/status", token: controlFixture, origin: "https://example.com", status: 403, code: "invalid_origin"},
+		{name: "null origin", path: "/api/v1/info", origin: "null", status: 403, code: "invalid_origin"},
+		{name: "same origin", path: "/api/v1/status", token: clientFixture, origin: Origin, status: 200},
+		{name: "stop without authentication", method: "POST", path: "/api/v1/control/stop", status: 401, code: "unauthenticated"},
+		{name: "client cannot stop", method: "POST", path: "/api/v1/control/stop", token: clientFixture, status: 403, code: "forbidden"},
+		{name: "control stop", method: "POST", path: "/api/v1/control/stop", token: controlFixture, status: 202, stop: true},
+		{name: "JSON stop", method: "POST", path: "/api/v1/control/stop", token: controlFixture, body: "{ \n }", contentType: "application/json", status: 202, stop: true},
+		{name: "unknown fields", method: "POST", path: "/api/v1/control/stop", token: controlFixture, body: `{"force":true}`, contentType: "application/json", status: 400, code: "bad_request"},
+		{name: "trailing JSON", method: "POST", path: "/api/v1/control/stop", token: controlFixture, body: "{}{}", contentType: "application/json", status: 400, code: "bad_request"},
+		{name: "null JSON", method: "POST", path: "/api/v1/control/stop", token: controlFixture, body: "null", contentType: "application/json", status: 400, code: "bad_request"},
+		{name: "large body", method: "POST", path: "/api/v1/control/stop", token: controlFixture, body: strings.Repeat(" ", 1025), status: 413, code: "request_too_large"},
+		{name: "wrong media type", method: "POST", path: "/api/v1/control/stop", token: controlFixture, body: "{}", contentType: "text/plain", status: 415, code: "unsupported_media_type"},
+		{name: "stop query rejected", method: "POST", path: "/api/v1/control/stop?force=true", token: controlFixture, status: 400, code: "bad_request"},
+		{name: "stop method", path: "/api/v1/control/stop", token: controlFixture, status: 405, code: "method_not_allowed"},
+		{name: "preflight", method: "OPTIONS", path: "/api/v1/status", origin: Origin, status: 405, code: "method_not_allowed"},
+		{name: "unknown API", path: "/api/v1/missing", status: 404, code: "not_found"},
+		{name: "page", path: "/", status: 200},
+		{name: "JavaScript", path: "/assets/app.js", status: 200},
+		{name: "page HEAD", method: "HEAD", path: "/", status: 200},
+		{name: "no directory listing", path: "/assets", status: 404, code: "not_found"},
+		{name: "no traversal", path: "/../client.key", status: 404, code: "not_found"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			stopped := false
+			h := testHandler(t, func() { stopped = true })
+			verb := tc.method
+			if verb == "" {
+				verb = "GET"
+			}
+			req := httptest.NewRequest(verb, Origin+tc.path, strings.NewReader(tc.body))
+			if tc.host != "" {
+				req.Host = tc.host
+			}
+			if tc.origin != "" {
+				req.Header.Set("Origin", tc.origin)
+			}
+			if tc.token != "" {
+				req.Header.Set("Authorization", "Bearer "+tc.token)
+			}
+			if tc.contentType != "" {
+				req.Header.Set("Content-Type", tc.contentType)
+			}
+			response := httptest.NewRecorder()
+			h.ServeHTTP(response, req)
+			if response.Code != tc.status {
+				t.Fatalf("status %d, want %d: %s", response.Code, tc.status, response.Body.String())
+			}
+			if tc.code != "" {
+				var body ErrorResponse
+				if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil || body.Code != tc.code {
+					t.Fatalf("unexpected error response: %s", response.Body.String())
+				}
+			}
+			if stopped != tc.stop {
+				t.Fatal("unexpected stop callback")
+			}
+			if response.Header().Get("Access-Control-Allow-Origin") != "" {
+				t.Fatal("CORS was enabled")
+			}
+			if verb == "HEAD" && response.Body.Len() != 0 {
+				t.Fatal("HEAD returned a body")
+			}
+			if strings.Contains(response.Body.String(), clientFixture) || strings.Contains(response.Body.String(), controlFixture) {
+				t.Fatal("response exposed a credential")
+			}
+		})
+	}
+}
+
+func TestRepeatedSecurityHeadersRejected(t *testing.T) {
+	for _, header := range []string{"Origin", "Authorization"} {
+		req := httptest.NewRequest("GET", Origin+"/api/v1/status", nil)
+		req.Header.Set("Authorization", "Bearer "+clientFixture)
+		if header == "Origin" {
+			req.Header[header] = []string{Origin, Origin}
+		} else {
+			req.Header[header] = []string{"Bearer " + clientFixture, "Bearer " + controlFixture}
+		}
+		response := httptest.NewRecorder()
+		testHandler(t, func() {}).ServeHTTP(response, req)
+		if response.Code != 401 && response.Code != 403 {
+			t.Fatalf("duplicate %s accepted", header)
+		}
+	}
+}
+
+func TestInfoProofBindsMetadata(t *testing.T) {
+	h := testHandler(t, func() {})
+	challenge := strings.Repeat("ab", 32)
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, httptest.NewRequest("GET", Origin+"/api/v1/info?challenge="+challenge, nil))
+	var info InfoResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &info); err != nil || response.Code != 200 {
+		t.Fatal("info response invalid", err)
+	}
+	proof := info.Proof
+	data := []byte(`{"name":"wallet-bridge","version":"test","apiVersion":{"major":1,"minor":0},"capabilities":["service.status","service.stop"],"ready":true,"challenge":"` + challenge + `"}`)
+	key, _ := hex.DecodeString(clientFixture)
+	mac := hmac.New(sha256.New, key)
+	mac.Write([]byte("wallet-bridge.info.v1\n"))
+	mac.Write(data)
+	if proof != hex.EncodeToString(mac.Sum(nil)) || info.Challenge != challenge || !info.Ready || info.APIVersion.Major != 1 {
+		t.Fatal("service proof or metadata mismatch")
+	}
+	for _, query := range []string{"challenge=short", "challenge=" + strings.Repeat("AB", 32), "challenge=" + challenge + "&challenge=" + challenge, "token=secret", "challenge=%ZZ"} {
+		response := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", Origin+"/api/v1/info", nil)
+		req.URL.RawQuery = query
+		h.ServeHTTP(response, req)
+		if response.Code != 400 {
+			t.Fatalf("invalid challenge query accepted: %q", query)
+		}
+	}
+}

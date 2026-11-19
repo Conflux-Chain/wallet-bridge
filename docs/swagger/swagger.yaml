@@ -1,0 +1,183 @@
+basePath: /api/v1
+definitions:
+  api.APIVersion:
+    properties:
+      major:
+        example: 1
+        type: integer
+      minor:
+        example: 0
+        type: integer
+    type: object
+  api.ErrorResponse:
+    properties:
+      code:
+        example: unauthenticated
+        type: string
+      message:
+        example: A valid Bearer token is required
+        type: string
+    type: object
+  api.InfoResponse:
+    properties:
+      apiVersion:
+        $ref: '#/definitions/api.APIVersion'
+      capabilities:
+        example:
+        - service.status
+        - service.stop
+        items:
+          type: string
+        type: array
+      challenge:
+        type: string
+      name:
+        example: wallet-bridge
+        type: string
+      proof:
+        type: string
+      ready:
+        example: true
+        type: boolean
+      version:
+        example: dev
+        type: string
+    type: object
+  api.StatusResponse:
+    properties:
+      info:
+        $ref: '#/definitions/api.InfoResponse'
+      startedAt:
+        format: date-time
+        type: string
+      state:
+        example: running
+        type: string
+    type: object
+  api.StopResponse:
+    properties:
+      state:
+        example: stopping
+        type: string
+    type: object
+host: 127.0.0.1:18765
+info:
+  contact: {}
+  description: Local service access. Wallet and browser authorization APIs are delivered
+    in later iterations.
+  title: Wallet Bridge Local API
+  version: "1.0"
+paths:
+  /control/stop:
+    post:
+      consumes:
+      - application/json
+      description: Requires the control token. Accepts no body or an empty JSON object,
+        limited to 1024 bytes. HTTP 202 means shutdown was requested, not that the
+        process has exited.
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/api.StopResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ControlBearer: []
+      summary: Request graceful service shutdown
+  /info:
+    get:
+      description: A 64-character lowercase hexadecimal challenge produces an HMAC-SHA256
+        proof binding the response metadata. No credentials or data directory are
+        returned.
+      parameters:
+      - description: 32-byte nonce encoded as lowercase hexadecimal
+        in: query
+        maxLength: 64
+        minLength: 64
+        name: challenge
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.InfoResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Read service version and capabilities
+  /status:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ClientBearer: []
+      - ControlBearer: []
+      summary: Read authenticated service status
+schemes:
+- http
+securityDefinitions:
+  ClientBearer:
+    description: Bearer token from the current user's client.key.
+    in: header
+    name: Authorization
+    type: apiKey
+  ControlBearer:
+    description: Bearer token from the current user's control.key; required for administrative
+      operations.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

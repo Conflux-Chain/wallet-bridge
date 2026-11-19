@@ -30,6 +30,13 @@ CLI 拟提供 `version`、`service run`、`service ensure`、`service status`、
 
 就绪与复用在 `internal/client/` 协调；锁、目录和进程机制在 `internal/platform/`；入口组装依赖。具体错误 code 和 JSON 字段随 PR 1-3／1-4 的接口定义固定。
 
+### PR 1-3：前台服务
+
+- `internal/service/` 编排前台生命周期；入口注入构建信息、页面资源及就绪输出。`service run [--data-dir <绝对路径>]` 默认使用用户数据目录；显式目录便于隔离测试，端口仍固定。
+- 顺序为校验／创建私有目录 → 取得 `service.lock` 内核锁 → 独占监听 IPv4 loopback → 初始化凭据 → 开始接收 HTTP 请求。任一步失败释放已取得的资源；锁文件保留，文件存在不表示服务存活。
+- Windows 使用 `LockFileEx`，macOS 使用非阻塞 `flock`；句柄随进程存活，正常关闭或异常退出均释放锁。锁竞争返回 `already_running`，端口占用或 Windows 端口保留返回 `port_in_use`；不终止占用者或换端口。
+- 支持 Ctrl+C／终止信号及 HTTP 管理停止，先停止接收请求并有界等待完成；关闭失败报错并清理本进程的 HTTP 资源，不强杀其他进程。后台启动及客户端停止等待在 PR 1-4 接入。
+
 ## 3. HTTP 边界
 
 拟采用 `/api/v1/`，接口由 `internal/api/` 实现并通过注释生成文档。下表仅记录本轮协议方向，实际字段以相关 PR 的 Go 类型及注释为准。
@@ -47,6 +54,12 @@ CLI 拟提供 `version`、`service run`、`service ensure`、`service status`、
 生产环境仅接受固定 Host；浏览器有 Origin 时必须精确匹配，拒绝 null 或其他 origin。无 Origin 的原生 client 仍需相应 Bearer 权限；以 cookie 执行变更的接口必须校验同 origin。静态页面可公开加载，业务／管理接口逐项鉴权，不启用跨站 CORS。
 
 JSON 错误使用 `code`、`message`；校验失败、未认证、权限不足、冲突及内部错误分别映射适当 HTTP 状态。限制请求大小与读取时间，诊断错误不回传内部栈、密钥或带权限链接。
+
+PR 1-3 实现前三个接口：info 公开最小就绪信息，status 接受 client 或 control Bearer，stop 仅接受 control Bearer。授权缺失／错误为 401，持有 client 却请求管理操作为 403。页面资源可公开加载；本 PR 不支持浏览器管理 cookie。
+
+info 可携带一次 32 字节小写十六进制 `challenge`，响应以 client 密钥的原始 32 字节，对域标记 `wallet-bridge.info.v1\n`（末尾实际为换行）加不含 proof 的响应 JSON 计算 HMAC-SHA256。签名 JSON 使用 Go `encoding/json.Marshal` 的紧凑编码，字段按 `InfoResponse` 声明顺序，保留数组顺序，不含末尾换行。响应包含 challenge、接口版本与能力列表，proof 为小写十六进制；客户端校验在 PR 1-4 接入。字段与错误以 Go 类型／注释和生成的 Swagger 2.0 为准。
+
+控制请求体最多 1 KiB；限制 Header 大小及读写时间，不启用 CORS，也不接受 URL 中的访问令牌。使用固定的 swag v1.16.6，从 `internal/api/` 注释生成 JSON／YAML 到 `docs/swagger/`，CI 重新生成并检查差异；本 PR 不接 Swagger UI。
 
 ## 4. 本机与浏览器凭据
 
@@ -68,7 +81,7 @@ JSON 错误使用 `code`、`message`；校验失败、未认证、权限不足�
 - `internal/platform/` 负责默认路径及受限目录／文件。创建时即设置权限，打开句柄后校验所有者与权限；拒绝目录本身或凭据文件为符号链接／Windows reparse point、错误类型和已有的不安全权限，不自动修复或轮换密钥。Windows API 使用 `golang.org/x/sys/windows` v0.50.0；macOS 同时拒绝扩展 ACL。
 - 在同目录写入受限临时文件并同步、关闭，再以不可覆盖的硬链接原子发布；并发输家读取已发布的文件。不支持硬链接时明确失败，不退回可能暴露半写内容的方式。
 - 原子性以单个文件为界；中断后只补缺失文件，保留有效文件。损坏文件报错，失败时清理本次临时文件，不删除其他文件。正常服务重启复用现有密钥。
-- 本 PR 仅提供内部 API；使用临时目录的真实文件及多进程测试验收，不增加凭据管理 CLI，也不初始化用户的正式数据目录。
+- PR 1-2 仅提供内部 API；使用临时目录的真实文件及多进程测试验收。PR 1-3 的 `service run` 接入自动初始化；不增加凭据管理 CLI。
 
 ## 5. 浏览器授权流程
 
