@@ -56,8 +56,10 @@ UI 链上跟踪留待后续，再补充 RPC 来源与确认语义。
 
 共享与隔离方向已确认；凭据交付、撤销、页面会话及执行归属仍待详细设计。真实环境约束在迭代 0～1 补充。
 
+浏览器管理授权的有效期与重启行为见[需求 §2](requirements.md#2-面向的-client-与交付方式)；本轮本机凭据与浏览器权限分离、一次性授权及服务就绪方案见[迭代 1 设计](iterations/01-local-service/design.md)。这些机制尚未实现或验证。
+
 ## 4. 设计维护
 
 本文件维护当前全局架构，具体设计按[迭代工作流](iterations/README.md)保存在当轮 design doc。影响全局的已采用方案同步到此；稳定的跨迭代协议按需独立维护并引用。
 
-当前[技术设计](iterations/00-foundation/design.md)区分已确认部分与待定配套工具，并记录架构自审及目录修订；HTTP 层采用 `internal/api/`，接口文档生成方式见[接口文档设计](iterations/00-foundation/design.md#接口文档)，存储取舍见[持久化方案](iterations/00-foundation/design.md#6-持久化方案)。设计确认不代表功能或构建已验证。
+[迭代 0 设计](iterations/00-foundation/design.md)记录模块、目录与技术栈；HTTP 层采用 `internal/api/`，接口文档生成方式见[接口文档设计](iterations/00-foundation/design.md#接口文档)，存储取舍见[持久化方案](iterations/00-foundation/design.md#6-持久化方案)。活动方案按当前迭代入口查阅；历史设计中的待定项以新一轮结论补充。设计确认不代表功能或构建已验证。
