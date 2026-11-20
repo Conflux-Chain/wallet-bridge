@@ -1,6 +1,6 @@
 # 迭代 2 PR 计划
 
-状态：2026-11-20 PR 2-0～2-3b3 已合并；client HTTP 接入已实现，准备评审。沿用 [spec](spec.md)、[design](design.md)。
+状态：2026-11-20 PR 2-0～2-3b3 已合并；client HTTP 接入待评审。沿用 [spec](spec.md)、[design](design.md)。
 
 ## 分步交付
 
@@ -18,7 +18,7 @@
 | PR 2-3b1：执行记录与领取 | 追加 schema、单执行槽、领取／心跳／中断及恢复存储 | 升级、重复领取、并发互斥及恢复失效 | [#24](https://github.com/Conflux-Chain/wallet-bridge/pull/24) 已合并 |
 | PR 2-3b2：钱包交接与终态 | 调用交接／回报、受执行归属保护的原子完成／拒绝 | 响应丢失、迟到回报、取消／到期保留等待、终态竞争 | [#25](https://github.com/Conflux-Chain/wallet-bridge/pull/25) 已合并 |
 | PR 2-3b3：协调核心接入 | 组合存储、浏览器主体与启动／周期恢复 | 心跳、授权失效、重启不重入钱包；不增加外部接口 | [#26](https://github.com/Conflux-Chain/wallet-bridge/pull/26) 已合并 |
-| PR 2-4a：client HTTP | 创建／查询／取消连接、访问／关闭 Session；同步 Swagger | 服务凭据、ID 重试、期限、历史及错误映射 | 已实现，准备评审 |
+| PR 2-4a：client HTTP | 创建／查询／取消连接、访问／关闭 Session；同步 Swagger | 服务凭据、ID 重试、期限、历史及错误映射 | [#27](https://github.com/Conflux-Chain/wallet-bridge/pull/27) 待评审 |
 | PR 2-4b：浏览器 HTTP | 请求读取、执行及受归属保护的同意／拒绝；同步 Swagger | cookie／Origin、主体填入、重放及中断 | 待开发 |
 | PR 2-4c：共用 Go client | 封装连接／Session HTTP，供后续 CLI／MCP 使用 | 能力检查、ID 重试、错误及机器可读结果 | 待开发 |
 | PR 2-5：CLI | 连接、请求查询／取消、Session 查询／关闭及 ID 使用 | 实际程序、等待／取消／输出边界、敏感信息保护 | 待开发 |
