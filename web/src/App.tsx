@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { checkStatus, logout } from './api/browser';
 import type { View } from './api/browser';
+import { WalletPicker } from './wallet/WalletPicker';
 
 const messages = {
   checking: ['正在检查浏览器授权', '正在连接本机 Wallet Bridge。'],
@@ -96,9 +97,10 @@ export function App({ initial }: { initial: Promise<View> }) {
           </div>
         )}
       </section>
+      {(authorized || view.kind === 'preview') && <WalletPicker />}
       <footer>
         <p>私钥由浏览器钱包保管。</p>
-        <p>当前页面用于管理浏览器授权；钱包连接与交易功能尚未开放。</p>
+        <p>当前支持浏览器授权管理与钱包发现／选择；钱包连接与交易功能尚未开放。</p>
       </footer>
     </main>
   );

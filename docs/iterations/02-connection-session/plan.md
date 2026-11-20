@@ -1,13 +1,13 @@
 # 迭代 2 PR 计划草案
 
-状态：2026-11-20 固定钱包与请求审阅交互已确认，[PR 2-0 #15](https://github.com/Conflux-Chain/wallet-bridge/pull/15) 待评审。沿用 [spec](spec.md)、[design](design.md)；当前只交付文档。
+状态：2026-11-20 PR 2-0 已合并，[PR 2-1 #16](https://github.com/Conflux-Chain/wallet-bridge/pull/16) 待评审。沿用 [spec](spec.md)、[design](design.md)。
 
 ## 分步交付
 
 | 步骤 | 单一目标与边界 | 验证重点 | 状态 |
 |---|---|---|---|
-| PR 2-0：需求与方案 | 本轮 spec、设计边界、PR 拆分；区分已确认与后续检查点 | 文档一致、问题来源明确、链接有效 | [#15](https://github.com/Conflux-Chain/wallet-bridge/pull/15) 待评审 |
-| PR 2-1：钱包发现 | 标准 Provider 发现、去重、旧式入口及钱包选择；不建立 Session | 多钱包／迟到／冲突公告、StrictMode、不自动弹窗及实际发现 | 待开发 |
+| PR 2-0：需求与方案 | 本轮 spec、设计边界、PR 拆分；区分已确认与后续检查点 | 文档一致、问题来源明确、链接有效 | [#15](https://github.com/Conflux-Chain/wallet-bridge/pull/15) 已合并 |
+| PR 2-1：钱包发现 | 标准 Provider 发现、去重、旧式入口及钱包选择；不建立 Session | 多钱包／迟到／冲突公告、StrictMode、不自动弹窗及实际发现 | [#16](https://github.com/Conflux-Chain/wallet-bridge/pull/16) 待合并，用户已确认双钱包发现 |
 | PR 2-2：连接存储 | 追加本轮迁移与资源记录，连接完成／Session 的原子写入 | 迁移、权限、重开、唯一性及事务回滚 | 待开发 |
 | PR 2-3a：连接与 Session 核心 | 创建、完成、拒绝、取消、查询、关闭／回收与基础重启恢复 | 绑定固定、权限、期限、并发竞争和结果保留 | 待开发 |
 | PR 2-3b：执行协调 | 多页领取、钱包调用标记、互斥与显式恢复；不增加交易流程 | 重复领取、页面丢失、迟到回传、不自动重入钱包 | 待开发 |
@@ -20,12 +20,21 @@ PR 2-1 后依次接入存储、核心、HTTP、CLI 与页面；必要测试和�
 
 ## 当前步骤与检查点
 
-- 基于 main `3ab5e07` 创建 `docs/connection-session-spec`；PR #14 已合并并清理分支。
-- 用户已确认固定钱包及[请求审阅交互](../../approval-flow.md)；当前仅提交需求与设计文档，首次连接确认时点在连接存储／核心流程前补齐。
-- 下一评审单元为 PR 2-1，仅实现 Provider 发现与钱包选择。交易实现仍属迭代 3，ABI 解码沿用后续扩展范围。
+- PR #15 已合并为 `61ab160`，其本地／远端分支已清理；当前从该 main 创建 `feat/wallet-discovery`。
+- PR 2-1 已完成发现与选择模块、页面与模拟 Provider 测试、本地验证和测试指南；用户确认同时发现 MetaMask／Fluent 后指示继续，准备合并。
+- 用户已确认固定钱包及[请求审阅交互](../../approval-flow.md)；首次连接确认时点在连接存储／核心流程前补齐。交易实现仍属迭代 3，ABI 解码沿用后续扩展范围。
 - 核心流程、HTTP／CLI、页面集成的产品检查点按 spec 逐组补充；影响对应 PR 的问题处理后才编码。
 - 迭代 1 的环境补验和用户验收继续保留，不将转入下一轮视为已通过。
 
 ## 验证
 
-23 份 Markdown 的 170 个本地链接、53 个标题锚点及 Git 空白检查通过。此次只修改文档，未新增功能或完成钱包验收；原生 CI 结果随本 PR 记录。
+PR 2-0：23 份 Markdown 的 170 个本地链接、53 个标题锚点及 Git 空白检查通过；最终 head `e921fa0` 的[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/44681421214) 通过。后续真实钱包证据见对应 PR，迭代 1 缺失环境尚未验收。
+
+### PR 2-1
+
+- 已实现标准发现、按实例去重、UUID 冲突提示、旧式升级及显式选择，接入已授权页和 Vite 预览；没有钱包 RPC、Session 或后端改动。
+- Windows 本地类型检查、生产页面／独立程序构建、`go test ./web ./internal/api` 和空 PATH smoke 通过；Chrome 的 9 项模拟 Provider 浏览器测试通过。三平台完整 CI 随 PR 记录。
+- 使用独立 Chrome 测试上下文，检查了无钱包、模拟双钱包选择的桌面及 360px 窄屏截图。此前自动检查用户 Chrome 因工具无法核实当前 URL 而停止，没有操作钱包或更改扩展设置。
+- 2026-11-20 用户人工确认打开页面同时看到 MetaMask 和 Fluent：双钱包同时发现通过。未提供 Chrome／钱包版本及来源字段；单独启用、选择／重新检测／刷新、无弹窗和账户授权未由这条反馈覆盖，不标为人工通过；相关模拟覆盖及后续实测分别保留。
+- 本地 Playwright Chromium 下载较慢，已停止下载并使用已安装 Chrome 完成测试；CI 使用 Chromium。原正式服务保持运行，未升级或重启；预览、自动测试与停止步骤见[测试指南](../../wallet-discovery.md)。
+- 24 份 Markdown 的本地链接、标题锚点及 Git 空白检查通过。
