@@ -38,6 +38,19 @@ func (s *Store) transitionConnection(ctx context.Context, id string, desired app
 		return app.ConnectionRequest{}, err
 	}
 	defer tx.Rollback()
+	request, decision := transitionConnectionInTx(ctx, tx, id, desired, completion, now)
+	if decision != nil && !errors.Is(decision, app.ErrConnectionConflict) {
+		return app.ConnectionRequest{}, decision
+	}
+	if err := tx.Commit(); err != nil {
+		return app.ConnectionRequest{}, err
+	}
+	return request, decision
+}
+
+// The caller owns the transaction so execution and connection decisions can be
+// committed together. Only ErrConnectionConflict may accompany a durable result.
+func transitionConnectionInTx(ctx context.Context, tx *sql.Tx, id string, desired app.ConnectionState, completion app.ConnectionCompletion, now time.Time) (app.ConnectionRequest, error) {
 	request, err := scanConnection(tx.QueryRowContext(ctx, connectionSelect+" WHERE r.id = ?", id))
 	if err != nil {
 		return app.ConnectionRequest{}, err
@@ -85,9 +98,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, completion.SessionID, id, completion.Wallet
 			return app.ConnectionRequest{}, err
 		}
 		request.SessionID = completion.SessionID
-	}
-	if err := tx.Commit(); err != nil {
-		return app.ConnectionRequest{}, err
 	}
 	request.State, request.FinishedAt = state, &finished
 	if state != desired {
