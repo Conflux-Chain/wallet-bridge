@@ -37,7 +37,7 @@ func browserCookie(r *http.Request) (string, bool) {
 
 func (h *handler) authorizeStatus(w http.ResponseWriter, r *http.Request) (*app.BrowserGrant, bool) {
 	if len(r.Header.Values("Authorization")) != 0 {
-		return nil, h.authorize(w, r, false)
+		return nil, h.authorize(w, r)
 	}
 	token, ok := browserCookie(r)
 	if !ok {
@@ -54,10 +54,10 @@ func (h *handler) authorizeStatus(w http.ResponseWriter, r *http.Request) (*app.
 
 // issueBrowserTicket grants a short-lived, one-use authorization URL.
 // @Summary Issue a browser authorization link
-// @Description Only the control token can issue links. The URL contains a two-minute, one-use secret in its fragment. Do not log or expose it in ordinary status output. Accepts no body or an empty JSON object.
+// @Description Requires the local service token. The URL contains a two-minute, one-use secret in its fragment. Do not log or expose it in ordinary status output. Accepts no body or an empty JSON object.
 // @Accept json
 // @Produce json
-// @Security ControlBearer
+// @Security ServiceBearer
 // @Success 201 {object} BrowserTicketResponse
 // @Failure 400,401,403,405,413,415,429,500 {object} ErrorResponse
 // @Router /control/browser-grants [post]
@@ -135,9 +135,9 @@ func (h *handler) logoutBrowser(w http.ResponseWriter, r *http.Request) {
 
 // listBrowserGrants exposes only management metadata to the local controller.
 // @Summary List browser authorizations
-// @Description Includes active, expired and revoked records, newest first. The cursor is the last grant ID from the preceding page. Browser cookies and client tokens cannot list grants. Secrets and their digests are never returned.
+// @Description Requires the local service token; browser cookies cannot list grants. Includes active, expired and revoked records, newest first. The cursor is the last grant ID from the preceding page. Secrets and their digests are never returned.
 // @Produce json
-// @Security ControlBearer
+// @Security ServiceBearer
 // @Param limit query int false "Page size (default 50)" minimum(1) maximum(50)
 // @Param after query string false "Last grant ID of the preceding page"
 // @Success 200 {object} BrowserGrantListResponse
@@ -198,10 +198,10 @@ func (h *handler) listBrowserGrants(w http.ResponseWriter, r *http.Request) {
 
 // revokeBrowserGrants invalidates a named grant or all grants and pending links.
 // @Summary Revoke browser authorization
-// @Description Requires the control token. Choose a single grant id or all=true, exclusively. Repeating revocation of an existing record succeeds without changing its first revocation time. Revoke-all also invalidates all outstanding authorization links. Request body is limited to 1024 bytes; query parameters are rejected.
+// @Description Requires the local service token. Choose a single grant id or all=true, exclusively. Repeating revocation of an existing record succeeds without changing its first revocation time. Revoke-all also invalidates all outstanding authorization links. Request body is limited to 1024 bytes; query parameters are rejected.
 // @Accept json
 // @Produce json
-// @Security ControlBearer
+// @Security ServiceBearer
 // @Param request body BrowserRevokeRequest true "Grant ID or all=true"
 // @Success 200 {object} BrowserRevokeResponse
 // @Failure 400,401,403,404,405,413,415,500 {object} ErrorResponse

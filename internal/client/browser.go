@@ -83,7 +83,7 @@ func (c *Client) RevokeBrowser(ctx context.Context, id string, all bool) (api.Br
 }
 
 func (c *Client) browserRequest(ctx context.Context, method, path string, body []byte, expected int) ([]byte, error) {
-	data, _, err := c.request(ctx, method, path, requestOptions{control: true, browser: true, body: body, expected: expected})
+	data, _, err := c.request(ctx, method, path, requestOptions{browser: true, body: body, expected: expected})
 	if ctx.Err() != nil {
 		return nil, &Error{"canceled", "The browser authorization operation was canceled; query state before retrying a change", ctx.Err()}
 	}
@@ -118,8 +118,8 @@ func browserResponseError(err error) error {
 				message string
 			}{
 				"bad_request":             {400, "The browser authorization parameters were rejected"},
-				"unauthenticated":         {401, "The local control credential was rejected"},
-				"forbidden":               {403, "The service denied control access"},
+				"unauthenticated":         {401, "The local service credential was rejected"},
+				"forbidden":               {403, "The service denied access"},
 				"browser_grant_not_found": {404, "The browser authorization does not exist"},
 				"authorization_limit":     {429, "Too many outstanding authorization links; wait two minutes before requesting another"},
 				"authorization_error":     {500, "The service could not complete browser authorization; inspect the local service"},

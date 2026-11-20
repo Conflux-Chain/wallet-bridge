@@ -19,21 +19,17 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
 )
 
-func readKeys(t *testing.T, dir string) [2]string {
+func readKey(t *testing.T, dir string) string {
 	t.Helper()
-	var keys [2]string
-	for i, kind := range []Kind{Client, Control} {
-		key, err := Read(dir, kind)
-		if err != nil {
-			t.Fatal(err)
-		}
-		decoded, err := hex.DecodeString(key)
-		if err != nil || len(decoded) != 32 {
-			t.Fatal("credential is not a 32-byte hexadecimal value")
-		}
-		keys[i] = key
+	key, err := Read(dir)
+	if err != nil {
+		t.Fatal(err)
 	}
-	return keys
+	decoded, err := hex.DecodeString(key)
+	if err != nil || len(decoded) != 32 {
+		t.Fatal("credential is not a 32-byte hexadecimal value")
+	}
+	return key
 }
 
 func TestCredentialsSurviveReinitialization(t *testing.T) {
@@ -41,24 +37,16 @@ func TestCredentialsSurviveReinitialization(t *testing.T) {
 	if err := Ensure(dir); err != nil {
 		t.Fatal(err)
 	}
-	initial := readKeys(t, dir)
-	if initial[0] == initial[1] {
-		t.Fatal("client and control credentials must be independent")
+	initial := readKey(t, dir)
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) != 1 || entries[0].Name() != "client.key" {
+		t.Fatal("new installation must create only the service credential")
 	}
 	if err := Ensure(dir); err != nil {
 		t.Fatal(err)
 	}
-	if readKeys(t, dir) != initial {
-		t.Fatal("credentials changed during reinitialization")
-	}
-	if err := os.Remove(filepath.Join(dir, "control.key")); err != nil {
-		t.Fatal(err)
-	}
-	if err := Ensure(dir); err != nil {
-		t.Fatal(err)
-	}
-	if keys := readKeys(t, dir); keys[0] != initial[0] || keys[1] == initial[1] {
-		t.Fatal("partial initialization did not preserve the existing client credential")
+	if readKey(t, dir) != initial {
+		t.Fatal("credential changed during reinitialization")
 	}
 }
 
@@ -69,7 +57,7 @@ func TestInvalidFilesAreNotReplaced(t *testing.T) {
 			if err := platform.EnsurePrivateDir(dir); err != nil {
 				t.Fatal(err)
 			}
-			path := filepath.Join(dir, "control.key")
+			path := filepath.Join(dir, "client.key")
 			f, err := platform.CreatePrivateFile(path)
 			if err != nil {
 				t.Fatal(err)
@@ -93,9 +81,9 @@ func TestInvalidFilesAreNotReplaced(t *testing.T) {
 	}
 }
 
-func TestReadIsIndependentAndDoesNotInitialize(t *testing.T) {
+func TestReadDoesNotInitialize(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "missing")
-	if _, err := Read(dir, Client); !errors.Is(err, os.ErrNotExist) {
+	if _, err := Read(dir); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("missing directory read: %v", err)
 	}
 	if _, err := os.Stat(dir); !errors.Is(err, os.ErrNotExist) {
@@ -104,41 +92,55 @@ func TestReadIsIndependentAndDoesNotInitialize(t *testing.T) {
 	if err := Ensure(dir); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "control.key"), []byte("broken"), 0600); err != nil {
+	if _, err := Read(dir); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Read(dir, Client); err != nil {
-		t.Fatal("client read depends on control credential:", err)
-	}
-	if _, err := Read(dir, Control); !errors.Is(err, ErrInvalid) {
-		t.Fatalf("damaged control credential accepted: %v", err)
-	}
-	if _, err := Read(dir, Kind(255)); err == nil {
-		t.Fatal("unknown credential kind accepted")
+}
+
+func TestLegacyControlFileIsIgnoredAndRetained(t *testing.T) {
+	for _, legacy := range []string{string(bytes.Repeat([]byte("a"), 64)) + "\n", "broken"} {
+		t.Run(fmt.Sprintf("length-%d", len(legacy)), func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), "data")
+			if err := Ensure(dir); err != nil {
+				t.Fatal(err)
+			}
+			initial := readKey(t, dir)
+			path := filepath.Join(dir, "control.key")
+			f, err := platform.CreatePrivateFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := f.WriteString(legacy); err != nil {
+				t.Fatal(err)
+			}
+			f.Close()
+			if err := Ensure(dir); err != nil {
+				t.Fatal("legacy file prevented initialization:", err)
+			}
+			if readKey(t, dir) != initial {
+				t.Fatal("upgrade rotated the service credential")
+			}
+			data, err := os.ReadFile(path)
+			if err != nil || string(data) != legacy {
+				t.Fatal("upgrade changed the legacy file")
+			}
+		})
 	}
 }
 
 func TestFailedInitializationCleansTemporaryFiles(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "data")
-	// Enough entropy for the first file only: the second attempt fails after
-	// creating its temporary file. A retry must reuse the completed first file.
-	if err := ensure(dir, bytes.NewReader(make([]byte, 32))); !errors.Is(err, io.EOF) {
+	if err := ensure(dir, bytes.NewReader(nil)); !errors.Is(err, io.EOF) {
 		t.Fatalf("random source failure not returned: %v", err)
 	}
-	client, err := Read(dir, Client)
-	if err != nil {
-		t.Fatal(err)
-	}
 	entries, err := os.ReadDir(dir)
-	if err != nil || len(entries) != 1 || entries[0].Name() != "client.key" {
+	if err != nil || len(entries) != 0 {
 		t.Fatal("failed initialization left temporary files")
 	}
 	if err := Ensure(dir); err != nil {
 		t.Fatal(err)
 	}
-	if readKeys(t, dir)[0] != client {
-		t.Fatal("retry replaced completed client credential")
-	}
+	readKey(t, dir)
 }
 
 func TestConcurrentProcesses(t *testing.T) {
@@ -149,8 +151,7 @@ func TestConcurrentProcesses(t *testing.T) {
 		if err := Ensure(dir); err != nil {
 			t.Fatal(err)
 		}
-		keys := readKeys(t, dir)
-		fmt.Printf("%x", sha256.Sum256([]byte(keys[0]+keys[1])))
+		fmt.Printf("%x", sha256.Sum256([]byte(readKey(t, dir))))
 		return
 	}
 	executable, err := os.Executable()
@@ -188,15 +189,14 @@ func TestConcurrentProcesses(t *testing.T) {
 			t.Errorf("initializer %d failed: %v: %s", i, err, c.output.String())
 		}
 	}
-	keys := readKeys(t, dir)
-	want := fmt.Sprintf("%xPASS\n", sha256.Sum256([]byte(keys[0]+keys[1])))
+	want := fmt.Sprintf("%xPASS\n", sha256.Sum256([]byte(readKey(t, dir))))
 	for i := range children {
 		if children[i].output.String() != want {
-			t.Errorf("initializer %d observed a different credential pair", i)
+			t.Errorf("initializer %d observed a different service credential", i)
 		}
 	}
 	entries, err := os.ReadDir(dir)
-	if err != nil || len(entries) != 2 {
+	if err != nil || len(entries) != 1 {
 		t.Fatal("concurrent initialization left extra files")
 	}
 }

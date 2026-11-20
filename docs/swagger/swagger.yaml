@@ -125,7 +125,7 @@ info:
   description: Local service access and browser authorization. Wallet APIs are delivered
     in later iterations.
   title: Wallet Bridge Local API
-  version: "1.1"
+  version: "1.2"
 paths:
   /browser/authorize:
     post:
@@ -251,9 +251,10 @@ paths:
       summary: Log out the current browser
   /control/browser-grants:
     get:
-      description: Includes active, expired and revoked records, newest first. The
-        cursor is the last grant ID from the preceding page. Browser cookies and client
-        tokens cannot list grants. Secrets and their digests are never returned.
+      description: Requires the local service token; browser cookies cannot list grants.
+        Includes active, expired and revoked records, newest first. The cursor is
+        the last grant ID from the preceding page. Secrets and their digests are never
+        returned.
       parameters:
       - description: Page size (default 50)
         in: query
@@ -293,12 +294,12 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
-      - ControlBearer: []
+      - ServiceBearer: []
       summary: List browser authorizations
     post:
       consumes:
       - application/json
-      description: Only the control token can issue links. The URL contains a two-minute,
+      description: Requires the local service token. The URL contains a two-minute,
         one-use secret in its fragment. Do not log or expose it in ordinary status
         output. Accepts no body or an empty JSON object.
       produces:
@@ -341,13 +342,13 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
-      - ControlBearer: []
+      - ServiceBearer: []
       summary: Issue a browser authorization link
   /control/browser-grants/revoke:
     post:
       consumes:
       - application/json
-      description: Requires the control token. Choose a single grant id or all=true,
+      description: Requires the local service token. Choose a single grant id or all=true,
         exclusively. Repeating revocation of an existing record succeeds without changing
         its first revocation time. Revoke-all also invalidates all outstanding authorization
         links. Request body is limited to 1024 bytes; query parameters are rejected.
@@ -398,15 +399,15 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
-      - ControlBearer: []
+      - ServiceBearer: []
       summary: Revoke browser authorization
   /control/stop:
     post:
       consumes:
       - application/json
-      description: Requires the control token. Accepts no body or an empty JSON object,
-        limited to 1024 bytes. HTTP 202 means shutdown was requested, not that the
-        process has exited.
+      description: Requires the local service token. Accepts no body or an empty JSON
+        object, limited to 1024 bytes. HTTP 202 means shutdown was requested, not
+        that the process has exited.
       produces:
       - application/json
       responses:
@@ -439,7 +440,7 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
-      - ControlBearer: []
+      - ServiceBearer: []
       summary: Request graceful service shutdown
   /info:
     get:
@@ -499,8 +500,7 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
-      - ClientBearer: []
-      - ControlBearer: []
+      - ServiceBearer: []
       - BrowserCookie: []
       summary: Read authenticated service status
 schemes:
@@ -513,14 +513,9 @@ securityDefinitions:
     in: header
     name: Cookie
     type: apiKey
-  ClientBearer:
-    description: Bearer token from the current user's client.key.
-    in: header
-    name: Authorization
-    type: apiKey
-  ControlBearer:
-    description: Bearer token from the current user's control.key; required for administrative
-      operations.
+  ServiceBearer:
+    description: Bearer token from the current user's client.key, shared by trusted
+      local clients for service access and management.
     in: header
     name: Authorization
     type: apiKey

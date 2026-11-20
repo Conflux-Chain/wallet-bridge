@@ -108,8 +108,8 @@ async function exited(process, code = 0) {
   if (code === 0) assert.equal(process.stderr, '');
 }
 
-async function stop(process, control) {
-  const response = await http('/api/v1/control/stop', { method: 'POST', token: control });
+async function stop(process, token) {
+  const response = await http('/api/v1/control/stop', { method: 'POST', token });
   assert.equal(response.status, 202);
   assert.equal(JSON.parse(response.body).state, 'stopping');
   await exited(process);
@@ -117,18 +117,18 @@ async function stop(process, control) {
 
 try {
   const first = await start(data);
-  const client = await credential(data, 'client');
-  const control = await credential(data, 'control');
-  await identity(client);
+  const token = await credential(data, 'client');
+  await assert.rejects(stat(join(data, 'control.key')), { code: 'ENOENT' });
+  await identity(token);
   assert.equal((await http('/api/v1/status')).status, 401);
-  const status = await http('/api/v1/status', { token: client });
+  const status = await http('/api/v1/status', { token });
   assert.equal(status.status, 200);
   assert.equal(JSON.parse(status.body).state, 'running');
-  assert.equal((await http('/api/v1/control/stop', { method: 'POST', token: client })).status, 403);
+  assert.equal((await http('/api/v1/control/stop', { method: 'POST' })).status, 401);
   assert.equal((await http('/api/v1/info', { headers: { Host: 'example.com:18765' } })).status, 403);
   assert.equal((await http('/api/v1/info', { headers: { Origin: 'https://example.com' } })).status, 403);
 
-  const link = await http('/api/v1/control/browser-grants', { method: 'POST', token: control, body: {} });
+  const link = await http('/api/v1/control/browser-grants', { method: 'POST', token, body: {} });
   assert.equal(link.status, 201);
   const authorizationURL = new URL(JSON.parse(link.body).url);
   assert.ok(authorizationURL.origin === 'http://127.0.0.1:18765' && /^#authorize=[0-9a-f]{64}$/.test(authorizationURL.hash), 'Invalid one-time authorization URL');
@@ -150,7 +150,7 @@ try {
   assert.equal((await http('/api/v1/control/stop', { method: 'POST', headers: browser })).status, 401);
   assert.equal((await http('/api/v1/control/browser-grants', { headers: browser })).status, 401);
   assert.equal((await http('/api/v1/browser/authorize', { method: 'POST', headers: browserOrigin, body: { ticket } })).status, 401);
-  const pendingLink = await http('/api/v1/control/browser-grants', { method: 'POST', token: control });
+  const pendingLink = await http('/api/v1/control/browser-grants', { method: 'POST', token });
   assert.equal(pendingLink.status, 201);
   const pendingTicket = new URL(JSON.parse(pendingLink.body).url).hash.slice('#authorize='.length);
 
@@ -173,14 +173,14 @@ try {
   assert.match(occupied.stderr, /^port_in_use:/);
   await assert.rejects(stat(join(otherData, 'client.key')), { code: 'ENOENT' });
 
-  await stop(first, control);
+  await stop(first, token);
   const database = await readFile(join(data, 'bridge.db'));
   assert.equal(database.subarray(0, 16).toString(), 'SQLite format 3\0', 'Production service did not initialize SQLite');
   assert.ok((await stat(join(data, 'bridge.db-journal'))).isFile(), 'Protected rollback journal is missing');
   const restarted = await start(data);
-  assert.ok(await credential(data, 'client') === client, 'Restart replaced the client credential');
-  assert.ok(await credential(data, 'control') === control, 'Restart replaced the control credential');
-  await identity(client);
+  assert.ok(await credential(data, 'client') === token, 'Restart replaced the service credential');
+  await assert.rejects(stat(join(data, 'control.key')), { code: 'ENOENT' });
+  await identity(token);
   const restored = await http('/api/v1/status', { headers: browser });
   assert.equal(restored.status, 200);
   assert.equal(JSON.parse(restored.body).browser.expiresAt, grant.expiresAt, 'Restart extended browser authorization');
@@ -189,10 +189,10 @@ try {
   assert.equal(logout.status, 200);
   assert.ok(logout.headers['set-cookie']?.some((value) => value.includes('Max-Age=0')), 'Logout did not expire its cookie');
   assert.equal((await http('/api/v1/status', { headers: browser })).status, 401);
-  const grantList = await http('/api/v1/control/browser-grants', { token: control });
+  const grantList = await http('/api/v1/control/browser-grants', { token });
   assert.equal(grantList.status, 200);
   assert.ok(JSON.parse(grantList.body).grants.some((entry) => entry.id === grant.id && entry.state === 'revoked'), 'Logout did not persist revocation');
-  await stop(restarted, control);
+  await stop(restarted, token);
   assert.ok((await stat(join(data, 'service.lock'))).isFile(), 'The released lock file must remain');
 
   if (goos === 'darwin') {

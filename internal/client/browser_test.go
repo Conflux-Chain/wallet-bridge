@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -26,16 +25,15 @@ func browserClientFixture(t *testing.T, intercept func(http.ResponseWriter, *htt
 	if err := credentials.Ensure(c.dir); err != nil {
 		t.Fatal(err)
 	}
-	clientToken, _ := credentials.Read(c.dir, credentials.Client)
-	controlToken, _ := credentials.Read(c.dir, credentials.Control)
+	token, _ := credentials.Read(c.dir)
 	core := testBrowserAuthorization(t)
-	handler, err := api.New(api.Config{Version: "test", ClientToken: clientToken, ControlToken: controlToken, StartedAt: time.Now(), Stop: func() {}, BrowserAuthorization: core})
+	handler, err := api.New(api.Config{Version: "test", ServiceToken: token, StartedAt: time.Now(), Stop: func() {}, BrowserAuthorization: core})
 	if err != nil {
 		t.Fatal(err)
 	}
 	useServer(t, c, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/v1/control/browser-grants") && r.Header.Get("Authorization") != "Bearer "+controlToken {
-			t.Error("browser management did not use the control credential")
+		if strings.HasPrefix(r.URL.Path, "/api/v1/control/browser-grants") && r.Header.Get("Authorization") != "Bearer "+token {
+			t.Error("browser management did not use the service credential")
 		}
 		if intercept != nil && intercept(w, r) {
 			return
@@ -109,12 +107,9 @@ func TestBrowserClientAuthorizationLifecycle(t *testing.T) {
 	}
 }
 
-func TestBrowserClientChecksCapabilityBeforeControl(t *testing.T) {
+func TestBrowserClientChecksCapabilityBeforeBearer(t *testing.T) {
 	c := newTestClient(t)
 	if err := credentials.Ensure(c.dir); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Remove(filepath.Join(c.dir, "control.key")); err != nil {
 		t.Fatal(err)
 	}
 	useServer(t, c, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +217,7 @@ func TestBrowserClientRejectsClosedProofConnection(t *testing.T) {
 	}
 	useServer(t, c, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "" {
-			t.Error("control credential crossed a closed connection")
+			t.Error("service credential crossed a closed connection")
 		}
 		info := signedInfo(t, c, r.URL.Query().Get("challenge"))
 		info.Capabilities = append(info.Capabilities, "browser.authorization")

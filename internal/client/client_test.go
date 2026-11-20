@@ -74,23 +74,22 @@ func codeOf(t *testing.T, err error) string {
 	return failure.Code
 }
 
-func TestStatusAndStopUseSeparateCredentials(t *testing.T) {
+func TestStatusAndStopUseSharedCredential(t *testing.T) {
 	c := newTestClient(t)
 	if err := credentials.Ensure(c.dir); err != nil {
 		t.Fatal(err)
 	}
-	clientToken, _ := credentials.Read(c.dir, credentials.Client)
-	controlToken, _ := credentials.Read(c.dir, credentials.Control)
+	token, _ := credentials.Read(c.dir)
 	var stopped atomic.Bool
-	handler, err := api.New(api.Config{Version: "test", ClientToken: clientToken, ControlToken: controlToken, StartedAt: time.Now(), Stop: func() { stopped.Store(true) }, BrowserAuthorization: testBrowserAuthorization(t)})
+	handler, err := api.New(api.Config{Version: "test", ServiceToken: token, StartedAt: time.Now(), Stop: func() { stopped.Store(true) }, BrowserAuthorization: testBrowserAuthorization(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	useServer(t, c, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/status" && r.Header.Get("Authorization") != "Bearer "+clientToken {
+		if r.URL.Path == "/api/v1/status" && r.Header.Get("Authorization") != "Bearer "+token {
 			t.Error("status used a different credential")
 		}
-		if r.URL.Path == "/api/v1/control/stop" && r.Header.Get("Authorization") != "Bearer "+controlToken {
+		if r.URL.Path == "/api/v1/control/stop" && r.Header.Get("Authorization") != "Bearer "+token {
 			t.Error("stop used a different credential")
 		}
 		handler.ServeHTTP(w, r)
@@ -133,11 +132,11 @@ func TestRefusedQueriesDoNotCreateFiles(t *testing.T) {
 
 func signedInfo(t *testing.T, c *Client, challenge string) api.InfoResponse {
 	t.Helper()
-	token, err := credentials.Read(c.dir, credentials.Client)
+	token, err := credentials.Read(c.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return api.InfoResponse{Name: "wallet-bridge", Version: "test", APIVersion: api.APIVersion{Major: 1}, Capabilities: []string{"service.status", "service.stop"}, Ready: true, Challenge: challenge, Proof: token}
+	return api.InfoResponse{Name: "wallet-bridge", Version: "test", APIVersion: api.APIVersion{Major: 1, Minor: 2}, Capabilities: []string{"service.status", "service.stop", "service.auth.shared"}, Ready: true, Challenge: challenge, Proof: token}
 }
 
 func sign(info api.InfoResponse) api.InfoResponse {
@@ -154,7 +153,8 @@ func sign(info api.InfoResponse) api.InfoResponse {
 func TestUntrustedOrIncompatibleServiceNeverGetsBearer(t *testing.T) {
 	for _, tc := range []struct{ name, code string }{
 		{"forged proof", "identity_unverified"}, {"changed metadata", "identity_unverified"}, {"replayed nonce", "identity_unverified"},
-		{"major", "incompatible_service"}, {"capabilities", "incompatible_service"}, {"not ready", "service_unavailable"},
+		{"major", "incompatible_service"}, {"legacy roles", "incompatible_service"}, {"missing shared auth", "incompatible_service"},
+		{"capabilities", "incompatible_service"}, {"not ready", "service_unavailable"},
 		{"redirect", "identity_unverified"}, {"oversize", "identity_unverified"}, {"header limit", "service_unavailable"}, {"missing credentials", "identity_unverified"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -177,6 +177,11 @@ func TestUntrustedOrIncompatibleServiceNeverGetsBearer(t *testing.T) {
 				switch tc.name {
 				case "major":
 					info.APIVersion.Major = 2
+				case "legacy roles":
+					info.APIVersion.Minor = 1
+					info.Capabilities = []string{"service.status", "service.stop", "browser.authorization"}
+				case "missing shared auth":
+					info.Capabilities = []string{"service.status", "service.stop", "browser.authorization"}
 				case "capabilities":
 					info.Capabilities = nil
 				case "not ready":
@@ -202,12 +207,15 @@ func TestUntrustedOrIncompatibleServiceNeverGetsBearer(t *testing.T) {
 				}
 				json.NewEncoder(w).Encode(info)
 			}))
-			_, err := c.Status(context.Background())
-			if codeOf(t, err) != tc.code {
-				t.Fatalf("error=%v, want %s", err, tc.code)
-			}
-			if requests.Load() > 1 {
-				t.Fatal("redirect followed or credentials attempted")
+			for _, call := range []func(context.Context) (Status, error){c.Status, c.Stop} {
+				requests.Store(0)
+				_, err := call(context.Background())
+				if codeOf(t, err) != tc.code {
+					t.Fatalf("error=%v, want %s", err, tc.code)
+				}
+				if requests.Load() > 1 {
+					t.Fatal("redirect followed or credentials attempted")
+				}
 			}
 		})
 	}
