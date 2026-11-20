@@ -6,17 +6,17 @@
 
 ## 1. 当前阶段
 
-- 迭代 1 功能 PR 已合并，正在组合验收与交接。
+- 迭代 1 全部 PR 已合并，自动组合验证通过；迭代 2 正在细化需求与方案。
 
 ## 2. 当前任务
 
-- 当前文档：[spec](01-local-service/spec.md)、[design](01-local-service/design.md)、[plan](01-local-service/plan.md)。
-- 当前步骤：PR 1-7 已完成本地组合验证并提交评审；PR 链接及检查证据统一见 plan。环境缺项见[本轮验收记录](01-local-service/acceptance.md)，本地验证见[浏览器测试指南](../browser-testing.md)。
+- 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
+- 当前步骤：固定钱包及[请求审阅交互](../approval-flow.md)已确认，PR 2-0 文档待评审；PR 链接和后续检查点统一见 plan。
 
 ## 3. 下一步
 
-完成 PR 1-7 的组合验证与评审，汇总可用证据及缺失环境；再讨论迭代 2 的连接与 Session 细节。
+完成 PR 2-0 文档评审，合并后先实现 PR 2-1 钱包发现；连接存储／核心流程前补齐对应产品细节。
 
 ## 4. 验证记录
 
-- 上轮交付与验证见[迭代 0 plan](00-foundation/plan.md)。本轮结果见当前 plan；最低系统版本与真实钱包尚待后续验收。
+- 已完成的交付与验证见[迭代 1 plan](01-local-service/plan.md)，环境补验与用户验收缺项见[验收记录](01-local-service/acceptance.md)。本轮尚未编码或验收钱包。

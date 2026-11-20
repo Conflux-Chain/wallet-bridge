@@ -1,6 +1,6 @@
 # 迭代 1 PR 计划
 
-状态：2026-11-20 PR 1-6d 已合并；PR 1-7 待评审，环境补验与用户验收尚未完成。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
+状态：2026-11-20 全部 PR 已合并，自动组合验证通过；环境补验与用户验收尚未完成。范围见 [spec](spec.md)，方案见 [design](design.md)。
 
 ## 拆分
 
@@ -16,16 +16,15 @@
 | PR 1-6b：授权 HTTP | 接入授权核心，提供交换／cookie／管理接口，同步生成接口文档 | 权限分离、同 origin、cookie 属性、受保护状态、错误和凭据不泄漏 | [#11](https://github.com/Conflux-Chain/wallet-bridge/pull/11) 已合并 |
 | PR 1-6c：授权 CLI | ui、浏览器启动及授权管理命令，共用已验证身份的 HTTP client | 一次性链接仅显式输出、打开失败处理、CLI 管理、三平台运行 | [#12](https://github.com/Conflux-Chain/wallet-bridge/pull/12) 已合并 |
 | PR 1-6d：授权页面 | 未授权说明、交换／状态及退出页面 | 地址 fragment 清理、30 天授权复用、到期／撤销反馈、真实浏览器呈现 | [#13](https://github.com/Conflux-Chain/wallet-bridge/pull/13) 已合并 |
-| PR 1-7：组合验收 | 三平台本轮组合流程、无工具链运行及交接资料；不补交此前 PR 应有的基础测试 | 汇总 A-01～04 证据，明确最低系统版本与缺失环境的待验收项 | [#14](https://github.com/Conflux-Chain/wallet-bridge/pull/14) 待评审 |
+| PR 1-7：组合验收 | 三平台本轮组合流程、无工具链运行及交接资料；不补交此前 PR 应有的基础测试 | 汇总 A-01～04 证据，明确最低系统版本与缺失环境的待验收项 | [#14](https://github.com/Conflux-Chain/wallet-bridge/pull/14) 已合并 |
 
 PR 1-1～1-7 按顺序依赖，其中 PR 1-6 按 a～d 分步交付，保持评审单元集中；每个实现 PR 只引入当前能力需要的目录和依赖。PR 合并、自动检查、真实环境及用户验收分别记录。
 
 ## 当前步骤
 
-- PR 1-6d 已按用户“继续”的指令 Squash 合并为 `0d83513`，并清理其本地／远端分支；本地 main 已同步。
-- 当前分支：`test/local-service-acceptance`，从上述 main 创建；[#14](https://github.com/Conflux-Chain/wallet-bridge/pull/14) 交付 PR 1-7，等待评审。
-- 本 PR 分三步：加强独立程序组合运行环境；执行可用环境验收并汇总 A-01～04；同步本地交接与待验收项。证据见[本轮验收记录](acceptance.md)。
-- 钱包及 MCP 沿用后续迭代安排；最低系统或跨用户环境缺失时明确保留待验收，不自行降低支持目标。
+- PR 1-7 已按用户“继续”的指令 Squash 合并为 `3ab5e07`，本地 main 已同步，其本地／远端分支已清理。
+- 自动组合验证与待验收环境见[本轮验收记录](acceptance.md)；未将缺失环境标为验收通过。
+- 当前转入[迭代 2](../02-connection-session/spec.md)需求细化；MCP 沿用后续迭代安排。
 
 ## 验证与限制
 
@@ -110,3 +109,4 @@ PR 1-1～1-7 按顺序依赖，其中 PR 1-6 按 a～d 分步交付，保持评�
 - Windows 本地三目标构建、完整／no_web Go 测试、go vet、三组 smoke 和 10 项 Chrome 测试通过；各项证据及待验收环境汇总到[验收记录](acceptance.md)，三平台最终 CI 随本 PR 检查记录。
 - 原正式服务已恢复；本次测试目录由测试正常清理。最低系统、干净系统、跨用户与默认浏览器实测及用户验收仍保留待办，不将本 PR 合并等同于全部环境验收完成。
 - 19 份 Markdown 的 151 个本地链接／51 个标题锚点及 Git 空白检查通过。
+- 三平台[原生 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/44663676405) 通过（最终 head `205c196`）：各平台日志确认仓库外单一程序、空 PATH，均通过 10 项 Chromium 测试和三组 smoke。
