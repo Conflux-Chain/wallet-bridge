@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0～2-3a2b 已合并；PR 2-3a2c 连接与 Session 核心已实现待评审，PR 入口及证据见 plan。
+- 当前步骤：PR 2-0～2-3a2c 已合并；PR 2-3b0 执行协调 spec／design 已完成待评审，PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-评审 PR 2-3a2c；合并后细化多页执行协调，再继续 HTTP／CLI。请求创建重试已按 D-035 确认。
+评审执行协调方案，随后从执行记录与领取存储开始，按 plan 分 PR 实现，再继续 HTTP／CLI。
 
 ## 4. 验证记录
 
