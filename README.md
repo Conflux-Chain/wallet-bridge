@@ -81,7 +81,7 @@ go test -tags no_web ./internal/platform ./internal/credentials -count=1 -v
 
 [授权核心与 SQLite 测试指南](docs/local-service.md#sqlite-存储测试与数据)提供一次性凭据、持久授权、迁移、到期／撤销、崩溃恢复和文件保护测试，以及正式数据库的位置与失败处理方式。
 
-[连接记录与迁移测试](docs/connection-storage.md)提供连接／Session 数据模型、schema v2 和凭据查询的独立验证步骤；无需启动服务或钱包。
+[连接存储与事务测试](docs/connection-storage.md)提供迁移、凭据查询、原子完成与终态竞争的独立验证步骤；无需启动服务或钱包。
 
 [授权 HTTP 测试](docs/local-service.md#浏览器授权-http-测试)提供接口行为测试、独立程序验证方式及当前交付边界。
 

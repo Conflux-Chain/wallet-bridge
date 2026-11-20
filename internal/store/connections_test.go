@@ -52,7 +52,7 @@ func sessionArgs(session app.Session, digest [32]byte) []any {
 		session.Wallet.RDNS, session.Account, session.ChainID, session.CreatedAt.UnixMilli(), session.LastAccessAt.UnixMilli(), closed}
 }
 
-// Fixture SQL exercises the read schema before the next PR adds atomic completion.
+// Fixture SQL keeps read/schema tests independent of the transition methods.
 func insertSessionFixture(t *testing.T, s *Store, session app.Session, digest [32]byte) {
 	t.Helper()
 	tx, err := s.db.BeginTx(context.Background(), nil)
