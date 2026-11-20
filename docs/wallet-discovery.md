@@ -35,6 +35,8 @@ npm --prefix web run test:wallet
 
 类型与生产构建可执行 `npm --prefix web run build`；测试结束后无服务数据需要清理，浏览器测试报告写入已忽略的 `web/test-results/`。授权页面的组合测试仍使用独立程序及固定端口，步骤见[浏览器测试指南](browser-testing.md#自动浏览器测试)。
 
-## 真实扩展验收（待执行）
+## 真实扩展验收
 
 在已安装 MetaMask／Fluent 的 Chrome 配置按上述预览步骤验收：分别启用、同时启用，确认标准名称及来源、单选与重新检测，不应出现钱包操作弹窗；记录 OS／Chrome／扩展版本、站点访问权限与实际发现方式。无法发现时先确认扩展在该配置启用并可访问该页面，再刷新；不以模拟测试代替实测。账户授权、网络切换及 Session 另随后续 PR 验收。
+
+已收到用户对双钱包同时发现的确认；覆盖范围及仍待补验的项目统一记录在[迭代 plan](iterations/02-connection-session/plan.md#pr-2-1)。

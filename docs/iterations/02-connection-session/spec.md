@@ -1,6 +1,6 @@
 # 迭代 2：连接钱包与 Session
 
-状态：2026-11-20 固定钱包及请求审阅交互已确认，PR 2-1 已实现、待评审与真实扩展验收，其他细节按下述检查点分步补充。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
+状态：2026-11-20 固定钱包及请求审阅交互已确认，PR 2-1 已实现且用户确认同时发现 MetaMask／Fluent，准备合并；其他细节按下述检查点分步补充。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
 
 ## 目标与边界
 
