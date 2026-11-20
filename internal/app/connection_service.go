@@ -31,12 +31,17 @@ type ConnectionBinding struct {
 // Adapters authenticate callers; completion/rejection additionally require the
 // browser's consent and execution ownership before invoking these methods.
 type ConnectionService struct {
-	store  ConnectionStore
+	store  ConnectionServiceStore
 	now    func() time.Time
 	random io.Reader
 }
 
-func NewConnectionService(store ConnectionStore) (*ConnectionService, error) {
+type ConnectionServiceStore interface {
+	ConnectionStore
+	ConnectionExecutionStore
+}
+
+func NewConnectionService(store ConnectionServiceStore) (*ConnectionService, error) {
 	if store == nil {
 		return nil, errors.New("connection service requires a store")
 	}
@@ -102,14 +107,9 @@ func (a *ConnectionService) Complete(ctx context.Context, id string, binding Con
 	if !connectionID(id) {
 		return ConnectionRequest{}, ErrInvalidConnectionRequest
 	}
-	chain, ok := connectionChainID(binding.ChainID)
-	account := strings.ToLower(binding.Account)
-	decoded, decodeErr := hex.DecodeString(strings.TrimPrefix(account, "0x"))
-	if !ok || !strings.HasPrefix(account, "0x") || len(decoded) != 20 || decodeErr != nil ||
-		strings.TrimSpace(binding.Wallet.Name) == "" ||
-		(binding.Wallet.Kind != WalletEIP6963 && binding.Wallet.Kind != WalletLegacy) ||
-		(binding.Wallet.Kind == WalletEIP6963 && strings.TrimSpace(binding.Wallet.RDNS) == "") {
-		return ConnectionRequest{}, ErrInvalidSession
+	binding, err := normalizeConnectionBinding(binding)
+	if err != nil {
+		return ConnectionRequest{}, err
 	}
 	request, err := a.Get(ctx, id)
 	if err != nil {
@@ -118,7 +118,7 @@ func (a *ConnectionService) Complete(ctx context.Context, id string, binding Con
 	if request.State != ConnectionPending && request.State != ConnectionSucceeded {
 		return request, ErrConnectionConflict
 	}
-	if chain != request.ChainID {
+	if binding.ChainID != request.ChainID {
 		return request, ErrInvalidSession
 	}
 	sessionID := request.SessionID
@@ -129,7 +129,7 @@ func (a *ConnectionService) Complete(ctx context.Context, id string, binding Con
 		}
 		sessionID = hex.EncodeToString(value[:])
 	}
-	completion := ConnectionCompletion{SessionID: sessionID, Wallet: binding.Wallet, Account: account, ChainID: chain}
+	completion := ConnectionCompletion{SessionID: sessionID, Wallet: binding.Wallet, Account: binding.Account, ChainID: binding.ChainID}
 	result, err := a.store.CompleteConnectionRequest(ctx, id, completion, a.now())
 	if errors.Is(err, ErrConnectionConflict) && result.State == ConnectionSucceeded && result.SessionID != sessionID {
 		// Another completion may have chosen its ID after our read. Reuse that
@@ -164,10 +164,28 @@ func (a *ConnectionService) CloseSession(ctx context.Context, id string) (Sessio
 	return a.store.CloseSession(ctx, id, a.now())
 }
 
-// Expire performs startup/periodic maintenance without entering any wallet.
-// Transaction support must add unfinished-request protection before use there.
-func (a *ConnectionService) Expire(ctx context.Context) (ConnectionExpiryCounts, error) {
-	return a.store.ExpireConnectionsAndSessions(ctx, a.now())
+// Restore runs once before service readiness. Maintain never revives an execution.
+// Transaction support must add unfinished-request protection before Session GC.
+func (a *ConnectionService) Restore(ctx context.Context) (ConnectionMaintenanceCounts, error) {
+	return a.store.MaintainConnectionState(ctx, a.now(), true)
+}
+
+func (a *ConnectionService) Maintain(ctx context.Context) (ConnectionMaintenanceCounts, error) {
+	return a.store.MaintainConnectionState(ctx, a.now(), false)
+}
+
+func normalizeConnectionBinding(binding ConnectionBinding) (ConnectionBinding, error) {
+	chain, ok := connectionChainID(binding.ChainID)
+	account := strings.ToLower(binding.Account)
+	decoded, err := hex.DecodeString(strings.TrimPrefix(account, "0x"))
+	if !ok || !strings.HasPrefix(account, "0x") || len(decoded) != 20 || err != nil ||
+		strings.TrimSpace(binding.Wallet.Name) == "" ||
+		(binding.Wallet.Kind != WalletEIP6963 && binding.Wallet.Kind != WalletLegacy) ||
+		(binding.Wallet.Kind == WalletEIP6963 && strings.TrimSpace(binding.Wallet.RDNS) == "") {
+		return ConnectionBinding{}, ErrInvalidSession
+	}
+	binding.Account, binding.ChainID = account, chain
+	return binding, nil
 }
 
 func connectionID(value string) bool {

@@ -197,8 +197,12 @@ func TestConnectionExecutionMaintenanceRetainsWalletWait(t *testing.T) {
 					maintain = s.InterruptAllConnectionExecutions
 				}
 				count, err := maintain(ctx, at)
-				if err != nil || count != 1 {
-					t.Fatal("maintenance did not interrupt one execution", count, err)
+				wantCount := int64(1)
+				if reason == "canceled" {
+					wantCount = 0 // Cancellation now coordinates the execution atomically.
+				}
+				if err != nil || count != wantCount {
+					t.Fatal("incorrect maintenance count", count, err)
 				}
 				got, err := s.GetConnectionExecution(ctx, r.ID)
 				phase := app.ExecutionInterruptedReady

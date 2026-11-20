@@ -42,6 +42,9 @@ func (s *Store) transitionConnection(ctx context.Context, id string, desired app
 	if decision != nil && !errors.Is(decision, app.ErrConnectionConflict) {
 		return app.ConnectionRequest{}, decision
 	}
+	if _, err := maintainExecutions(ctx, tx, now, false); err != nil {
+		return app.ConnectionRequest{}, err
+	}
 	if err := tx.Commit(); err != nil {
 		return app.ConnectionRequest{}, err
 	}

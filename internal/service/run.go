@@ -85,7 +85,7 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 	if err != nil {
 		return &Error{"configuration_error", "Cannot configure connection lifecycle", err}
 	}
-	if err := expireConnections(ctx, connections); err != nil {
+	if err := maintainConnections(ctx, connections, true); err != nil {
 		return err
 	}
 	browserAuthorization, err := app.NewBrowserAuthorization(database)
@@ -126,7 +126,7 @@ running:
 		case <-stop:
 			break running
 		case <-maintenance:
-			if maintenanceErr = expireConnections(ctx, connections); maintenanceErr != nil {
+			if maintenanceErr = maintainConnections(ctx, connections, false); maintenanceErr != nil {
 				if ctx.Err() != nil {
 					maintenanceErr = nil
 				}
@@ -145,11 +145,17 @@ running:
 	return maintenanceErr
 }
 
-func expireConnections(ctx context.Context, connections *app.ConnectionService) error {
+func maintainConnections(ctx context.Context, connections *app.ConnectionService, restart bool) error {
 	maintenance, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	if _, err := connections.Expire(maintenance); err != nil {
-		return &Error{"storage_error", "Cannot maintain connection and Session deadlines; existing data was retained", err}
+	var err error
+	if restart {
+		_, err = connections.Restore(maintenance)
+	} else {
+		_, err = connections.Maintain(maintenance)
+	}
+	if err != nil {
+		return &Error{"storage_error", "Cannot maintain connection, Session and execution state; existing data was retained", err}
 	}
 	return nil
 }

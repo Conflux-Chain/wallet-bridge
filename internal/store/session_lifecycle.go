@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/app"
@@ -69,6 +70,17 @@ func (s *Store) ExpireConnectionsAndSessions(ctx context.Context, now time.Time)
 		return app.ConnectionExpiryCounts{}, err
 	}
 	defer tx.Rollback()
+	counts, err := expireConnectionsInTx(ctx, tx, now)
+	if err != nil {
+		return app.ConnectionExpiryCounts{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return app.ConnectionExpiryCounts{}, err
+	}
+	return counts, nil
+}
+
+func expireConnectionsInTx(ctx context.Context, tx *sql.Tx, now time.Time) (app.ConnectionExpiryCounts, error) {
 	connections, err := tx.ExecContext(ctx, `UPDATE connection_requests SET state = 'expired', finished_at = expires_at
 WHERE state = 'pending' AND expires_at <= ?`, now.UnixMilli())
 	if err != nil {
@@ -86,9 +98,6 @@ WHERE closed_at IS NULL AND last_access_at <= ?`, app.SessionIdleLifetime.Millis
 		return app.ConnectionExpiryCounts{}, err
 	}
 	if counts.Sessions, err = sessions.RowsAffected(); err != nil {
-		return app.ConnectionExpiryCounts{}, err
-	}
-	if err := tx.Commit(); err != nil {
 		return app.ConnectionExpiryCounts{}, err
 	}
 	return counts, nil

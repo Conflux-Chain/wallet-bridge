@@ -19,7 +19,25 @@ func TestConnectionExecutionMigrationPreservesHistory(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "data")
 	legacy := openConnectionSchema(t, dir, 3)
 	r, ref, now := executionFixture(t, legacy, 0)
-	completed, session := createLiveSession(t, legacy, 1)
+	// Seed a v3 completion without invoking the v4 execution coordination path.
+	completed := createPendingConnection(t, legacy, 1)
+	completion := completionFixture(completed)
+	tx, err := legacy.db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	completed, err = transitionConnectionInTx(ctx, tx, completed.ID, app.ConnectionSucceeded, completion, completed.CreatedAt.Add(time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	session, err := legacy.GetSession(ctx, completion.SessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	closed, err := legacy.CloseSession(ctx, session.ID, session.LastAccessAt.Add(time.Second))
 	if err != nil {
 		t.Fatal(err)
