@@ -1,6 +1,6 @@
 # 本地服务开发与测试
 
-当前提供前台／后台服务、进程锁、服务及浏览器授权 HTTP／CLI、内嵌页面和授权存储。交互页面及钱包接入按[迭代计划](iterations/01-local-service/plan.md)交付。
+当前提供前台／后台服务、进程锁、浏览器授权 HTTP／CLI／页面及授权存储。钱包接入按[迭代计划](iterations/01-local-service/plan.md)交付；页面手动与自动测试见[浏览器测试指南](browser-testing.md)。
 
 ## 前置条件
 
@@ -55,9 +55,9 @@ ensure 最多等待 15 秒，stop 最多 5 秒。超时或调用者退出不会�
 
 保持终端运行，预期输出 `wallet-bridge ready at http://127.0.0.1:18765`。浏览器打开：
 
-- [页面](http://127.0.0.1:18765/)：显示「Wallet Bridge」静态说明页。
+- [页面](http://127.0.0.1:18765/)：未授权时显示「需要浏览器授权」及 CLI 命令；授权后显示服务状态与当前授权信息。
 - [公开服务信息](http://127.0.0.1:18765/api/v1/info)：JSON 中 `name` 为 `wallet-bridge`、`ready` 为 `true`，并含版本与能力。
-- [受保护状态接口](http://127.0.0.1:18765/api/v1/status)：未授权浏览器直接打开返回 HTTP 401 和 `unauthenticated`，属于预期鉴权行为。
+- [受保护状态接口](http://127.0.0.1:18765/api/v1/status)：未授权浏览器直接打开返回 HTTP 401 和 `unauthenticated`，属于预期鉴权行为；有效浏览器 cookie 可读取当前授权及服务状态。
 
 在启动终端按 `Ctrl+C` 正常停止。手动启动会在[用户数据目录](local-credentials.md#用户需要准备什么)自动初始化并保留凭据及 `service.lock`；重启复用凭据，锁文件存在不代表服务仍在运行。需要隔离数据时，可追加 `--data-dir <尚未创建的绝对目录>`，其父目录须已存在；停止后该目录仍保留。端口不随目录变化。
 
@@ -86,7 +86,7 @@ go test -tags no_web ./internal/api ./internal/platform ./internal/service ./int
 
 macOS 使用 `./dist/wallet-bridge-darwin-arm64`（Intel 为 `darwin-amd64`），其余参数相同。`ui` 自动启动或复用服务；`--print-url` 只输出两分钟内有效的一次性链接。省略该选项时向系统默认浏览器提交打开请求，终端不显示链接。需要用特定 Chrome 配置时，可将显式输出的链接粘贴到对应窗口。
 
-预期三个命令均返回 0：链接使用固定 origin 和 `#authorize=` fragment；list 返回至多一条授权元数据及可选 `nextAfter`；stop 返回 `stopped`。当前页面仍为静态说明页，尚不消费链接，单纯签发链接不会新增授权；全新数据的 list 为 `grants: []`。页面交换在 PR 1-6d 交付。
+预期三个命令均返回 0：链接使用固定 origin 和 `#authorize=` fragment；list 返回至多一条授权元数据及可选 `nextAfter`；stop 返回 `stopped`。单纯签发链接不会新增授权；在服务运行时将链接粘贴到目标 Chrome 配置，页面清除 fragment 并交换授权，随后显示「浏览器已授权」。完整顺序与退出验证见[浏览器测试指南](browser-testing.md#手动验证授权页面)。
 
 `browser list` 省略 `--json` 时显示表格；使用 `--after <nextAfter>` 取下一页。`browser revoke <id>` 撤销单个授权，`browser revoke --all` 撤销全部授权及未消费链接；都支持 `--json`。这些管理命令不启动服务，未运行时返回 `service_not_running`、退出码 1。运行错误写 stderr；参数错误返回 2。浏览器启动失败返回 `browser_open_failed`，按提示重新运行 `ui --print-url`；链接过期时重新签发，达到限额时等待两分钟再试。
 
@@ -98,7 +98,7 @@ macOS 使用 `./dist/wallet-bridge-darwin-arm64`（Intel 为 `darwin-amd64`）�
 go test -tags no_web ./internal/client ./internal/cli -run 'Test(Browser|UI)' -count=1 -v
 ```
 
-预期身份／能力校验、链接输出隔离、启动失败、分页与撤销测试通过。上述 `background:smoke` 另用独立程序验证 `ui --print-url` 自动启动、真实 HTTP 交换、分页、重启及单个／全部撤销；不会打开用户浏览器。系统默认浏览器的实际启动与页面呈现单独验收。
+预期身份／能力校验、链接输出隔离、启动失败、分页与撤销测试通过。上述 `background:smoke` 另用独立程序验证 `ui --print-url` 自动启动、真实 HTTP 交换、分页、重启及单个／全部撤销；不会打开用户浏览器。实际页面测试使用 Playwright，见[浏览器测试指南](browser-testing.md#自动浏览器测试)；系统默认浏览器的实际启动另行验收。
 
 ## 浏览器授权 HTTP 测试
 
@@ -110,7 +110,7 @@ go test -tags no_web ./internal/api -run '^TestBrowserHTTP' -count=1 -v
 
 预期：真实 SQLite 上的交换／重放拒绝、Origin／Host、Bearer／cookie 权限、重复 cookie、到期／撤销、重启、分页、链接数量上限及存储失败测试通过。测试自动清理临时数据库；授权 30 天到期用过期记录验证，无需等待。独立可执行程序的真实 HTTP 流程另由上述 `service:smoke` 验证，停止与清理规则相同。
 
-HTTP 与上述 CLI 已接入；页面自动交换在后续 PR 提供。HTTP 客户端测试不代替真实浏览器对 cookie、地址 fragment 清理和页面显示的验收。
+HTTP、CLI 和页面均已接入。HTTP 客户端测试与[浏览器测试](browser-testing.md)分别记录，不代替实际钱包或用户验收。
 
 ## SQLite 存储测试与数据
 

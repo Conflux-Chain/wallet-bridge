@@ -37,7 +37,7 @@ npm ci --prefix web
 npm --prefix web run dev
 ```
 
-保持终端运行，在浏览器访问终端显示的 Local 地址，通常是 `http://127.0.0.1:5173`；端口被占用时以实际输出为准。应能看到「Wallet Bridge」标题和「由你确认的钱包操作」说明。当前为静态说明页，功能进度见[当前迭代](docs/iterations/current.md)。
+保持终端运行，在浏览器访问终端显示的 Local 地址，通常是 `http://127.0.0.1:5173`；端口被占用时以实际输出为准。应能看到「Wallet Bridge」和「开发预览」。此地址不接入真实服务；完整授权流程见[浏览器授权页面测试](docs/browser-testing.md)。功能进度见[当前迭代](docs/iterations/current.md)。
 
 页面入口需要 Vite 处理，通过上述 HTTP 地址访问；直接双击 `web/index.html` 或 `web/dist/index.html` 可能导致白屏。预览结束后，在启动终端按 `Ctrl+C` 停止。
 
@@ -82,4 +82,4 @@ go test -tags no_web ./internal/platform ./internal/credentials -count=1 -v
 
 [授权 HTTP 测试](docs/local-service.md#浏览器授权-http-测试)提供接口行为测试、独立程序验证方式及当前交付边界。
 
-[授权 CLI 指南](docs/local-service.md#浏览器授权-cli)说明 `ui`、`browser list／revoke` 的命令、预期结果及停止方式。页面授权交互及钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。
+[授权 CLI 指南](docs/local-service.md#浏览器授权-cli)说明 `ui`、`browser list／revoke`；[浏览器测试指南](docs/browser-testing.md)提供页面授权、退出、重启复用和 Playwright 自动测试步骤。钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。

@@ -127,6 +127,14 @@ info 可携带一次 32 字节小写十六进制 `challenge`，响应以 client 
 - client 共用现有身份校验和连接固定机制；授权操作额外要求 `browser.authorization` capability，在读取／发送 control 凭据前校验。支持有界 JSON 请求体与各接口成功状态；错误仅使用本地稳定映射，不透传响应内容或底层诊断，不自动重试变更操作。
 - Windows 直接调用 ShellExecuteW，macOS 使用绝对路径 `/usr/bin/open`，均不通过 shell 拼接 URL，也不继承 STDIO；平台打开成功只表示已提交浏览器启动请求，不表示页面完成授权。测试替换打开入口，不在自动检查中打开用户浏览器。
 
+### PR 1-6d：授权页面
+
+- 页面启动时同步读取并清除 fragment，再创建一次性的初始化 Promise；React StrictMode 重挂载复用结果，不重复交换。同一页面粘贴新 fragment 时重新加载并执行该流程。只接受固定 origin 上格式正确的 `#authorize=<ticket>`，不在日志、页面、浏览器存储或错误中保留凭据。
+- 浏览器 API 使用同 origin、same-origin cookie、禁止重定向和 5 秒超时；页面不读取 HttpOnly cookie，也不接触本机 Bearer。交换及退出不自动重试，响应丢失时提示查询状态或重新签发链接。
+- 页面区分检查中、未授权／已失效、链接无效、已授权、连接失败和退出结果未确认。已授权时展示服务版本／启动时间、当前授权标识与期限，并只提供退出当前浏览器；刷新／检查不延长授权。
+- 已授权页面在前台每 10 秒、恢复可见／聚焦及到期时查询状态；串行化检查与退出，失败隐藏过期的管理信息。未授权或断线时可手动重新检查。Vite 非固定 origin 仅展示开发预览说明，不请求真实服务或交换链接。
+- 引入固定版本 Playwright，在 `web/tests/e2e/` 以临时数据和实际内嵌页面验证 cookie、fragment、重放、重启、撤销及失败恢复；三个原生 CI 执行 Chromium 测试。真实 Chrome／默认浏览器呈现另记验收证据，不等同于钱包或用户验收。
+
 ## 6. 存储、页面与构建
 
 - SQLite 本轮仅引入 schema 版本、浏览器授权所需表及迁移；不预建 Session／交易表。采用 `modernc.org/sqlite v1.62.0`（纯 Go、`database/sql`），三个目标构建与真实读写证据记入 plan。
