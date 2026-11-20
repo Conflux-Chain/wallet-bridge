@@ -98,6 +98,7 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 		Version: config.Version, ServiceToken: token, Assets: config.Assets,
 		StartedAt: time.Now(), Stop: func() { once.Do(func() { close(stop) }) },
 		BrowserAuthorization: browserAuthorization,
+		Connections:          connections,
 	})
 	if err != nil {
 		return &Error{"configuration_error", "Cannot configure the local API", err}

@@ -1,21 +1,22 @@
 package api
 
 const (
-	Address        = "127.0.0.1:18765"
-	Origin         = "http://" + Address
-	MaxControlBody = 1024
+	Address           = "127.0.0.1:18765"
+	Origin            = "http://" + Address
+	MaxControlBody    = 1024
+	MaxConnectionBody = 8 << 10
 )
 
 type APIVersion struct {
 	Major int `json:"major" example:"1"`
-	Minor int `json:"minor" example:"1"`
+	Minor int `json:"minor" example:"3"`
 }
 
 type InfoResponse struct {
 	Name         string     `json:"name" example:"wallet-bridge"`
 	Version      string     `json:"version" example:"dev"`
 	APIVersion   APIVersion `json:"apiVersion"`
-	Capabilities []string   `json:"capabilities" example:"service.status,service.stop,browser.authorization"`
+	Capabilities []string   `json:"capabilities" example:"service.status,service.stop,browser.authorization,service.auth.shared,connections.lifecycle"`
 	Ready        bool       `json:"ready" example:"true"`
 	Challenge    string     `json:"challenge,omitempty"`
 	Proof        string     `json:"proof,omitempty"`
