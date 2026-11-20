@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0 已合并，用户确认双钱包同时发现，准备合并 PR 2-1；PR 链接和后续检查点统一见 plan。
+- 当前步骤：PR 2-0／2-1 已合并，连接同意及取消／到期规则已确认，PR 2-2a 连接记录与迁移待评审；PR 链接和后续检查点统一见 plan。
 
 ## 3. 下一步
 
-合并 PR 2-1；进入连接存储／核心流程前，先确认首次连接的同意时点及钱包调用期间的取消／到期行为。
+评审 PR 2-2a，合并后实现 PR 2-2b 的连接完成、取消和到期原子写入；多页执行协调及 HTTP／CLI 细节在对应 PR 前补充。
 
 ## 4. 验证记录
 

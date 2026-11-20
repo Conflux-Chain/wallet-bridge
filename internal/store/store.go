@@ -79,12 +79,18 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 	if err := migrate(ctx, db, migrations); err != nil {
 		return nil, fmt.Errorf("migrate database: %w", err)
 	}
-	rows, err := db.QueryContext(ctx, "SELECT id, token_hash, issued_at, expires_at, revoked_at FROM browser_grants LIMIT 0")
-	if err != nil {
-		return nil, fmt.Errorf("validate database schema: %w", err)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
+	for _, query := range []string{
+		"SELECT id, token_hash, issued_at, expires_at, revoked_at FROM browser_grants LIMIT 0",
+		connectionSelect + " WHERE r.token_hash IS NOT NULL LIMIT 0",
+		sessionSelect + " WHERE token_hash IS NOT NULL LIMIT 0",
+	} {
+		rows, err := db.QueryContext(ctx, query)
+		if err != nil {
+			return nil, fmt.Errorf("validate database schema: %w", err)
+		}
+		if err := rows.Close(); err != nil {
+			return nil, err
+		}
 	}
 	// SQLite must retain the protected journal across initialization and commits.
 	f, err := platform.OpenPrivateFile(path + "-journal")
