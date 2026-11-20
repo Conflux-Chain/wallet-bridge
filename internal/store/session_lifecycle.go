@@ -7,15 +7,15 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 )
 
-func (s *Store) AccessSession(ctx context.Context, id string, digest [32]byte, now time.Time) (app.Session, error) {
-	return s.updateSessionLifecycle(ctx, id, digest, now, false)
+func (s *Store) AccessSession(ctx context.Context, id string, now time.Time) (app.Session, error) {
+	return s.updateSessionLifecycle(ctx, id, now, false)
 }
 
-func (s *Store) CloseSession(ctx context.Context, id string, digest [32]byte, now time.Time) (app.Session, error) {
-	return s.updateSessionLifecycle(ctx, id, digest, now, true)
+func (s *Store) CloseSession(ctx context.Context, id string, now time.Time) (app.Session, error) {
+	return s.updateSessionLifecycle(ctx, id, now, true)
 }
 
-func (s *Store) updateSessionLifecycle(ctx context.Context, id string, digest [32]byte, now time.Time, closeSession bool) (app.Session, error) {
+func (s *Store) updateSessionLifecycle(ctx context.Context, id string, now time.Time, closeSession bool) (app.Session, error) {
 	if !validTime(now) {
 		return app.Session{}, app.ErrInvalidSession
 	}
@@ -25,7 +25,7 @@ func (s *Store) updateSessionLifecycle(ctx context.Context, id string, digest [3
 		return app.Session{}, err
 	}
 	defer tx.Rollback()
-	session, err := scanSession(tx.QueryRowContext(ctx, sessionSelect+" WHERE id = ? AND token_hash = ?", id, digest[:]))
+	session, err := scanSession(tx.QueryRowContext(ctx, sessionSelect+" WHERE id = ?", id))
 	if err != nil {
 		return app.Session{}, err
 	}

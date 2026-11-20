@@ -81,8 +81,8 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 	}
 	for _, query := range []string{
 		"SELECT id, token_hash, issued_at, expires_at, revoked_at FROM browser_grants LIMIT 0",
-		connectionSelect + " WHERE r.token_hash IS NOT NULL LIMIT 0",
-		sessionSelect + " WHERE token_hash IS NOT NULL LIMIT 0",
+		connectionSelect + " LIMIT 0",
+		sessionSelect + " LIMIT 0",
 	} {
 		rows, err := db.QueryContext(ctx, query)
 		if err != nil {

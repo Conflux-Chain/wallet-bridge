@@ -54,6 +54,53 @@ CREATE TABLE sessions (
     closed_at INTEGER CHECK (closed_at >= created_at)
 );
 CREATE INDEX sessions_by_idle ON sessions (closed_at, last_access_at, id);
+`, `
+CREATE TABLE connection_requests_v3 (
+    id TEXT PRIMARY KEY NOT NULL CHECK (length(id) = 32 AND id NOT GLOB '*[^0-9a-f]*'),
+    client_name TEXT NOT NULL CHECK (length(trim(client_name)) > 0),
+    intent TEXT NOT NULL,
+    chain_id TEXT NOT NULL CHECK (
+        length(chain_id) >= 3 AND substr(chain_id, 1, 2) = '0x' AND
+        substr(chain_id, 3) NOT GLOB '*[^0-9a-f]*' AND
+        (length(chain_id) = 3 OR substr(chain_id, 3, 1) != '0')),
+    chain_name TEXT NOT NULL,
+    state TEXT NOT NULL CHECK (state IN ('pending', 'succeeded', 'rejected', 'canceled', 'expired')),
+    created_at INTEGER NOT NULL CHECK (created_at >= 0),
+    expires_at INTEGER NOT NULL CHECK (expires_at - created_at = 300000),
+    finished_at INTEGER,
+    CHECK ((state = 'pending' AND finished_at IS NULL) OR
+           (state != 'pending' AND finished_at IS NOT NULL AND finished_at >= created_at))
+);
+INSERT INTO connection_requests_v3
+(id, client_name, intent, chain_id, chain_name, state, created_at, expires_at, finished_at)
+SELECT id, client_name, intent, chain_id, chain_name, state, created_at, expires_at, finished_at
+FROM connection_requests;
+CREATE TABLE sessions_v3 (
+    id TEXT PRIMARY KEY NOT NULL CHECK (length(id) = 32 AND id NOT GLOB '*[^0-9a-f]*'),
+    connection_id TEXT NOT NULL UNIQUE REFERENCES connection_requests_v3 (id),
+    wallet_kind TEXT NOT NULL CHECK (wallet_kind IN ('eip6963', 'legacy')),
+    wallet_name TEXT NOT NULL CHECK (length(trim(wallet_name)) > 0),
+    wallet_rdns TEXT NOT NULL CHECK (wallet_kind = 'legacy' OR length(trim(wallet_rdns)) > 0),
+    account TEXT NOT NULL CHECK (length(account) = 42 AND substr(account, 1, 2) = '0x' AND
+                                 substr(account, 3) NOT GLOB '*[^0-9a-f]*'),
+    chain_id TEXT NOT NULL CHECK (
+        length(chain_id) >= 3 AND substr(chain_id, 1, 2) = '0x' AND
+        substr(chain_id, 3) NOT GLOB '*[^0-9a-f]*' AND
+        (length(chain_id) = 3 OR substr(chain_id, 3, 1) != '0')),
+    created_at INTEGER NOT NULL CHECK (created_at >= 0),
+    last_access_at INTEGER NOT NULL CHECK (last_access_at >= created_at),
+    closed_at INTEGER CHECK (closed_at >= created_at)
+);
+INSERT INTO sessions_v3
+(id, connection_id, wallet_kind, wallet_name, wallet_rdns, account, chain_id, created_at, last_access_at, closed_at)
+SELECT id, connection_id, wallet_kind, wallet_name, wallet_rdns, account, chain_id, created_at, last_access_at, closed_at
+FROM sessions;
+DROP TABLE sessions;
+DROP TABLE connection_requests;
+ALTER TABLE connection_requests_v3 RENAME TO connection_requests;
+ALTER TABLE sessions_v3 RENAME TO sessions;
+CREATE INDEX connection_requests_by_expiry ON connection_requests (state, expires_at, id);
+CREATE INDEX sessions_by_idle ON sessions (closed_at, last_access_at, id);
 `}
 
 func migrate(ctx context.Context, db *sql.DB, steps []string) error {

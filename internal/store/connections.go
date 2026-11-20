@@ -21,7 +21,7 @@ FROM connection_requests r LEFT JOIN sessions s ON s.connection_id = r.id`
 const sessionSelect = `SELECT id, connection_id, wallet_kind, wallet_name, wallet_rdns,
 account, chain_id, created_at, last_access_at, closed_at FROM sessions`
 
-func (s *Store) CreateConnectionRequest(ctx context.Context, request app.ConnectionRequest, digest [32]byte) error {
+func (s *Store) CreateConnectionRequest(ctx context.Context, request app.ConnectionRequest) error {
 	if !validID(request.ID) || strings.TrimSpace(request.ClientName) == "" || !validChainID(request.ChainID) ||
 		!validTime(request.CreatedAt) || !validTime(request.ExpiresAt) ||
 		request.CreatedAt.Nanosecond()%int(time.Millisecond) != 0 ||
@@ -30,8 +30,8 @@ func (s *Store) CreateConnectionRequest(ctx context.Context, request app.Connect
 		return app.ErrInvalidConnectionRequest
 	}
 	_, err := s.db.ExecContext(ctx, `INSERT INTO connection_requests
-(id, token_hash, client_name, intent, chain_id, chain_name, state, created_at, expires_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, request.ID, digest[:], request.ClientName, request.Intent,
+(id, client_name, intent, chain_id, chain_name, state, created_at, expires_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, request.ID, request.ClientName, request.Intent,
 		request.ChainID, request.ChainName, request.State, request.CreatedAt.UnixMilli(), request.ExpiresAt.UnixMilli())
 	var failure *sqlite.Error
 	if errors.As(err, &failure) && (failure.Code() == sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY || failure.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE) {
@@ -44,16 +44,8 @@ func (s *Store) GetConnectionRequest(ctx context.Context, id string) (app.Connec
 	return scanConnection(s.db.QueryRowContext(ctx, connectionSelect+" WHERE r.id = ?", id))
 }
 
-func (s *Store) FindConnectionRequest(ctx context.Context, id string, digest [32]byte) (app.ConnectionRequest, error) {
-	return scanConnection(s.db.QueryRowContext(ctx, connectionSelect+" WHERE r.id = ? AND r.token_hash = ?", id, digest[:]))
-}
-
 func (s *Store) GetSession(ctx context.Context, id string) (app.Session, error) {
 	return scanSession(s.db.QueryRowContext(ctx, sessionSelect+" WHERE id = ?", id))
-}
-
-func (s *Store) FindSession(ctx context.Context, id string, digest [32]byte) (app.Session, error) {
-	return scanSession(s.db.QueryRowContext(ctx, sessionSelect+" WHERE id = ? AND token_hash = ?", id, digest[:]))
 }
 
 func scanConnection(row interface{ Scan(...any) error }) (app.ConnectionRequest, error) {
