@@ -20,6 +20,8 @@
     "browser:install": "playwright install chromium",
     "test:e2e": "playwright test --project=chromium",
     "test:e2e:chrome": "playwright test --project=chrome",
+    "test:wallet": "playwright test --config playwright.wallet.config.ts --project=chromium",
+    "test:wallet:chrome": "playwright test --config playwright.wallet.config.ts --project=chrome",
     "smoke": "node ../scripts/smoke.mjs",
     "preview": "vite preview --host 127.0.0.1"
   },

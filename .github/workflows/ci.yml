@@ -44,3 +44,4 @@ jobs:
       - run: npm --prefix web run background:smoke
       - run: npm --prefix web run browser:install
       - run: npm --prefix web run test:e2e
+      - run: npm --prefix web run test:wallet

@@ -70,6 +70,21 @@ button.secondary:hover { background: #f3f6fa; }
 button:disabled { opacity: 0.55; cursor: wait; }
 button:focus-visible { outline: 3px solid #87bdb0; outline-offset: 3px; }
 
+.wallet-options { border: 0; padding: 0; margin: 20px 0; min-width: 0; }
+.wallet-options legend { color: #59697b; font-size: 13px; margin-bottom: 8px; }
+.wallet-option { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; padding: 14px; border: 1px solid #dbe3ed; border-radius: 10px; cursor: pointer; }
+.wallet-option:has(input:checked) { border-color: #27665e; background: #f2f8f6; }
+.wallet-option:has(input:focus-visible) { outline: 3px solid #87bdb0; outline-offset: 3px; }
+.wallet-option input { flex: none; margin: 0; accent-color: #27665e; }
+.wallet-icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 8px; background: #edf2f7; color: #536275; font-weight: 600; }
+.wallet-icon img { width: 32px; height: 32px; object-fit: contain; }
+.wallet-detail { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.wallet-name { font-weight: 600; }
+.wallet-source, .wallet-note { color: #59697b; font-size: 13px; }
+.wallet-conflict { color: #805b1d; font-size: 13px; }
+.wallet-empty { margin: 20px 0; }
+.wallet-selection { font-weight: 600; }
+
 footer {
   margin-top: 24px;
   color: #59697b;

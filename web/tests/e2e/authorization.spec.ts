@@ -13,6 +13,7 @@ test('unauthorized browser sees instructions without management data', async ({ 
   await expect(page.getByText('wallet-bridge ui', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '退出当前浏览器' })).toHaveCount(0);
   await expect(page.getByText('当前授权 ID')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: '选择浏览器钱包' })).toHaveCount(0);
 });
 
 test('one exchange clears the fragment before sending and sets an isolated HttpOnly cookie', async ({ page, context }) => {
@@ -32,6 +33,7 @@ test('one exchange clears the fragment before sending and sets an isolated HttpO
   const url = await link();
   await openLink(page, url);
   await expect(page.getByRole('status')).toHaveText('浏览器已授权');
+  await expect(page.getByRole('heading', { name: '选择浏览器钱包' })).toBeVisible();
   expect(page.url() === origin + '/').toBe(true);
   expect(await page.locator('html').getAttribute('data-fragment-at-exchange')).toBe('empty');
   expect(exchanges).toBe(1);
@@ -185,6 +187,7 @@ test('a preview origin clears fragments and never calls service APIs', async ({ 
     await expect(page.getByRole('status')).toHaveText('开发预览');
     expect(page.url() === url).toBe(true);
     expect(requests).toBe(0);
-    await expect(page.getByRole('button')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '重新检查', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '重新检测钱包' })).toBeVisible();
   } finally { await new Promise<void>((resolve, reject) => preview.close((error) => error ? reject(error) : resolve())); }
 });
