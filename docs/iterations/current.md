@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0～2-3b0 已合并；PR 2-3b1 执行记录与领取存储开发中，PR 入口及证据见 plan。
+- 当前步骤：PR 2-0～2-3b0 已合并；PR 2-3b1 执行记录与领取存储待评审，PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-实现并验证执行领取存储；随后继续钱包交接与受归属保护的原子终态，再接入协调核心及 HTTP／CLI。
+评审执行领取存储；合并后继续钱包交接与受归属保护的原子终态，再接入协调核心及 HTTP／CLI。
 
 ## 4. 验证记录
 

@@ -1,6 +1,6 @@
 # 迭代 2 PR 计划
 
-状态：2026-11-20 PR 2-0～2-3b0 已合并；执行记录与领取存储本地验证完成，准备提交 PR。沿用 [spec](spec.md)、[design](design.md)。
+状态：2026-11-20 PR 2-0～2-3b0 已合并；执行记录与领取存储 [#24](https://github.com/Conflux-Chain/wallet-bridge/pull/24) 待评审。沿用 [spec](spec.md)、[design](design.md)。
 
 ## 分步交付
 
@@ -15,7 +15,7 @@
 | PR 2-3a2b：资源凭据移除 | 追加迁移并调整存储接口，以 ID 定位连接／Session | 升级保留记录、原子回滚、期限与历史不变 | [#21](https://github.com/Conflux-Chain/wallet-bridge/pull/21) 已合并 |
 | PR 2-3a2c：连接与 Session 核心 | 创建、完成、拒绝、取消、查询、关闭／回收与基础重启恢复 | ID 重试、绑定固定、期限、并发竞争和结果保留 | [#22](https://github.com/Conflux-Chain/wallet-bridge/pull/22) 已合并 |
 | PR 2-3b0：执行协调方案 | 明确多页／中断／钱包等待行为、阶段与事务边界 | 区分已确认行为与技术方案，覆盖丢包／迟到／重启 | [#23](https://github.com/Conflux-Chain/wallet-bridge/pull/23) 已合并 |
-| PR 2-3b1：执行记录与领取 | 追加 schema、单执行槽、领取／心跳／中断及恢复存储 | 升级、重复领取、并发互斥及恢复失效 | 本地验证完成，准备提交 |
+| PR 2-3b1：执行记录与领取 | 追加 schema、单执行槽、领取／心跳／中断及恢复存储 | 升级、重复领取、并发互斥及恢复失效 | [#24](https://github.com/Conflux-Chain/wallet-bridge/pull/24) 待评审 |
 | PR 2-3b2：钱包交接与终态 | 调用交接／回报、受执行归属保护的原子完成／拒绝 | 响应丢失、迟到回报、取消／到期保留等待、终态竞争 | 待开发 |
 | PR 2-3b3：协调核心接入 | 组合存储、浏览器主体与启动／周期恢复 | 心跳、授权失效、重启不重入钱包；不增加外部接口 | 待开发 |
 | PR 2-4：HTTP 接入 | 核心／执行接口、共享 client 与 Swagger 同步 | client／浏览器权限分离、参数、状态和回传幂等 | 待开发 |
