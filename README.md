@@ -17,6 +17,7 @@
 | [迭代开发计划](docs/roadmap.md) | 迭代顺序与开发前待澄清问题 |
 | [迭代工作流](docs/iterations/README.md) | Spec、design doc 与 PR 拆分规则 |
 | [架构概览](docs/architecture.md) | 组件职责、流程与信任边界 |
+| [请求审阅交互](docs/approval-flow.md) | 页面信息、网络／账户修复与钱包确认流程 |
 | [决策记录](docs/decisions.md) | 决策依据及待定事项 |
 | [验收清单](docs/acceptance.md) | 验收场景及证据要求 |
 | [本地服务测试](docs/local-service.md) | 前台／后台启动、查询、访问、停止及自动测试步骤 |
