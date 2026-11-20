@@ -40,6 +40,18 @@ type ConnectionExecution struct {
 	CallID     string
 }
 
+type ConnectionCallRef struct {
+	ConnectionExecutionRef
+	CallID string
+}
+
+// Invoke is true only for a newly committed handoff, never a replay. A lost
+// response must not be treated as permission to invoke the wallet again.
+type ConnectionCallPermit struct {
+	Execution ConnectionExecution
+	Invoke    bool
+}
+
 type ConnectionExecutionStore interface {
 	// Reads do not renew liveness, take ownership, or normalize stale phases.
 	GetConnectionExecution(context.Context, string) (ConnectionExecution, error)
@@ -49,6 +61,15 @@ type ConnectionExecutionStore interface {
 	// Recovery is an explicit user action. previousID fences the replaced
 	// execution; ref.ID must be fresh. A terminal request only releases waiting.
 	RecoverConnectionExecution(context.Context, string, ConnectionExecutionRef, time.Time) (ConnectionExecution, error)
+	// previousCallID fences delayed handoffs after a subsequent call. Calls use
+	// fresh IDs; retries reuse both the ID and its expected predecessor.
+	BeginConnectionCall(context.Context, ConnectionCallRef, string, time.Time) (ConnectionCallPermit, error)
+	// Return records only that the wallet call ended; it never grants consent.
+	ReturnConnectionCall(context.Context, ConnectionCallRef, time.Time) (ConnectionExecution, error)
+	// Decisions atomically check the active browser subject and ready execution.
+	// Matching terminal replays preserve the original result and Session lifetime.
+	CompleteConnectionExecution(context.Context, ConnectionExecutionRef, ConnectionCompletion, time.Time) (ConnectionRequest, error)
+	RejectConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionRequest, error)
 	MaintainConnectionExecutions(context.Context, time.Time) (int64, error)
 	InterruptAllConnectionExecutions(context.Context, time.Time) (int64, error)
 }

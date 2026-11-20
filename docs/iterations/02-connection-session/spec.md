@@ -1,6 +1,6 @@
 # 迭代 2：连接钱包与 Session
 
-状态：2026-11-20 PR 2-1～2-3b0 已合并；执行领取存储已实现，交接及协调接入待后续 PR。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
+状态：2026-11-20 PR 2-1～2-3b1 已合并；钱包交接与受归属保护的终态存储已实现，协调接入待后续 PR。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
 
 ## 目标与边界
 
