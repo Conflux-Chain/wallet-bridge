@@ -65,6 +65,16 @@ func useServer(t *testing.T, c *Client, handler http.Handler) {
 	}
 }
 
+// Existing service-management tests never access connection storage.
+func unusedConnections(t *testing.T) *app.ConnectionService {
+	t.Helper()
+	core, err := app.NewConnectionService(struct{ app.ConnectionServiceStore }{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return core
+}
+
 func codeOf(t *testing.T, err error) string {
 	t.Helper()
 	var failure *Error
@@ -81,7 +91,7 @@ func TestStatusAndStopUseSharedCredential(t *testing.T) {
 	}
 	token, _ := credentials.Read(c.dir)
 	var stopped atomic.Bool
-	handler, err := api.New(api.Config{Version: "test", ServiceToken: token, StartedAt: time.Now(), Stop: func() { stopped.Store(true) }, BrowserAuthorization: testBrowserAuthorization(t)})
+	handler, err := api.New(api.Config{Version: "test", ServiceToken: token, StartedAt: time.Now(), Stop: func() { stopped.Store(true) }, BrowserAuthorization: testBrowserAuthorization(t), Connections: unusedConnections(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
