@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](01-local-service/spec.md)、[design](01-local-service/design.md)、[plan](01-local-service/plan.md)。
-- 当前步骤：PR 1-6d 授权页面开发中；浏览器授权按 a～d 四个 PR 交付，详见 plan。本地测试见[服务指南](../local-service.md)。
+- 当前步骤：PR 1-6d 授权页面已提交，等待评审；PR 链接及检查证据统一见 plan。本地验证见[浏览器测试指南](../browser-testing.md)。
 
 ## 3. 下一步
 
-完成 PR 1-6d 的实现与评审；合并后进行迭代 1 组合验收。
+完成 PR 1-6d 的评审；按用户授权合并后进行 PR 1-7 迭代 1 组合验收。
 
 ## 4. 验证记录
 
