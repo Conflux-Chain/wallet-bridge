@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0～2-3a1 已合并；PR 2-3a2a 统一服务凭据已实现待评审，PR 入口及证据见 plan。
+- 当前步骤：PR 2-0～2-3a2a 已合并；PR 2-3a2b 移除资源凭据已实现待评审，PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-评审 PR 2-3a2a；合并后移除资源凭据，再继续连接与 Session 核心。多页执行协调及 HTTP／CLI 细节在对应 PR 前补充。
+评审 PR 2-3a2b；合并后细化连接创建重试并继续应用核心。多页执行协调及 HTTP／CLI 细节在对应 PR 前补充。
 
 ## 4. 验证记录
 

@@ -12,21 +12,21 @@ import (
 	sqlite3 "modernc.org/sqlite/lib"
 )
 
-func (s *Store) CompleteConnectionRequest(ctx context.Context, id string, completion app.ConnectionCompletion, digest [32]byte, now time.Time) (app.ConnectionRequest, error) {
+func (s *Store) CompleteConnectionRequest(ctx context.Context, id string, completion app.ConnectionCompletion, now time.Time) (app.ConnectionRequest, error) {
 	if !validCompletion(completion) {
 		return app.ConnectionRequest{}, app.ErrInvalidSession
 	}
-	return s.transitionConnection(ctx, id, app.ConnectionSucceeded, completion, digest, now)
+	return s.transitionConnection(ctx, id, app.ConnectionSucceeded, completion, now)
 }
 
 func (s *Store) FinishConnectionRequest(ctx context.Context, id string, state app.ConnectionState, now time.Time) (app.ConnectionRequest, error) {
 	if state != app.ConnectionCanceled && state != app.ConnectionRejected && state != app.ConnectionExpired {
 		return app.ConnectionRequest{}, app.ErrInvalidConnectionRequest
 	}
-	return s.transitionConnection(ctx, id, state, app.ConnectionCompletion{}, [32]byte{}, now)
+	return s.transitionConnection(ctx, id, state, app.ConnectionCompletion{}, now)
 }
 
-func (s *Store) transitionConnection(ctx context.Context, id string, desired app.ConnectionState, completion app.ConnectionCompletion, digest [32]byte, now time.Time) (app.ConnectionRequest, error) {
+func (s *Store) transitionConnection(ctx context.Context, id string, desired app.ConnectionState, completion app.ConnectionCompletion, now time.Time) (app.ConnectionRequest, error) {
 	if !validID(id) || !validTime(now) {
 		return app.ConnectionRequest{}, app.ErrInvalidConnectionRequest
 	}
@@ -47,7 +47,7 @@ func (s *Store) transitionConnection(ctx context.Context, id string, desired app
 			return request, app.ErrConnectionConflict
 		}
 		if desired == app.ConnectionSucceeded {
-			matches, err := matchesCompletion(ctx, tx, id, completion, digest)
+			matches, err := matchesCompletion(ctx, tx, id, completion)
 			if err != nil {
 				return app.ConnectionRequest{}, err
 			}
@@ -74,8 +74,8 @@ func (s *Store) transitionConnection(ctx context.Context, id string, desired app
 	}
 	if state == app.ConnectionSucceeded {
 		_, err := tx.ExecContext(ctx, `INSERT INTO sessions
-(id, connection_id, token_hash, wallet_kind, wallet_name, wallet_rdns, account, chain_id, created_at, last_access_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, completion.SessionID, id, digest[:], completion.Wallet.Kind,
+(id, connection_id, wallet_kind, wallet_name, wallet_rdns, account, chain_id, created_at, last_access_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, completion.SessionID, id, completion.Wallet.Kind,
 			completion.Wallet.Name, completion.Wallet.RDNS, completion.Account, completion.ChainID, now.UnixMilli(), now.UnixMilli())
 		var failure *sqlite.Error
 		if errors.As(err, &failure) && (failure.Code() == sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY || failure.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE) {
@@ -97,11 +97,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, completion.SessionID, id, digest[:], com
 	return request, nil
 }
 
-func matchesCompletion(ctx context.Context, tx *sql.Tx, id string, completion app.ConnectionCompletion, digest [32]byte) (bool, error) {
+func matchesCompletion(ctx context.Context, tx *sql.Tx, id string, completion app.ConnectionCompletion) (bool, error) {
 	var matches bool
 	err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM sessions
-WHERE connection_id = ? AND id = ? AND token_hash = ? AND wallet_kind = ? AND wallet_name = ?
-AND wallet_rdns = ? AND account = ? AND chain_id = ?)`, id, completion.SessionID, digest[:],
+WHERE connection_id = ? AND id = ? AND wallet_kind = ? AND wallet_name = ?
+AND wallet_rdns = ? AND account = ? AND chain_id = ?)`, id, completion.SessionID,
 		completion.Wallet.Kind, completion.Wallet.Name, completion.Wallet.RDNS, completion.Account, completion.ChainID).Scan(&matches)
 	return matches, err
 }

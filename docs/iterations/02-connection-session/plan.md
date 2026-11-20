@@ -1,6 +1,6 @@
 # 迭代 2 PR 计划草案
 
-状态：2026-11-20 PR 2-0～2-3a1 已合并；PR 2-3a2a 已实现待评审，按 D-034 分步简化后继续核心。沿用 [spec](spec.md)、[design](design.md)。
+状态：2026-11-20 PR 2-0～2-3a2a 已合并；PR 2-3a2b 移除资源凭据已实现待评审，合并后继续核心。沿用 [spec](spec.md)、[design](design.md)。
 
 ## 分步交付
 
@@ -11,8 +11,8 @@
 | PR 2-2a：连接记录与迁移 | 数据模型、追加迁移、创建连接与按凭据查询；不创建 Session | v1 升级、摘要隔离、持久化与 schema 约束 | [#17](https://github.com/Conflux-Chain/wallet-bridge/pull/17) 已合并 |
 | PR 2-2b：连接原子写入 | 完成连接并建立唯一 Session、取消／拒绝／到期及回传幂等 | 事务回滚、终态竞争、迟到成功不建 Session | [#18](https://github.com/Conflux-Chain/wallet-bridge/pull/18) 已合并 |
 | PR 2-3a1：生命周期存储 | 有效 Session 访问／关闭、批量到期的事务存储 | 凭据隔离、终止后不续期、维护回滚及并发竞争 | [#19](https://github.com/Conflux-Chain/wallet-bridge/pull/19) 已合并 |
-| PR 2-3a2a：单一本机凭据 | 合并服务普通／控制角色，自动复用一份密钥；不改连接存储 | 单文件初始化、旧目录复用、共享管理、浏览器边界和旧服务拒绝 | [#20](https://github.com/Conflux-Chain/wallet-bridge/pull/20) 待评审 |
-| PR 2-3a2b：资源凭据移除 | 追加迁移并调整存储接口，以 ID 定位连接／Session | 升级保留记录、原子回滚、期限与历史不变 | 待开发 |
+| PR 2-3a2a：单一本机凭据 | 合并服务普通／控制角色，自动复用一份密钥；不改连接存储 | 单文件初始化、旧目录复用、共享管理、浏览器边界和旧服务拒绝 | [#20](https://github.com/Conflux-Chain/wallet-bridge/pull/20) 已合并 |
+| PR 2-3a2b：资源凭据移除 | 追加迁移并调整存储接口，以 ID 定位连接／Session | 升级保留记录、原子回滚、期限与历史不变 | [#21](https://github.com/Conflux-Chain/wallet-bridge/pull/21) 待评审 |
 | PR 2-3a2c：连接与 Session 核心 | 创建、完成、拒绝、取消、查询、关闭／回收与基础重启恢复 | 绑定固定、期限、并发竞争和结果保留 | 待细化 |
 | PR 2-3b：执行协调 | 多页领取、钱包调用标记、互斥与显式恢复；不增加交易流程 | 重复领取、页面丢失、迟到回传、不自动重入钱包 | 待开发 |
 | PR 2-4：HTTP 接入 | 核心／执行接口、共享 client 与 Swagger 同步 | client／浏览器权限分离、参数、状态和回传幂等 | 待开发 |
@@ -24,7 +24,7 @@ PR 2-1 后依次接入存储、核心、HTTP、CLI 与页面；必要测试和�
 
 ## 当前步骤与检查点
 
-- PR #19 已按用户“请继续”合并为 `a28d9f6`；核对分支内容与 main 一致后清理本地／远端分支。本单元基于该 main，分支为 `feat/shared-service-credential`。
+- PR #20 已按用户“继续”合并为 `8acee69`；核对分支内容与 main 一致后清理本地／远端分支。本单元基于该 main，分支为 `feat/remove-resource-credentials`。
 - 用户已确认首次连接在最终账户／网络就绪后同意，取消／到期后即使钱包返回成功也不再建 Session；记录为 D-030／031。
 - 用户确认同用户本地 client 可信、单服务凭据、资源 UUID 定位；D-034 替代 D-019。先完成两次独立简化，再组合核心；不实现此前未确认的客户端预生成资源凭据方案。
 - 用户已确认失效后保留历史查询，仅有效 Session 的 client 访问续期；记录为 D-032／033。
@@ -76,4 +76,13 @@ PR 2-0：23 份 Markdown 的 170 个本地链接、53 个标题锚点及 Git 空
 - Windows 完整／`no_web` Go 测试、两种 vet、页面／独立程序构建和空 PATH smoke 通过；Swagger 从注释重新生成。新增／调整的真实文件、六进程初始化、临时 HTTP 服务及旧服务模拟检查通过，覆盖旧目录身份保留、统一管理、旧控制密钥拒绝和浏览器边界。
 - Markdown 本地链接、标题锚点和 Git 空白检查通过；Windows 原有符号链接测试因系统权限跳过，未计作通过。
 - 复现见[服务接入兼容性测试](../../local-service.md#服务接入兼容性测试)。正式服务仍在运行，本地未执行占用固定端口的 service／background／浏览器 smoke，交由三平台 CI 验证；不重启或迁移正式服务。无新增人工钱包验收项目。
-- 最终 head 的三平台 CI 结果记录在 PR #20 checks／说明中。
+- 最终 head `68a9450` 的[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/44697817516)全部通过。
+
+### PR 2-3a2b
+
+- 已追加 schema v3，移除连接／Session 摘要列及独立凭据参数，查询统一按 ID；原 v1／v2 迁移保留。连接幂等、状态竞争、固定绑定和生命周期规则继续保留，尚无外部连接入口或应用核心。
+- Windows 27 组连接／Session 存储测试通过，包括新增的 schema／迁移 3 组：新库、v1／有记录 v2 升级、全部终态及活跃／关闭历史保留、索引／外键和旧版拒绝，复制／重建后故障整体回滚并可重试。
+- Windows 完整／`no_web` Go 测试、两种 vet、页面／独立程序构建和空 PATH smoke 通过；Swagger 重新生成后无差异。复现见[连接存储与事务测试](../../connection-storage.md)。
+- 25 份 Markdown 的 197 个本地链接、68 个标题锚点及 Git 空白检查通过。
+- 测试仅使用临时数据库；正在运行的正式服务及数据未升级。占用固定端口的 service／background／浏览器组合测试由三平台 CI 验证；无新增人工钱包验收项目。Windows 原有符号链接权限不足项未计作通过。
+- 最终 head 的三平台 CI 结果记录在 PR #21 checks／说明中。

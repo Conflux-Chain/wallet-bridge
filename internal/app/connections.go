@@ -23,11 +23,11 @@ const (
 
 var (
 	ErrInvalidConnectionRequest  = errors.New("invalid connection request")
-	ErrConnectionRequestExists   = errors.New("connection request ID or token digest already exists")
+	ErrConnectionRequestExists   = errors.New("connection request ID already exists")
 	ErrConnectionRequestNotFound = errors.New("connection request not found")
 	ErrConnectionConflict        = errors.New("connection result conflicts with the recorded outcome")
 	ErrInvalidSession            = errors.New("invalid session binding")
-	ErrSessionExists             = errors.New("session ID or token digest already exists")
+	ErrSessionExists             = errors.New("session ID already exists")
 	ErrSessionNotFound           = errors.New("session not found")
 )
 
@@ -84,21 +84,19 @@ type ConnectionExpiryCounts struct {
 	Sessions           int64
 }
 
-// Records returned by this store never contain credentials or their digests.
-// Reads preserve historical results; the application enforces active-session use.
+// Resource IDs locate records; they do not authorize access. The application
+// enforces authorization and active-session use. Reads preserve historical results.
 type ConnectionStore interface {
-	CreateConnectionRequest(context.Context, ConnectionRequest, [32]byte) error
+	CreateConnectionRequest(context.Context, ConnectionRequest) error
 	GetConnectionRequest(context.Context, string) (ConnectionRequest, error)
-	FindConnectionRequest(context.Context, string, [32]byte) (ConnectionRequest, error)
 	// Writes require application authorization. A conflict returns the durable
 	// outcome, including expiry committed by the attempted write.
-	CompleteConnectionRequest(context.Context, string, ConnectionCompletion, [32]byte, time.Time) (ConnectionRequest, error)
+	CompleteConnectionRequest(context.Context, string, ConnectionCompletion, time.Time) (ConnectionRequest, error)
 	FinishConnectionRequest(context.Context, string, ConnectionState, time.Time) (ConnectionRequest, error)
 	GetSession(context.Context, string) (Session, error)
-	FindSession(context.Context, string, [32]byte) (Session, error)
-	// AccessSession authenticates before expiring or renewing a Session. It also
+	// AccessSession expires or renews a Session after application authorization. It also
 	// returns historical closed records; callers must check ClosedAt before use.
-	AccessSession(context.Context, string, [32]byte, time.Time) (Session, error)
-	CloseSession(context.Context, string, [32]byte, time.Time) (Session, error)
+	AccessSession(context.Context, string, time.Time) (Session, error)
+	CloseSession(context.Context, string, time.Time) (Session, error)
 	ExpireConnectionsAndSessions(context.Context, time.Time) (ConnectionExpiryCounts, error)
 }
