@@ -1,6 +1,6 @@
 # 迭代 2 PR 计划草案
 
-状态：2026-11-20 PR 2-0～2-2b 已合并；PR 2-3a1 生命周期存储开发中。沿用 [spec](spec.md)、[design](design.md)。
+状态：2026-11-20 PR 2-0～2-2b 已合并；[PR 2-3a1 #19](https://github.com/Conflux-Chain/wallet-bridge/pull/19) 生命周期存储已实现待评审。沿用 [spec](spec.md)、[design](design.md)。
 
 ## 分步交付
 
@@ -10,7 +10,7 @@
 | PR 2-1：钱包发现 | 标准 Provider 发现、去重、旧式入口及钱包选择；不建立 Session | 多钱包／迟到／冲突公告、StrictMode、不自动弹窗及实际发现 | [#16](https://github.com/Conflux-Chain/wallet-bridge/pull/16) 已合并，用户已确认双钱包发现 |
 | PR 2-2a：连接记录与迁移 | 数据模型、追加迁移、创建连接与按凭据查询；不创建 Session | v1 升级、摘要隔离、持久化与 schema 约束 | [#17](https://github.com/Conflux-Chain/wallet-bridge/pull/17) 已合并 |
 | PR 2-2b：连接原子写入 | 完成连接并建立唯一 Session、取消／拒绝／到期及回传幂等 | 事务回滚、终态竞争、迟到成功不建 Session | [#18](https://github.com/Conflux-Chain/wallet-bridge/pull/18) 已合并 |
-| PR 2-3a1：生命周期存储 | 有效 Session 访问／关闭、批量到期的事务存储 | 凭据隔离、终止后不续期、维护回滚及并发竞争 | 开发中 |
+| PR 2-3a1：生命周期存储 | 有效 Session 访问／关闭、批量到期的事务存储 | 凭据隔离、终止后不续期、维护回滚及并发竞争 | [#19](https://github.com/Conflux-Chain/wallet-bridge/pull/19) 待评审 |
 | PR 2-3a2：连接与 Session 核心 | 创建、完成、拒绝、取消、查询、关闭／回收与基础重启恢复 | 绑定固定、权限、期限、并发竞争和结果保留 | 待开发 |
 | PR 2-3b：执行协调 | 多页领取、钱包调用标记、互斥与显式恢复；不增加交易流程 | 重复领取、页面丢失、迟到回传、不自动重入钱包 | 待开发 |
 | PR 2-4：HTTP 接入 | 核心／执行接口、共享 client 与 Swagger 同步 | client／浏览器权限分离、参数、状态和回传幂等 | 待开发 |

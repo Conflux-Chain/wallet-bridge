@@ -1,6 +1,6 @@
 # 迭代 2：连接钱包与 Session
 
-状态：2026-11-20 PR 2-1～2-2b 已合并；失效后的历史查询与有效 Session 访问续期已确认，PR 2-3a1 实现生命周期存储。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
+状态：2026-11-20 PR 2-1～2-2b 已合并；失效后的历史查询与有效 Session 访问续期已确认，PR 2-3a1 生命周期存储已实现待评审。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
 
 ## 目标与边界
 
