@@ -101,6 +101,18 @@ ALTER TABLE connection_requests_v3 RENAME TO connection_requests;
 ALTER TABLE sessions_v3 RENAME TO sessions;
 CREATE INDEX connection_requests_by_expiry ON connection_requests (state, expires_at, id);
 CREATE INDEX sessions_by_idle ON sessions (closed_at, last_access_at, id);
+`, `
+CREATE TABLE connection_executions (
+    connection_id TEXT PRIMARY KEY NOT NULL REFERENCES connection_requests (id),
+    id TEXT NOT NULL UNIQUE CHECK (length(id) = 32 AND id NOT GLOB '*[^0-9a-f]*'),
+    browser_grant_id TEXT NOT NULL REFERENCES browser_grants (id),
+    phase TEXT NOT NULL CHECK (phase IN ('ready', 'calling', 'interrupted_ready', 'interrupted_calling', 'finished')),
+    last_seen_at INTEGER NOT NULL CHECK (last_seen_at >= 0),
+    call_id TEXT CHECK (length(call_id) = 32 AND call_id NOT GLOB '*[^0-9a-f]*'),
+    CHECK (phase NOT IN ('calling', 'interrupted_calling') OR call_id IS NOT NULL)
+);
+CREATE UNIQUE INDEX connection_executions_single_slot ON connection_executions ((1))
+WHERE phase IN ('ready', 'calling', 'interrupted_calling');
 `}
 
 func migrate(ctx context.Context, db *sql.DB, steps []string) error {

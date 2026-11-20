@@ -40,7 +40,7 @@ func fixture(index int) (app.BrowserGrant, [32]byte) {
 func TestStoreConfigurationAndReopen(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "data space & # 钱包")
 	s := openTestStore(t, dir)
-	for pragma, want := range map[string]int{"user_version": 3, "application_id": applicationID, "synchronous": 2, "foreign_keys": 1, "busy_timeout": 1000, "temp_store": 2} {
+	for pragma, want := range map[string]int{"user_version": len(migrations), "application_id": applicationID, "synchronous": 2, "foreign_keys": 1, "busy_timeout": 1000, "temp_store": 2} {
 		var got int
 		if err := s.db.QueryRow("PRAGMA " + pragma).Scan(&got); err != nil || got != want {
 			t.Fatalf("%s=%d, want %d: %v", pragma, got, want, err)
@@ -186,7 +186,7 @@ func TestMigrationRollbackIsAtomic(t *testing.T) {
 		t.Fatal("invalid migration succeeded")
 	}
 	var version, count int
-	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 3 {
+	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != len(migrations) {
 		t.Fatal("failed migration advanced schema", err)
 	}
 	if err := s.db.QueryRow("SELECT count(*) FROM sqlite_schema WHERE name='staged'").Scan(&count); err != nil || count != 0 {
@@ -203,7 +203,7 @@ func TestRejectUnrecognizedOrFutureSchemaWithoutChangingData(t *testing.T) {
 		name, sql string
 		expected  error
 	}{
-		{"future", "PRAGMA user_version=4", ErrSchemaTooNew},
+		{"future", fmt.Sprintf("PRAGMA user_version=%d", len(migrations)+1), ErrSchemaTooNew},
 		{"other application", "PRAGMA application_id=123", ErrInvalidDatabase},
 		{"unversioned nonempty", "PRAGMA application_id=0; PRAGMA user_version=0", ErrInvalidDatabase},
 	} {
