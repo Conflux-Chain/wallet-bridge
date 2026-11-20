@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0～2-3b2 已合并；PR 2-3b3 协调核心接入已实现，准备评审；PR 入口及证据见 plan。
+- 当前步骤：PR 2-0～2-3b2 已合并；PR 2-3b3 协调核心接入待评审，PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-提交协调核心与统一启动／周期维护的评审单元，确认最终三平台 CI；随后细化 HTTP 接口及权限映射。
+评审协调核心与统一启动／周期维护；随后细化 HTTP 接口及权限映射。
 
 ## 4. 验证记录
 
