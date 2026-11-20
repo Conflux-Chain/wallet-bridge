@@ -112,7 +112,7 @@ func (c *Client) Stop(ctx context.Context) (Status, error) {
 	parent := ctx
 	ctx, cancel := context.WithTimeout(ctx, c.stopTimeout)
 	defer cancel()
-	data, _, err := c.request(ctx, "POST", "/api/v1/control/stop", requestOptions{control: true, expected: 202})
+	data, _, err := c.request(ctx, "POST", "/api/v1/control/stop", requestOptions{expected: 202})
 	if ctx.Err() != nil {
 		return Status{}, stopDeadline(parent, ctx)
 	}

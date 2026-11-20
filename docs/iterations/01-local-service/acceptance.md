@@ -15,7 +15,7 @@
 | A-01 独立程序 | 三目标内嵌构建；[隔离运行](../../../web/tests/e2e/setup.ts)与 10 项浏览器流程 | 本地 Windows 通过；三平台最终 CI 见本 PR checks。干净系统与最低版本待验收 |
 | A-02 单实例与常驻 | [background smoke](../../../scripts/background-smoke.mjs) 六 CLI 并发 ensure、复用、调用者退出后查询；真实进程锁测试 | 本地 Windows 通过；实际终端关闭待单独验收 |
 | A-03 身份／版本／就绪 | client 测试覆盖身份、能力、不兼容、超时；[service smoke](../../../scripts/service-smoke.mjs)／background smoke 验证假服务、占用、重启和停止 | 本地 Go／smoke 通过；三平台最终 CI 见本 PR checks |
-| A-04 本轮访问控制 | HTTP／存储／权限测试及[浏览器](../../../web/tests/e2e/authorization.spec.ts)授权、重启、撤销流程 | 本地 Windows 通过，符号链接权限不足项由已有原生 CI 补验；其他普通用户身份实测待验收。请求／Session 隔离属迭代 2～4 |
+| A-04 本轮访问控制 | HTTP／存储／权限测试及[浏览器](../../../web/tests/e2e/authorization.spec.ts)授权、重启、撤销流程 | 本地 Windows 通过，符号链接权限不足项由已有原生 CI 补验；其他普通用户身份实测待验收。后续 client 信任模型已由 [D-034](../../decisions.md)简化 |
 
 ## 本地执行结果
 

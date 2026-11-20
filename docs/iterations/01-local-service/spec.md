@@ -1,5 +1,7 @@
 # 迭代 1：本地服务
 
+历史 spec：普通／控制角色分离已由 D-034 替代，现行权限见[迭代 2 spec](../02-connection-session/spec.md#已确认与沿用)。
+
 状态：2026-11-19 已确认。沿用[需求基线](../../requirements.md)和[迭代 0 设计](../00-foundation/design.md)；技术细节见 [design](design.md)，交付与验收进度见 [plan](plan.md)。
 
 ## 1. 目标与边界

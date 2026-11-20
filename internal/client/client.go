@@ -71,7 +71,6 @@ var errNotRunning = errors.New("service is not listening")
 var errConnectionChanged = errors.New("the verified connection closed")
 
 type requestOptions struct {
-	control  bool
 	browser  bool
 	body     []byte
 	expected int
@@ -91,10 +90,10 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 		return nil, empty, &Error{"service_unavailable", "Cannot connect to the fixed local service", err}
 	}
 	defer conn.Close()
-	clientToken, err := credentials.Read(c.dir, credentials.Client)
+	token, err := credentials.Read(c.dir)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			return nil, empty, &Error{"credential_error", "Cannot read a valid private client credential", err}
+			return nil, empty, &Error{"credential_error", "Cannot read a valid private service credential", err}
 		}
 		// A service may have bound the port while initializing its credentials.
 		if locked, _ := platform.ServiceLocked(c.dir); locked {
@@ -128,10 +127,10 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 	}
 	data, err := readResponse(response, http.StatusOK)
 	var info api.InfoResponse
-	if err != nil || json.Unmarshal(data, &info) != nil || !verify(info, challenge, clientToken) {
+	if err != nil || json.Unmarshal(data, &info) != nil || !verify(info, challenge, token) {
 		return nil, empty, &Error{"identity_unverified", "The service identity proof is invalid", err}
 	}
-	if info.APIVersion.Major != 1 || info.APIVersion.Minor < 0 || !hasCapabilities(info.Capabilities) {
+	if info.APIVersion.Major != 1 || info.APIVersion.Minor < 2 || !hasCapabilities(info.Capabilities) {
 		return nil, empty, &Error{"incompatible_service", "The service API or required capabilities are incompatible; use its matching program to stop it before changing versions", nil}
 	}
 	if options.browser && !slices.Contains(info.Capabilities, "browser.authorization") {
@@ -139,13 +138,6 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 	}
 	if !info.Ready {
 		return nil, empty, &Error{"service_unavailable", "The verified service is not ready", nil}
-	}
-	token := clientToken
-	if options.control {
-		token, err = credentials.Read(c.dir, credentials.Control)
-		if err != nil {
-			return nil, empty, &Error{"credential_error", "Cannot read the control credential", err}
-		}
 	}
 	req, _ := http.NewRequestWithContext(ctx, method, api.Origin+path, bytes.NewReader(options.body))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -216,10 +208,6 @@ func verify(info api.InfoResponse, challenge, token string) bool {
 }
 
 func hasCapabilities(capabilities []string) bool {
-	status, stop := false, false
-	for _, capability := range capabilities {
-		status = status || capability == "service.status"
-		stop = stop || capability == "service.stop"
-	}
-	return status && stop
+	return slices.Contains(capabilities, "service.status") &&
+		slices.Contains(capabilities, "service.stop") && slices.Contains(capabilities, "service.auth.shared")
 }

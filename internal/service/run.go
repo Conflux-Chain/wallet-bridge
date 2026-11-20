@@ -68,13 +68,9 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 	if err := credentials.Ensure(config.DataDir); err != nil {
 		return &Error{"credential_error", "Cannot initialize or validate local credentials", err}
 	}
-	client, err := credentials.Read(config.DataDir, credentials.Client)
+	token, err := credentials.Read(config.DataDir)
 	if err != nil {
-		return &Error{"credential_error", "Cannot read the client credential", err}
-	}
-	control, err := credentials.Read(config.DataDir, credentials.Control)
-	if err != nil {
-		return &Error{"credential_error", "Cannot read the control credential", err}
+		return &Error{"credential_error", "Cannot read the service credential", err}
 	}
 	initializing, cancelInitialization := context.WithTimeout(ctx, 5*time.Second)
 	database, err := store.Open(initializing, config.DataDir)
@@ -90,7 +86,7 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 	stop := make(chan struct{})
 	var once sync.Once
 	handler, err := api.New(api.Config{
-		Version: config.Version, ClientToken: client, ControlToken: control, Assets: config.Assets,
+		Version: config.Version, ServiceToken: token, Assets: config.Assets,
 		StartedAt: time.Now(), Stop: func() { once.Do(func() { close(stop) }) },
 		BrowserAuthorization: browserAuthorization,
 	})

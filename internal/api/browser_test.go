@@ -66,7 +66,7 @@ func (f browserFixture) request(t *testing.T, method, path, body string, headers
 	if w.Header().Get("Cache-Control") != "no-store" || w.Header().Get("Access-Control-Allow-Origin") != "" {
 		t.Fatal("authorization response was cacheable or enabled CORS")
 	}
-	for _, secret := range []string{clientFixture, controlFixture} {
+	for _, secret := range []string{serviceFixture, legacyControlFixture} {
 		if strings.Contains(w.Body.String(), secret) {
 			t.Fatal("response disclosed a local credential")
 		}
@@ -84,7 +84,7 @@ func responseJSON[T any](t *testing.T, w *httptest.ResponseRecorder) T {
 }
 
 func controlHeaders() map[string]string {
-	return map[string]string{"Authorization": "Bearer " + controlFixture}
+	return map[string]string{"Authorization": "Bearer " + serviceFixture}
 }
 func browserHeaders(cookie *http.Cookie) map[string]string {
 	return map[string]string{"Cookie": cookie.Name + "=" + cookie.Value, "Origin": Origin}
@@ -148,11 +148,11 @@ func TestBrowserHTTPExchangeAndRoles(t *testing.T) {
 			method, body = "GET", ""
 		}
 		f.request(t, method, path, body, browserHeaders(cookie), 401)
-		f.request(t, method, path, body, map[string]string{"Authorization": "Bearer " + clientFixture}, 403)
+		f.request(t, method, path, body, map[string]string{"Authorization": "Bearer " + legacyControlFixture}, 401)
 	}
 	f.request(t, "POST", "/api/v1/control/browser-grants", "{}", browserHeaders(cookie), 401)
-	f.request(t, "POST", "/api/v1/control/browser-grants", "{}", map[string]string{"Authorization": "Bearer " + clientFixture}, 403)
-	f.request(t, "POST", "/api/v1/browser/logout", "{}", map[string]string{"Origin": Origin, "Authorization": "Bearer " + controlFixture}, 401)
+	f.request(t, "POST", "/api/v1/control/browser-grants", "{}", controlHeaders(), 201)
+	f.request(t, "POST", "/api/v1/browser/logout", "{}", map[string]string{"Origin": Origin, "Authorization": "Bearer " + serviceFixture}, 401)
 	f.request(t, "POST", "/api/v1/browser/authorize", `{"ticket":"`+ticket+`"}`, map[string]string{"Origin": Origin}, 401)
 	for _, headers := range []map[string]string{
 		{"Cookie": cookie.Name + "=" + cookie.Value, "Authorization": "Bearer invalid"},

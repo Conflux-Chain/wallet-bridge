@@ -14,9 +14,21 @@ npm --prefix web run service:smoke
 npm --prefix web run background:smoke
 ```
 
-预期分别输出 `Service smoke passed`、`Background smoke passed`，退出码均为 0。测试在空 PATH 下运行打包程序：前者检查 HTTP、资源、锁、SQLite、一次性授权交换／重放拒绝、cookie 跨重启复用／退出及控制停止；后者检查六个 CLI 并发 ensure、常驻、复用、重启、停止、授权 CLI、损坏数据库保留及假服务拒绝。macOS 另验前台 SIGTERM 正常退出。
+预期分别输出 `Service smoke passed`、`Background smoke passed`，退出码均为 0。测试在空 PATH 下运行打包程序：前者检查单服务密钥、HTTP、资源、锁、SQLite、一次性授权交换／重放拒绝、cookie 跨重启复用／退出及停止；后者检查六个 CLI 并发 ensure、常驻、复用、重启、停止、授权 CLI、损坏数据库保留及假服务拒绝。macOS 另验前台 SIGTERM 正常退出。
 
 脚本使用独立临时数据目录，结束时停止自身服务并清理目录，不初始化正式用户凭据。遇到已有端口占用时明确失败，不停止占用者。后台测试如无法确认自身服务已停止，会保留目录并报告错误，供排查。
+
+## 服务接入兼容性测试
+
+固定端口已有服务时，可独立运行此组测试。仅需上述 Go 环境，在仓库根目录执行，无需构建页面、启动服务或准备密钥：
+
+```sh
+go test -tags no_web ./internal/credentials ./internal/api ./internal/client ./internal/service -count=1 -v
+```
+
+预期退出码 0：新装只生成 `client.key`，重启／并发初始化复用；旧目录保留原密钥及遗留控制文件，但控制密钥不能鉴权。查询、停止、浏览器授权管理使用同一服务凭据；浏览器 cookie 不能停止服务或管理全部授权，错误 Host／Origin 仍被拒绝。模拟旧版服务通过身份验证后仍返回 `incompatible_service`，不收到 Bearer。
+
+测试使用自动清理的私有临时目录、随机空闲端口及模拟 HTTP，不接触正式数据和固定端口；命令结束即完成停止与清理。这是程序及接口验证，不包含真实钱包连接。API 1.2 增加 `service.auth.shared`；跨版本切换须先使用服务配套程序正常停止旧服务，见[凭据说明](local-credentials.md#保存与恢复)。
 
 ## 后台启动、查询与停止
 

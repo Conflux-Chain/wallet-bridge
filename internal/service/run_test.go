@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -21,13 +22,28 @@ import (
 )
 
 func TestLifecycle(t *testing.T) {
-	for _, viaHTTP := range []bool{false, true} {
-		name := "context cancellation"
-		if viaHTTP {
-			name = "HTTP stop"
-		}
-		t.Run(name, func(t *testing.T) {
+	for _, tc := range []struct {
+		name            string
+		viaHTTP, legacy bool
+	}{{"context cancellation", false, false}, {"HTTP stop", true, false}, {"legacy directory", true, true}} {
+		t.Run(tc.name, func(t *testing.T) {
 			dir := filepath.Join(t.TempDir(), "data")
+			legacyToken := strings.Repeat("22", 32)
+			var original string
+			if tc.legacy {
+				if err := credentials.Ensure(dir); err != nil {
+					t.Fatal(err)
+				}
+				original, _ = credentials.Read(dir)
+				f, err := platform.CreatePrivateFile(filepath.Join(dir, "control.key"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if _, err := f.WriteString(legacyToken + "\n"); err != nil {
+					t.Fatal(err)
+				}
+				f.Close()
+			}
 			ctx, cancel := context.WithCancel(context.Background())
 			ready := make(chan struct{})
 			finished := make(chan error, 1)
@@ -63,7 +79,7 @@ func TestLifecycle(t *testing.T) {
 			if info, err := os.Stat(filepath.Join(dir, store.DatabaseName)); err != nil || info.Size() == 0 {
 				t.Fatal("service became ready before database initialization", err)
 			}
-			clientToken, err := credentials.Read(dir, credentials.Client)
+			token, err := credentials.Read(dir)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -85,15 +101,28 @@ func TestLifecycle(t *testing.T) {
 				response.Body.Close()
 				return response.StatusCode
 			}
-			if request("GET", "/api/v1/status", clientToken) != 200 {
+			if request("GET", "/api/v1/status", token) != 200 {
 				t.Fatal("status unavailable after readiness")
 			}
-			if viaHTTP {
-				controlToken, err := credentials.Read(dir, credentials.Control)
-				if err != nil {
-					t.Fatal(err)
+			if request("POST", "/api/v1/control/browser-grants", token) != 201 {
+				t.Fatal("shared service credential could not authorize a browser")
+			}
+			if tc.legacy {
+				if token != original {
+					t.Fatal("service startup replaced the existing identity")
 				}
-				if request("POST", "/api/v1/control/stop", controlToken) != 202 {
+				if request("GET", "/api/v1/status", legacyToken) != 401 || request("POST", "/api/v1/control/stop", legacyToken) != 401 {
+					t.Fatal("service accepted the legacy control credential")
+				}
+				data, err := os.ReadFile(filepath.Join(dir, "control.key"))
+				if err != nil || string(data) != legacyToken+"\n" {
+					t.Fatal("service changed the legacy file")
+				}
+			} else if _, err := os.Stat(filepath.Join(dir, "control.key")); !errors.Is(err, os.ErrNotExist) {
+				t.Fatal("fresh service created a control credential")
+			}
+			if tc.viaHTTP {
+				if request("POST", "/api/v1/control/stop", token) != 202 {
 					t.Fatal("stop request rejected")
 				}
 			} else {

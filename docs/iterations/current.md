@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0～2-2b 已合并，历史查询与续期规则已确认，PR 2-3a1 生命周期存储已实现待评审；PR 链接和后续检查点统一见 plan。
+- 当前步骤：PR 2-0～2-3a1 已合并；用户已确认简化信任模型，PR 2-3a2a 统一服务凭据开发中。
 
 ## 3. 下一步
 
-评审 PR 2-3a1，合并后推进 PR 2-3a2 应用核心；多页执行协调及 HTTP／CLI 细节在对应 PR 前补充。
+分 PR 完成单服务凭据、资源凭据移除，再继续连接与 Session 核心；多页执行协调及 HTTP／CLI 细节在对应 PR 前补充。
 
 ## 4. 验证记录
 

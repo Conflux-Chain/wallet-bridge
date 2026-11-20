@@ -87,7 +87,8 @@ try {
   assert.ok(statuses.every((status) => status.state === 'running' && status.startedAt === statuses[0].startedAt), 'Concurrent callers did not reuse one service');
   assert.equal((await run('status')).startedAt, statuses[0].startedAt, 'Service did not survive CLI exit');
   assert.equal((await run('ensure')).startedAt, statuses[0].startedAt, 'Ensure replaced a running service');
-  const credentials = await Promise.all(['client', 'control'].map((name) => readFile(join(data, `${name}.key`), 'utf8')));
+  const credential = await readFile(join(data, 'client.key'), 'utf8');
+  await assert.rejects(stat(join(data, 'control.key')), { code: 'ENOENT' });
 
   const other = join(temporary, 'other-data');
   assert.equal((await run('ensure', other, 1)).code, 'identity_unverified');
@@ -102,9 +103,8 @@ try {
   const restarted = await run('ensure');
   assert.equal(restarted.state, 'running');
   assert.notEqual(restarted.startedAt, statuses[0].startedAt);
-  for (const [index, name] of ['client', 'control'].entries()) {
-    assert.ok(await readFile(join(data, `${name}.key`), 'utf8') === credentials[index], 'Restart replaced a credential');
-  }
+  assert.ok(await readFile(join(data, 'client.key'), 'utf8') === credential, 'Restart replaced the service credential');
+  await assert.rejects(stat(join(data, 'control.key')), { code: 'ENOENT' });
 
   const browsers = [];
   for (const ticket of [firstTicket, await authorizationLink()]) {

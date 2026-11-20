@@ -21,8 +21,7 @@ import (
 
 type Config struct {
 	Version              string
-	ClientToken          string
-	ControlToken         string
+	ServiceToken         string
 	Assets               fs.FS
 	StartedAt            time.Time
 	Stop                 func()
@@ -36,16 +35,14 @@ type handler struct {
 }
 
 func New(config Config) (http.Handler, error) {
-	key, err := hex.DecodeString(config.ClientToken)
-	control, controlErr := hex.DecodeString(config.ControlToken)
-	if err != nil || controlErr != nil || len(key) != 32 || len(control) != 32 ||
-		hex.EncodeToString(key) != config.ClientToken || hex.EncodeToString(control) != config.ControlToken ||
-		config.ClientToken == config.ControlToken || config.Stop == nil || config.BrowserAuthorization == nil {
+	key, err := hex.DecodeString(config.ServiceToken)
+	if err != nil || len(key) != 32 || hex.EncodeToString(key) != config.ServiceToken ||
+		config.Stop == nil || config.BrowserAuthorization == nil {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 1},
-		Capabilities: []string{"service.status", "service.stop", "browser.authorization"}, Ready: true,
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 2},
+		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared"}, Ready: true,
 	}}, nil
 }
 
@@ -74,14 +71,14 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case "/api/v1/control/stop":
-		if method(w, r, http.MethodPost) && h.authorize(w, r, true) {
+		if method(w, r, http.MethodPost) && h.authorize(w, r) {
 			h.stop(w, r)
 		}
 	case "/api/v1/control/browser-grants":
 		if r.Method != http.MethodGet && r.Method != http.MethodPost {
 			w.Header().Set("Allow", "GET, POST")
 			failure(w, http.StatusMethodNotAllowed, "method_not_allowed", "Unsupported HTTP method")
-		} else if h.authorize(w, r, true) {
+		} else if h.authorize(w, r) {
 			if r.Method == http.MethodPost {
 				h.issueBrowserTicket(w, r)
 			} else {
@@ -89,7 +86,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case "/api/v1/control/browser-grants/revoke":
-		if method(w, r, http.MethodPost) && h.authorize(w, r, true) {
+		if method(w, r, http.MethodPost) && h.authorize(w, r) {
 			h.revokeBrowserGrants(w, r)
 		}
 	case "/api/v1/browser/authorize":
@@ -118,7 +115,7 @@ func method(w http.ResponseWriter, r *http.Request, expected string) bool {
 	return false
 }
 
-func (h *handler) authorize(w http.ResponseWriter, r *http.Request, administrative bool) bool {
+func (h *handler) authorize(w http.ResponseWriter, r *http.Request) bool {
 	values := r.Header.Values("Authorization")
 	var token string
 	if len(values) == 1 {
@@ -127,15 +124,8 @@ func (h *handler) authorize(w http.ResponseWriter, r *http.Request, administrati
 			token = parts[1]
 		}
 	}
-	if subtle.ConstantTimeCompare([]byte(token), []byte(h.config.ControlToken)) == 1 {
+	if subtle.ConstantTimeCompare([]byte(token), []byte(h.config.ServiceToken)) == 1 {
 		return true
-	}
-	if subtle.ConstantTimeCompare([]byte(token), []byte(h.config.ClientToken)) == 1 {
-		if !administrative {
-			return true
-		}
-		failure(w, http.StatusForbidden, "forbidden", "A control token is required")
-		return false
 	}
 	w.Header().Set("WWW-Authenticate", `Bearer realm="wallet-bridge"`)
 	failure(w, http.StatusUnauthorized, "unauthenticated", "A valid Bearer token is required")
@@ -179,8 +169,7 @@ func (h *handler) getInfo(w http.ResponseWriter, r *http.Request) {
 // getStatus reports the running service's state.
 // @Summary Read authenticated service status
 // @Produce json
-// @Security ClientBearer
-// @Security ControlBearer
+// @Security ServiceBearer
 // @Security BrowserCookie
 // @Success 200 {object} StatusResponse
 // @Failure 401 {object} ErrorResponse
@@ -201,10 +190,10 @@ func (h *handler) getStatus(w http.ResponseWriter, _ *http.Request, browser *app
 
 // stop requests graceful shutdown; the response acknowledges the request.
 // @Summary Request graceful service shutdown
-// @Description Requires the control token. Accepts no body or an empty JSON object, limited to 1024 bytes. HTTP 202 means shutdown was requested, not that the process has exited.
+// @Description Requires the local service token. Accepts no body or an empty JSON object, limited to 1024 bytes. HTTP 202 means shutdown was requested, not that the process has exited.
 // @Accept json
 // @Produce json
-// @Security ControlBearer
+// @Security ServiceBearer
 // @Success 202 {object} StopResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
