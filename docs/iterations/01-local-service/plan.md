@@ -1,6 +1,6 @@
 # 迭代 1 PR 计划
 
-状态：2026-11-19 PR 1-6b 已合并；PR 1-6c 已提交，待评审。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
+状态：2026-11-20 PR 1-6c 已合并；PR 1-6d 待评审。范围见 [spec](spec.md)，方案见 [design](design.md)。每次只推进一个评审单元。
 
 ## 拆分
 
@@ -14,16 +14,16 @@
 | PR 1-5：授权存储 | SQLite 驱动、schema 迁移与浏览器授权存储；不接页面或授权交换接口 | 迁移原子性、记录读写／重开、到期／撤销持久化；三个目标构建 | [#9](https://github.com/Conflux-Chain/wallet-bridge/pull/9) 已合并 |
 | PR 1-6a：授权核心 | 一次性凭据签发／消费、持久授权校验和撤销；暂不接 HTTP、CLI 或页面 | 重放／到期／并发消费、重启边界、存储失败、单个／全部撤销 | [#10](https://github.com/Conflux-Chain/wallet-bridge/pull/10) 已合并 |
 | PR 1-6b：授权 HTTP | 接入授权核心，提供交换／cookie／管理接口，同步生成接口文档 | 权限分离、同 origin、cookie 属性、受保护状态、错误和凭据不泄漏 | [#11](https://github.com/Conflux-Chain/wallet-bridge/pull/11) 已合并 |
-| PR 1-6c：授权 CLI | ui、浏览器启动及授权管理命令，共用已验证身份的 HTTP client | 一次性链接仅显式输出、打开失败处理、CLI 管理、三平台运行 | [#12](https://github.com/Conflux-Chain/wallet-bridge/pull/12) 待评审 |
-| PR 1-6d：授权页面 | 未授权说明、交换／状态及退出页面 | 地址 fragment 清理、30 天授权复用、到期／撤销反馈、真实浏览器呈现 | 待开发 |
+| PR 1-6c：授权 CLI | ui、浏览器启动及授权管理命令，共用已验证身份的 HTTP client | 一次性链接仅显式输出、打开失败处理、CLI 管理、三平台运行 | [#12](https://github.com/Conflux-Chain/wallet-bridge/pull/12) 已合并 |
+| PR 1-6d：授权页面 | 未授权说明、交换／状态及退出页面 | 地址 fragment 清理、30 天授权复用、到期／撤销反馈、真实浏览器呈现 | [#13](https://github.com/Conflux-Chain/wallet-bridge/pull/13) 待评审 |
 | PR 1-7：组合验收 | 三平台本轮组合流程、无工具链运行及交接资料；不补交此前 PR 应有的基础测试 | 汇总 A-01～04 证据，明确最低系统版本与缺失环境的待验收项 | 待开发 |
 
 PR 1-1～1-7 按顺序依赖，其中 PR 1-6 按 a～d 分步交付，保持评审单元集中；每个实现 PR 只引入当前能力需要的目录和依赖。PR 合并、自动检查、真实环境及用户验收分别记录。
 
 ## 当前步骤
 
-- PR 1-6b 已按用户“继续”的指令 Squash 合并为 `b277d6a`，并清理其本地／远端分支；本地 main 已同步。
-- 当前分支：`feat/browser-authorization-cli`，从上述 main 创建；PR 1-6c 已提交为 #12，待评审；撤销入口已按 spec 第 6 节确认。
+- PR 1-6c 已按用户“继续”的指令 Squash 合并为 `9035907`，并清理其本地／远端分支；本地 main 已同步。
+- 当前分支：`feat/browser-authorization-page`，从上述 main 创建；[#13](https://github.com/Conflux-Chain/wallet-bridge/pull/13) 交付 PR 1-6d，等待评审。
 - 授权 HTTP、CLI 和页面分别交付，钱包及 MCP 沿用后续迭代安排。
 
 ## 验证与限制
@@ -34,7 +34,7 @@ PR 1-1～1-7 按顺序依赖，其中 PR 1-6 按 a～d 分步交付，保持评�
 - PR 1-1：15 份 Markdown、88 个本地链接及 24 个标题锚点检查通过；Git 暂存区空白检查通过。
 - CI 配置 Windows x64、macOS Intel／Apple Silicon 原生 runner；实际执行结果随 PR checks 记录，交叉编译不算原生运行证据。
 - 用户已确认按 Vite 开发服务器方式预览时页面正常显示；本地测试步骤、预期结果及停止方式已补齐到 [README](../../../README.md#开发命令)。
-- 最低系统版本、完整浏览器／钱包兼容性及真实 agent 尚未验收；浏览器授权流程按后续 PR 验证。
+- 最低系统版本、完整浏览器／钱包兼容性及真实 agent 尚未验收；各授权 PR 的证据见下文。
 
 ### PR 1-2
 
@@ -91,4 +91,13 @@ PR 1-1～1-7 按顺序依赖，其中 PR 1-6 按 a～d 分步交付，保持评�
 - Windows 完整／no_web Go 测试、go vet、client／cli 的 race 检查、前端及三个目标的无 CGO 构建通过。
 - 真实 SQLite 和 HTTP 组合测试验证链接签发、分页、单个／全部撤销、历史保留；补验授权能力缺失时不读取／发送 control 凭据、连接关闭后不发送凭据、变更响应丢失不重放、非法 URL／远端错误不泄漏到终端。
 - CLI 测试覆盖参数校验前不执行操作、链接仅显式输出、浏览器打开失败、JSON 与输出失败；空 PATH 的 background smoke 通过，涵盖 ui 自动启动及真实交换／分页／重启／撤销。version／service smoke 通过。
-- [授权 CLI 指南](../../local-service.md#浏览器授权-cli)提供本地命令、预期及停止／清理；17 份 Markdown 的 127 个本地链接／46 个标题锚点和 Git 空白检查通过。三平台原生结果见 [#12 checks](https://github.com/Conflux-Chain/wallet-bridge/pull/12/checks)；实际默认浏览器启动、页面交换与最低系统版本尚待验收。
+- [授权 CLI 指南](../../local-service.md#浏览器授权-cli)提供本地命令、预期及停止／清理；17 份 Markdown 的 127 个本地链接／46 个标题锚点和 Git 空白检查通过。三平台[原生 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/44510545626) 通过（最终 head `d4b5db7`）；实际默认浏览器启动、页面交换与最低系统版本尚待验收。
+
+### PR 1-6d
+
+- Windows 11 amd64（10.0.26300）：完整／no_web Go 测试、go vet、前端类型检查／生产构建、三目标无 CGO 构建及空 PATH 的三组 smoke 通过。
+- 已安装 Google Chrome 157.0.8103.79 的 Playwright 测试全部 10 项通过：真实交换及 cookie、fragment 清理、重放拒绝、刷新／新标签／重启复用、浏览器配置隔离、退出及 CLI 撤销。响应丢失与 cookie 保存失败为注入测试，浏览器过期 cookie 为模拟；服务端到期由已有 Go 测试验证。
+- 另以 Chrome 检查未授权／已授权桌面页面，以及 390px 窄屏授权／退出页面；截图已人工查看，内容完整、无水平溢出。未连接真实钱包，不计作钱包或用户验收。
+- [浏览器测试指南](../../browser-testing.md)提供前置条件、构建、访问、手动／自动步骤、预期及停止／清理，README 和凭据说明已同步。测试使用独立数据；原正式服务已用保留的原程序恢复，未自动升级。
+- 本机 Chromium 下载因速度过慢中止，使用已安装 Chrome 完成上述验证；三个原生 CI 新增 Chromium 测试，结果随本 PR 记录。系统默认浏览器实际启动、最低系统版本及真实钱包／agent 留待对应验收。
+- 18 份 Markdown 的 138 个本地链接／51 个标题锚点及 Git 空白检查通过；PR 状态链接更新不影响本地链接。
