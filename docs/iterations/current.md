@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0／2-1 已合并，连接同意及取消／到期规则已确认，PR 2-2a 连接记录与迁移待评审；PR 链接和后续检查点统一见 plan。
+- 当前步骤：PR 2-0／2-1／2-2a 已合并，PR 2-2b 连接原子写入开发中；PR 链接和后续检查点统一见 plan。
 
 ## 3. 下一步
 
-评审 PR 2-2a，合并后实现 PR 2-2b 的连接完成、取消和到期原子写入；多页执行协调及 HTTP／CLI 细节在对应 PR 前补充。
+完成并评审 PR 2-2b，再细化连接与 Session 核心检查点；多页执行协调及 HTTP／CLI 细节在对应 PR 前补充。
 
 ## 4. 验证记录
 

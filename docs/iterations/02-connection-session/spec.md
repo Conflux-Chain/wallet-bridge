@@ -1,6 +1,6 @@
 # 迭代 2：连接钱包与 Session
 
-状态：2026-11-20 PR 2-1 已合并，用户确认同时发现 MetaMask／Fluent；首次连接同意及取消／到期规则已确认，PR 2-2a 连接记录与迁移已实现待评审。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
+状态：2026-11-20 PR 2-1／2-2a 已合并，用户确认同时发现 MetaMask／Fluent；首次连接同意及取消／到期规则已确认，PR 2-2b 实现连接原子写入。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
 
 ## 目标与边界
 
