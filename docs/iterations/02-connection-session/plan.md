@@ -1,6 +1,6 @@
 # 迭代 2 PR 计划草案
 
-状态：2026-11-20 PR 2-0／2-1／2-2a 已合并；[PR 2-2b #18](https://github.com/Conflux-Chain/wallet-bridge/pull/18) 已实现待评审。沿用 [spec](spec.md)、[design](design.md)。
+状态：2026-11-20 PR 2-0～2-2b 已合并；PR 2-3a1 生命周期存储开发中。沿用 [spec](spec.md)、[design](design.md)。
 
 ## 分步交付
 
@@ -9,8 +9,9 @@
 | PR 2-0：需求与方案 | 本轮 spec、设计边界、PR 拆分；区分已确认与后续检查点 | 文档一致、问题来源明确、链接有效 | [#15](https://github.com/Conflux-Chain/wallet-bridge/pull/15) 已合并 |
 | PR 2-1：钱包发现 | 标准 Provider 发现、去重、旧式入口及钱包选择；不建立 Session | 多钱包／迟到／冲突公告、StrictMode、不自动弹窗及实际发现 | [#16](https://github.com/Conflux-Chain/wallet-bridge/pull/16) 已合并，用户已确认双钱包发现 |
 | PR 2-2a：连接记录与迁移 | 数据模型、追加迁移、创建连接与按凭据查询；不创建 Session | v1 升级、摘要隔离、持久化与 schema 约束 | [#17](https://github.com/Conflux-Chain/wallet-bridge/pull/17) 已合并 |
-| PR 2-2b：连接原子写入 | 完成连接并建立唯一 Session、取消／拒绝／到期及回传幂等 | 事务回滚、终态竞争、迟到成功不建 Session | [#18](https://github.com/Conflux-Chain/wallet-bridge/pull/18) 待评审 |
-| PR 2-3a：连接与 Session 核心 | 创建、完成、拒绝、取消、查询、关闭／回收与基础重启恢复 | 绑定固定、权限、期限、并发竞争和结果保留 | 待开发 |
+| PR 2-2b：连接原子写入 | 完成连接并建立唯一 Session、取消／拒绝／到期及回传幂等 | 事务回滚、终态竞争、迟到成功不建 Session | [#18](https://github.com/Conflux-Chain/wallet-bridge/pull/18) 已合并 |
+| PR 2-3a1：生命周期存储 | 有效 Session 访问／关闭、批量到期的事务存储 | 凭据隔离、终止后不续期、维护回滚及并发竞争 | 开发中 |
+| PR 2-3a2：连接与 Session 核心 | 创建、完成、拒绝、取消、查询、关闭／回收与基础重启恢复 | 绑定固定、权限、期限、并发竞争和结果保留 | 待开发 |
 | PR 2-3b：执行协调 | 多页领取、钱包调用标记、互斥与显式恢复；不增加交易流程 | 重复领取、页面丢失、迟到回传、不自动重入钱包 | 待开发 |
 | PR 2-4：HTTP 接入 | 核心／执行接口、共享 client 与 Swagger 同步 | client／浏览器权限分离、参数、状态和回传幂等 | 待开发 |
 | PR 2-5：CLI | 连接、请求查询／取消、Session 查询／关闭及凭据使用 | 实际程序、等待／取消／输出边界、敏感信息保护 | 待开发 |
@@ -21,9 +22,10 @@ PR 2-1 后依次接入存储、核心、HTTP、CLI 与页面；必要测试和�
 
 ## 当前步骤与检查点
 
-- PR #17 已按用户“继续”合并为 `884c81b`；核对分支内容与 main 一致后清理本地／远端分支，从最新 main 创建 `feat/connection-transitions`。
+- PR #18 已按用户“请继续”合并为 `faf450d`；核对分支内容与 main 一致后清理本地／远端分支，从最新 main 创建 `feat/session-lifecycle`。
 - 用户已确认首次连接在最终账户／网络就绪后同意，取消／到期后即使钱包返回成功也不再建 Session；记录为 D-030／031。
-- PR 2-2 拆为 a／b，控制评审范围；本次按 design 的原子写入契约实现完成／终止方法，再验证回滚、幂等及并发竞争，最后更新本地复现指南。鉴权、执行协调与外部接入留给后续 PR。
+- PR 2-3a 拆为生命周期存储（a1）和应用核心（a2），先补齐原子访问／关闭／到期维护，再组合流程；本次按 design 实现三个存储方法并验证期限、历史保留、权限及竞争，不提前生成核心或外部接入。
+- 用户已确认失效后保留历史查询，仅有效 Session 的 client 访问续期；记录为 D-032／033。
 - 用户已确认固定钱包及[请求审阅交互](../../approval-flow.md)。交易实现仍属迭代 3，ABI 解码沿用后续扩展范围。
 - 核心流程、HTTP／CLI、页面集成的产品检查点按 spec 逐组补充；影响对应 PR 的问题处理后才编码。
 - 迭代 1 的环境补验和用户验收继续保留，不将转入下一轮视为已通过。
@@ -56,3 +58,11 @@ PR 2-0：23 份 Markdown 的 170 个本地链接、53 个标题锚点及 Git 空
 - Windows 新增 8 组 SQLite 事务测试通过，覆盖插入及提交失败整体回滚、Session ID／摘要冲突、重开后幂等、关闭后重放、到期边界、取消后迟到成功及跨数据库连接并发终态竞争。
 - Windows 完整／`no_web` Go 测试、两种 vet、页面／独立程序构建与空 PATH smoke 通过；指南中的 16 组存储测试通过。25 份 Markdown 的 186 个本地链接、61 个标题锚点及 Git 空白检查通过。
 - 复现见[连接存储与事务测试](../../connection-storage.md)；三平台 CI 随 PR 记录。本次无新增人工页面验收，正式服务及数据库未升级或重启。
+- 最终 head `5e15f7c` 的[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/44691060510) 全部通过（Windows amd64、macOS Intel／Apple Silicon）。
+
+### PR 2-3a1
+
+- 已实现 Session 凭据访问／关闭和批量到期三个存储方法，复用 schema v2，保留绑定、摘要及原连接结果；尚未接入核心流程、启动／周期维护或外部接口。
+- Windows 新增 8 组真实 SQLite 生命周期测试通过，覆盖有效访问续期、原始查询不续期、到期边界、关闭幂等、凭据隔离、时钟回退／重开不复活，以及跨数据库连接并发竞争。更新／提交失败时，批量连接及 Session 维护整体回滚。
+- Windows 完整／`no_web` Go 测试、两种 vet、页面／独立程序构建及空 PATH smoke 通过；指南中的 24 组存储测试通过。复现见[连接存储与事务测试](../../connection-storage.md)，三平台 CI 随 PR 记录。本次无新增人工页面验收，正式服务及数据库未升级或重启。
+- 25 份 Markdown 的 189 个本地链接、63 个标题锚点及 Git 空白检查通过。

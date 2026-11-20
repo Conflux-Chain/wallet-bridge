@@ -6,7 +6,10 @@ import (
 	"time"
 )
 
-const ConnectionRequestLifetime = 5 * time.Minute
+const (
+	ConnectionRequestLifetime = 5 * time.Minute
+	SessionIdleLifetime       = 5 * time.Minute
+)
 
 type ConnectionState string
 
@@ -76,6 +79,11 @@ type ConnectionCompletion struct {
 	ChainID   string
 }
 
+type ConnectionExpiryCounts struct {
+	ConnectionRequests int64
+	Sessions           int64
+}
+
 // Records returned by this store never contain credentials or their digests.
 // Reads preserve historical results; the application enforces active-session use.
 type ConnectionStore interface {
@@ -88,4 +96,9 @@ type ConnectionStore interface {
 	FinishConnectionRequest(context.Context, string, ConnectionState, time.Time) (ConnectionRequest, error)
 	GetSession(context.Context, string) (Session, error)
 	FindSession(context.Context, string, [32]byte) (Session, error)
+	// AccessSession authenticates before expiring or renewing a Session. It also
+	// returns historical closed records; callers must check ClosedAt before use.
+	AccessSession(context.Context, string, [32]byte, time.Time) (Session, error)
+	CloseSession(context.Context, string, [32]byte, time.Time) (Session, error)
+	ExpireConnectionsAndSessions(context.Context, time.Time) (ConnectionExpiryCounts, error)
 }

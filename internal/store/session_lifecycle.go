@@ -1,0 +1,95 @@
+package store
+
+import (
+	"context"
+	"time"
+
+	"github.com/Conflux-Chain/wallet-bridge/internal/app"
+)
+
+func (s *Store) AccessSession(ctx context.Context, id string, digest [32]byte, now time.Time) (app.Session, error) {
+	return s.updateSessionLifecycle(ctx, id, digest, now, false)
+}
+
+func (s *Store) CloseSession(ctx context.Context, id string, digest [32]byte, now time.Time) (app.Session, error) {
+	return s.updateSessionLifecycle(ctx, id, digest, now, true)
+}
+
+func (s *Store) updateSessionLifecycle(ctx context.Context, id string, digest [32]byte, now time.Time, closeSession bool) (app.Session, error) {
+	if !validTime(now) {
+		return app.Session{}, app.ErrInvalidSession
+	}
+	now = time.UnixMilli(now.UnixMilli()).UTC()
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return app.Session{}, err
+	}
+	defer tx.Rollback()
+	session, err := scanSession(tx.QueryRowContext(ctx, sessionSelect+" WHERE id = ? AND token_hash = ?", id, digest[:]))
+	if err != nil {
+		return app.Session{}, err
+	}
+	if session.ClosedAt != nil {
+		return session, nil
+	}
+	expires := session.LastAccessAt.Add(app.SessionIdleLifetime)
+	if !now.Before(expires) {
+		session.ClosedAt = &expires
+	} else if closeSession {
+		// A clock adjustment must not put closure before the last client access.
+		closed := now
+		if closed.Before(session.LastAccessAt) {
+			closed = session.LastAccessAt
+		}
+		session.ClosedAt = &closed
+	} else if now.After(session.LastAccessAt) {
+		session.LastAccessAt = now
+	} else {
+		return session, nil
+	}
+	var closed any
+	if session.ClosedAt != nil {
+		closed = session.ClosedAt.UnixMilli()
+	}
+	if _, err := tx.ExecContext(ctx, "UPDATE sessions SET last_access_at = ?, closed_at = ? WHERE id = ?", session.LastAccessAt.UnixMilli(), closed, id); err != nil {
+		return app.Session{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return app.Session{}, err
+	}
+	return session, nil
+}
+
+func (s *Store) ExpireConnectionsAndSessions(ctx context.Context, now time.Time) (app.ConnectionExpiryCounts, error) {
+	if !validTime(now) {
+		return app.ConnectionExpiryCounts{}, app.ErrInvalidConnectionRequest
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return app.ConnectionExpiryCounts{}, err
+	}
+	defer tx.Rollback()
+	connections, err := tx.ExecContext(ctx, `UPDATE connection_requests SET state = 'expired', finished_at = expires_at
+WHERE state = 'pending' AND expires_at <= ?`, now.UnixMilli())
+	if err != nil {
+		return app.ConnectionExpiryCounts{}, err
+	}
+	// This iteration has no unfinished requests bound to Sessions. Transaction
+	// support must add that guard here before it can create such requests.
+	sessions, err := tx.ExecContext(ctx, `UPDATE sessions SET closed_at = last_access_at + ?
+WHERE closed_at IS NULL AND last_access_at <= ?`, app.SessionIdleLifetime.Milliseconds(), now.UnixMilli()-app.SessionIdleLifetime.Milliseconds())
+	if err != nil {
+		return app.ConnectionExpiryCounts{}, err
+	}
+	var counts app.ConnectionExpiryCounts
+	if counts.ConnectionRequests, err = connections.RowsAffected(); err != nil {
+		return app.ConnectionExpiryCounts{}, err
+	}
+	if counts.Sessions, err = sessions.RowsAffected(); err != nil {
+		return app.ConnectionExpiryCounts{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return app.ConnectionExpiryCounts{}, err
+	}
+	return counts, nil
+}
