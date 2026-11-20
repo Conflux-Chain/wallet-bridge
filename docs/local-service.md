@@ -1,6 +1,6 @@
 # 本地服务开发与测试
 
-当前提供前台／后台服务、进程锁、浏览器授权 HTTP／CLI／页面及授权存储。钱包接入按[迭代计划](iterations/01-local-service/plan.md)交付；页面手动与自动测试见[浏览器测试指南](browser-testing.md)。
+当前提供前台／后台服务、进程锁、浏览器授权 HTTP／CLI／页面及授权存储。钱包接入按[迭代计划](iterations/01-local-service/plan.md)交付；页面手动与自动测试见[浏览器测试指南](browser-testing.md)，本轮环境证据与待办见[验收记录](iterations/01-local-service/acceptance.md)。
 
 ## 前置条件
 

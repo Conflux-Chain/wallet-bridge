@@ -6,16 +6,16 @@
 
 ## 1. 当前阶段
 
-- 迭代 1 需求与设计已合并，开始按计划逐个实现 PR。
+- 迭代 1 功能 PR 已合并，正在组合验收与交接。
 
 ## 2. 当前任务
 
 - 当前文档：[spec](01-local-service/spec.md)、[design](01-local-service/design.md)、[plan](01-local-service/plan.md)。
-- 当前步骤：PR 1-6d 授权页面已提交，等待评审；PR 链接及检查证据统一见 plan。本地验证见[浏览器测试指南](../browser-testing.md)。
+- 当前步骤：PR 1-7 已完成本地组合验证，准备提交评审；PR 链接及检查证据统一见 plan。环境缺项见[本轮验收记录](01-local-service/acceptance.md)，本地验证见[浏览器测试指南](../browser-testing.md)。
 
 ## 3. 下一步
 
-完成 PR 1-6d 的评审；按用户授权合并后进行 PR 1-7 迭代 1 组合验收。
+完成 PR 1-7 的组合验证与评审，汇总可用证据及缺失环境；再讨论迭代 2 的连接与 Session 细节。
 
 ## 4. 验证记录
 
