@@ -76,7 +76,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, session.ID, session.ConnectionID, dig
 func assertResourceSchema(t *testing.T, s *Store) {
 	t.Helper()
 	var version, count int
-	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 3 {
+	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != len(migrations) {
 		t.Fatal("resource schema was not upgraded", version, err)
 	}
 	for _, table := range []string{"connection_requests", "sessions"} {
