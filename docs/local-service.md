@@ -1,6 +1,6 @@
 # 本地服务开发与测试
 
-当前提供前台／后台服务、进程锁、服务及浏览器授权 HTTP 接口、内嵌页面和授权存储。授权 CLI、交互页面及钱包接入按[迭代计划](iterations/01-local-service/plan.md)交付。
+当前提供前台／后台服务、进程锁、服务及浏览器授权 HTTP／CLI、内嵌页面和授权存储。交互页面及钱包接入按[迭代计划](iterations/01-local-service/plan.md)交付。
 
 ## 前置条件
 
@@ -14,7 +14,7 @@ npm --prefix web run service:smoke
 npm --prefix web run background:smoke
 ```
 
-预期分别输出 `Service smoke passed`、`Background smoke passed`，退出码均为 0。测试在空 PATH 下运行打包程序：前者检查 HTTP、资源、锁、SQLite、一次性授权交换／重放拒绝、cookie 跨重启复用／退出及控制停止；后者检查六个 CLI 并发 ensure、常驻、复用、重启、停止、损坏数据库保留及假服务拒绝。macOS 另验前台 SIGTERM 正常退出。
+预期分别输出 `Service smoke passed`、`Background smoke passed`，退出码均为 0。测试在空 PATH 下运行打包程序：前者检查 HTTP、资源、锁、SQLite、一次性授权交换／重放拒绝、cookie 跨重启复用／退出及控制停止；后者检查六个 CLI 并发 ensure、常驻、复用、重启、停止、授权 CLI、损坏数据库保留及假服务拒绝。macOS 另验前台 SIGTERM 正常退出。
 
 脚本使用独立临时数据目录，结束时停止自身服务并清理目录，不初始化正式用户凭据。遇到已有端口占用时明确失败，不停止占用者。后台测试如无法确认自身服务已停止，会保留目录并报告错误，供排查。
 
@@ -74,6 +74,32 @@ go test -tags no_web ./internal/api ./internal/platform ./internal/service ./int
 
 生成步骤应成功退出；行为测试应通过，临时目录自动清理。Windows 符号链接测试可能因创建权限不足而跳过，规则同 [README 凭据测试](../README.md#本机凭据测试)。修改接口注释后重新生成并提交 JSON／YAML；CI 检查是否同步。
 
+## 浏览器授权 CLI
+
+完成构建后，在仓库根目录运行（Windows PowerShell）：
+
+```powershell
+.\dist\wallet-bridge-windows-amd64.exe ui --print-url
+.\dist\wallet-bridge-windows-amd64.exe browser list --limit 1 --json
+.\dist\wallet-bridge-windows-amd64.exe service stop --json
+```
+
+macOS 使用 `./dist/wallet-bridge-darwin-arm64`（Intel 为 `darwin-amd64`），其余参数相同。`ui` 自动启动或复用服务；`--print-url` 只输出两分钟内有效的一次性链接。省略该选项时向系统默认浏览器提交打开请求，终端不显示链接。需要用特定 Chrome 配置时，可将显式输出的链接粘贴到对应窗口。
+
+预期三个命令均返回 0：链接使用固定 origin 和 `#authorize=` fragment；list 返回至多一条授权元数据及可选 `nextAfter`；stop 返回 `stopped`。当前页面仍为静态说明页，尚不消费链接，单纯签发链接不会新增授权；全新数据的 list 为 `grants: []`。页面交换在 PR 1-6d 交付。
+
+`browser list` 省略 `--json` 时显示表格；使用 `--after <nextAfter>` 取下一页。`browser revoke <id>` 撤销单个授权，`browser revoke --all` 撤销全部授权及未消费链接；都支持 `--json`。这些管理命令不启动服务，未运行时返回 `service_not_running`、退出码 1。运行错误写 stderr；参数错误返回 2。浏览器启动失败返回 `browser_open_failed`，按提示重新运行 `ui --print-url`；链接过期时重新签发，达到限额时等待两分钟再试。
+
+上述命令可追加同一个绝对 `--data-dir` 以隔离数据；默认数据位置见[凭据说明](local-credentials.md#用户需要准备什么)。后台服务不会随 CLI 退出而停止，结束时使用同目录的 `service stop`；数据保留以供重启复用。
+
+开发者可运行以下测试，无需启动服务或浏览器，临时数据库自动清理：
+
+```sh
+go test -tags no_web ./internal/client ./internal/cli -run 'Test(Browser|UI)' -count=1 -v
+```
+
+预期身份／能力校验、链接输出隔离、启动失败、分页与撤销测试通过。上述 `background:smoke` 另用独立程序验证 `ui --print-url` 自动启动、真实 HTTP 交换、分页、重启及单个／全部撤销；不会打开用户浏览器。系统默认浏览器的实际启动与页面呈现单独验收。
+
 ## 浏览器授权 HTTP 测试
 
 前置环境与工作目录同上；无需启动服务、浏览器或准备凭据：
@@ -84,7 +110,7 @@ go test -tags no_web ./internal/api -run '^TestBrowserHTTP' -count=1 -v
 
 预期：真实 SQLite 上的交换／重放拒绝、Origin／Host、Bearer／cookie 权限、重复 cookie、到期／撤销、重启、分页、链接数量上限及存储失败测试通过。测试自动清理临时数据库；授权 30 天到期用过期记录验证，无需等待。独立可执行程序的真实 HTTP 流程另由上述 `service:smoke` 验证，停止与清理规则相同。
 
-当前只有 HTTP 接口完成接入；`ui`、`browser` 命令及页面自动交换在后续 PR 提供。HTTP 客户端测试不代替真实浏览器对 cookie、地址 fragment 清理和页面显示的验收。
+HTTP 与上述 CLI 已接入；页面自动交换在后续 PR 提供。HTTP 客户端测试不代替真实浏览器对 cookie、地址 fragment 清理和页面显示的验收。
 
 ## SQLite 存储测试与数据
 

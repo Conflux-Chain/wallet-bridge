@@ -12,7 +12,7 @@ import (
 )
 
 func (c *Client) Status(ctx context.Context) (Status, error) {
-	data, info, err := c.request(ctx, "GET", "/api/v1/status", false)
+	data, info, err := c.request(ctx, "GET", "/api/v1/status", requestOptions{expected: 200})
 	if ctx.Err() != nil {
 		return Status{}, &Error{"canceled", "The service query was canceled", ctx.Err()}
 	}
@@ -112,7 +112,7 @@ func (c *Client) Stop(ctx context.Context) (Status, error) {
 	parent := ctx
 	ctx, cancel := context.WithTimeout(ctx, c.stopTimeout)
 	defer cancel()
-	data, _, err := c.request(ctx, "POST", "/api/v1/control/stop", true)
+	data, _, err := c.request(ctx, "POST", "/api/v1/control/stop", requestOptions{control: true, expected: 202})
 	if ctx.Err() != nil {
 		return Status{}, stopDeadline(parent, ctx)
 	}

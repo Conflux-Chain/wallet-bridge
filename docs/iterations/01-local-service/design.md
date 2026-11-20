@@ -120,6 +120,13 @@ info 可携带一次 32 字节小写十六进制 `challenge`，响应以 client 
 - `/status` 接受本机 Bearer 或有效浏览器 cookie，使用 cookie 时附带当前授权元数据。显式 Authorization 优先，错误 Bearer 不回退 cookie；重复同名 cookie 拒绝。control 接口始终只接受 control Bearer。
 - HTTP 边界、真实数据库和空 PATH 的原生服务测试覆盖交换／重放、权限、跨站、cookie 属性、重启和撤销；浏览器实际 cookie／页面行为在 PR 1-6d 验证。字段和错误 code 随 Go 类型／注释生成到 Swagger。
 
+### PR 1-6c：授权 CLI
+
+- `ui [--data-dir <绝对路径>] [--print-url]` 先 ensure，再通过已验证连接签发一次性链接；默认交给系统默认浏览器，只有 `--print-url` 输出链接。打开失败返回 `browser_open_failed`，不回显链接或系统命令错误，提示重新使用 `--print-url`；服务继续运行。
+- `browser list [--limit 1..50] [--after <id>] [--json]` 按 HTTP 分页列出非敏感授权元数据；`browser revoke <id>|--all [--json]` 撤销授权。两者支持 `--data-dir`，只访问已运行服务，未运行返回 `service_not_running`，不创建数据。单个 ID 可置于选项之前或之后。
+- client 共用现有身份校验和连接固定机制；授权操作额外要求 `browser.authorization` capability，在读取／发送 control 凭据前校验。支持有界 JSON 请求体与各接口成功状态；错误仅使用本地稳定映射，不透传响应内容或底层诊断，不自动重试变更操作。
+- Windows 直接调用 ShellExecuteW，macOS 使用绝对路径 `/usr/bin/open`，均不通过 shell 拼接 URL，也不继承 STDIO；平台打开成功只表示已提交浏览器启动请求，不表示页面完成授权。测试替换打开入口，不在自动检查中打开用户浏览器。
+
 ## 6. 存储、页面与构建
 
 - SQLite 本轮仅引入 schema 版本、浏览器授权所需表及迁移；不预建 Session／交易表。采用 `modernc.org/sqlite v1.62.0`（纯 Go、`database/sql`），三个目标构建与真实读写证据记入 plan。

@@ -82,4 +82,4 @@ go test -tags no_web ./internal/platform ./internal/credentials -count=1 -v
 
 [授权 HTTP 测试](docs/local-service.md#浏览器授权-http-测试)提供接口行为测试、独立程序验证方式及当前交付边界。
 
-当前 CLI 提供 `version` 和 `service run／ensure／status／stop`；浏览器授权及钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。
+[授权 CLI 指南](docs/local-service.md#浏览器授权-cli)说明 `ui`、`browser list／revoke` 的命令、预期结果及停止方式。页面授权交互及钱包功能按[迭代计划](docs/iterations/01-local-service/plan.md)继续交付。
