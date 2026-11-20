@@ -1,23 +1,21 @@
 import { execFile } from 'node:child_process';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import type { Page } from '@playwright/test';
 
 export const origin = 'http://127.0.0.1:18765';
 export const root = dirname(dirname(dirname(dirname(fileURLToPath(import.meta.url)))));
-const goos = process.platform === 'win32' ? 'windows' : process.platform;
-const goarch = process.arch === 'x64' ? 'amd64' : process.arch === 'arm64' ? 'arm64' : undefined;
-if (!goarch) throw new Error('Unsupported browser test architecture');
-const binary = join(root, 'dist', `wallet-bridge-${goos}-${goarch}${goos === 'windows' ? '.exe' : ''}`);
 const exec = promisify(execFile);
 
 export async function cli(args: string[], directory = process.env.WALLET_BRIDGE_TEST_DATA!) {
+  const binary = process.env.WALLET_BRIDGE_TEST_EXECUTABLE;
+  if (!binary || !directory) throw new Error('Browser test environment has not been initialized');
   const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => key.toLowerCase() !== 'path'));
   env.PATH = '';
   try {
     const { stdout } = await exec(binary, [...args, '--data-dir', directory], {
-      cwd: root, env, windowsHide: true, timeout: 20_000, maxBuffer: 32 << 10,
+      cwd: dirname(binary), env, windowsHide: true, timeout: 20_000, maxBuffer: 32 << 10,
     });
     return stdout.trim();
   } catch {
