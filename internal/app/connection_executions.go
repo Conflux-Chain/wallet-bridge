@@ -52,6 +52,11 @@ type ConnectionCallPermit struct {
 	Invoke    bool
 }
 
+type ConnectionMaintenanceCounts struct {
+	ConnectionExpiryCounts
+	Executions int64
+}
+
 type ConnectionExecutionStore interface {
 	// Reads do not renew liveness, take ownership, or normalize stale phases.
 	GetConnectionExecution(context.Context, string) (ConnectionExecution, error)
@@ -72,4 +77,5 @@ type ConnectionExecutionStore interface {
 	RejectConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionRequest, error)
 	MaintainConnectionExecutions(context.Context, time.Time) (int64, error)
 	InterruptAllConnectionExecutions(context.Context, time.Time) (int64, error)
+	MaintainConnectionState(context.Context, time.Time, bool) (ConnectionMaintenanceCounts, error)
 }

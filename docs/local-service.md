@@ -136,4 +136,4 @@ go test -tags no_web ./internal/app ./internal/store -count=1 -v
 
 正式服务会在用户数据目录生成 `bridge.db` 和 `bridge.db-journal`，启动迁移完成后才报告就绪。schema v4 的[连接、Session 及执行记录](connection-storage.md)按 ID 定位，不保存资源凭据；浏览器授权仍保存 cookie 摘要及元数据，不保存钱包私钥或原始 cookie。当前 CLI／页面尚不创建连接，正常停止和重启保留数据。
 
-`storage_error` 表示数据库初始化／迁移失败，ensure 不会将其当作就绪。损坏文件、不安全权限、较新 schema 或不支持的日志文件不会被自动清理或降级；先用同目录 `service run` 排查，保留原数据。恢复或替换数据文件须在服务停止后进行。
+`storage_error` 表示数据库初始化、迁移或状态维护失败；启动失败不报告就绪，运行中维护失败会停止服务并保留原数据。统一恢复与维护规则见[连接测试指南](connection-storage.md#数据与交付边界)。损坏文件、不安全权限、较新 schema 或不支持的日志文件不会被自动清理或降级；先用同目录 `service run` 排查，保留原数据。恢复或替换数据文件须在服务停止后进行。

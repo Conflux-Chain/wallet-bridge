@@ -1,6 +1,6 @@
 # 迭代 2 PR 计划
 
-状态：2026-11-20 PR 2-0～2-3b1 已合并；钱包交接与终态存储 [#25](https://github.com/Conflux-Chain/wallet-bridge/pull/25) 待评审。沿用 [spec](spec.md)、[design](design.md)。
+状态：2026-11-20 PR 2-0～2-3b2 已合并；协调核心接入待评审。沿用 [spec](spec.md)、[design](design.md)。
 
 ## 分步交付
 
@@ -16,8 +16,8 @@
 | PR 2-3a2c：连接与 Session 核心 | 创建、完成、拒绝、取消、查询、关闭／回收与基础重启恢复 | ID 重试、绑定固定、期限、并发竞争和结果保留 | [#22](https://github.com/Conflux-Chain/wallet-bridge/pull/22) 已合并 |
 | PR 2-3b0：执行协调方案 | 明确多页／中断／钱包等待行为、阶段与事务边界 | 区分已确认行为与技术方案，覆盖丢包／迟到／重启 | [#23](https://github.com/Conflux-Chain/wallet-bridge/pull/23) 已合并 |
 | PR 2-3b1：执行记录与领取 | 追加 schema、单执行槽、领取／心跳／中断及恢复存储 | 升级、重复领取、并发互斥及恢复失效 | [#24](https://github.com/Conflux-Chain/wallet-bridge/pull/24) 已合并 |
-| PR 2-3b2：钱包交接与终态 | 调用交接／回报、受执行归属保护的原子完成／拒绝 | 响应丢失、迟到回报、取消／到期保留等待、终态竞争 | [#25](https://github.com/Conflux-Chain/wallet-bridge/pull/25) 待评审 |
-| PR 2-3b3：协调核心接入 | 组合存储、浏览器主体与启动／周期恢复 | 心跳、授权失效、重启不重入钱包；不增加外部接口 | 待开发 |
+| PR 2-3b2：钱包交接与终态 | 调用交接／回报、受执行归属保护的原子完成／拒绝 | 响应丢失、迟到回报、取消／到期保留等待、终态竞争 | [#25](https://github.com/Conflux-Chain/wallet-bridge/pull/25) 已合并 |
+| PR 2-3b3：协调核心接入 | 组合存储、浏览器主体与启动／周期恢复 | 心跳、授权失效、重启不重入钱包；不增加外部接口 | [#26](https://github.com/Conflux-Chain/wallet-bridge/pull/26) 待评审 |
 | PR 2-4：HTTP 接入 | 核心／执行接口、共享 client 与 Swagger 同步 | client／浏览器权限分离、参数、状态和回传幂等 | 待开发 |
 | PR 2-5：CLI | 连接、请求查询／取消、Session 查询／关闭及 ID 使用 | 实际程序、等待／取消／输出边界、敏感信息保护 | 待开发 |
 | PR 2-6：连接页面 | 集成钱包授权、切链、单账户选择、本次同意与结果 | 模拟 Provider 的真实页面流程、状态变化、多页竞争 | 待开发 |
@@ -27,8 +27,8 @@ PR 2-1 后依次接入存储、核心、HTTP、CLI 与页面；必要测试和�
 
 ## 当前步骤与检查点
 
-- PR #24 已按用户“继续”合并为 `a8048a2`；核对分支内容与 main 一致后清理本地／远端分支。本单元基于该 main，分支为 `feat/connection-wallet-handoff`。
-- 用户确认手动继续及等待原钱包调用（D-036／037）；本次实现交接／回报及受归属保护的终态存储，协调核心另行接入。
+- PR #25 已按用户“继续”合并为 `225ebc6`；核对分支内容与 main 一致后清理本地／远端分支。本单元基于该 main，分支为 `feat/connection-execution-coordinator`。
+- 用户确认手动继续及等待原钱包调用（D-036／037）；本次组合协调核心与服务维护，HTTP／CLI／页面按后续 PR 接入。
 - 用户确认按请求 ID 幂等重试（D-035），不新增资源凭据或恢复文件。
 - 用户已确认首次连接在最终账户／网络就绪后同意，取消／到期后即使钱包返回成功也不再建 Session；记录为 D-030／031。
 - 用户确认同用户本地 client 可信、单服务凭据、资源 UUID 定位；D-034 替代 D-019。先完成两次独立简化，再组合核心；不实现此前未确认的客户端预生成资源凭据方案。
@@ -120,3 +120,11 @@ PR 2-0：23 份 Markdown 的 170 个本地链接、53 个标题锚点及 Git 空
 - Windows 新增 9 组真实 SQLite 测试通过，覆盖重开／重放、页面／心跳／重启中断、取消／到期与授权失效、恢复后旧回报拒绝、逐步更新／插入／提交故障回滚及跨数据库连接竞争。成功结果与执行结束同事务提交，关闭 Session 后重放不复活。
 - Windows 完整／`no_web` Go 测试、两种 vet、页面／独立程序构建与空 PATH smoke 通过，Swagger 再生成无差异；25 份 Markdown 的 203 个本地链接、73 个标题锚点及 Git 空白检查通过。本地验证步骤见[钱包交接与连接终态存储](../../connection-storage.md#钱包交接与连接终态存储)，三平台最终 head 的 CI 结果随 PR checks／说明记录。
 - 测试仅使用临时数据；正式服务未升级或重启。固定端口 service／background／浏览器组合验证交由三平台 CI，不新增人工钱包验收项；现有 Windows 符号链接权限缺项仍保留。协调核心及外部接口未接入。
+- 最终 head `9cf18b3` 的[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/44713122239) 全部通过。
+
+### PR 2-3b3
+
+- 已组合浏览器主体、执行领取／心跳／中断／恢复、交接／回报及受归属保护的同意／拒绝；并发同意复用唯一 Session ID。取消与执行中断原子提交，统一启动／周期维护连接、Session 和执行状态，沿用 schema v4。
+- Windows 新增 9 组核心／真实 SQLite／随机端口服务测试通过，覆盖授权撤销、多页归属、许可重放、迟到回报、并发同意、健康心跳与未知调用等待，以及逐步写入／提交失败的整体回滚、资源释放和移除故障后的重启恢复。完整连接存储回归共 55 组通过。
+- Windows 完整／`no_web` Go 测试、两种 vet、页面／独立程序构建与空 PATH smoke 通过；Swagger 再生成无差异。25 份 Markdown 的 205 个本地链接、75 个标题锚点及 Git 空白检查通过；三平台最终 head 的 CI 结果随 PR checks／说明记录。
+- 复现见[协调核心与服务维护](../../connection-storage.md#协调核心与服务维护)。测试使用私有临时数据；正式服务未升级或重启。固定端口 service／background／浏览器组合验证交由三平台 CI；无新增人工钱包操作，现有 Windows 符号链接权限缺项保留。HTTP／CLI／页面连接入口仍未接入。

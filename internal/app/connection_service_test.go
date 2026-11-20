@@ -12,6 +12,7 @@ import (
 
 type connectionStoreStub struct {
 	ConnectionStore
+	ConnectionExecutionStore
 	create   func(context.Context, ConnectionRequest) error
 	get      func(context.Context, string) (ConnectionRequest, error)
 	finish   func(context.Context, string, ConnectionState, time.Time) (ConnectionRequest, error)
@@ -31,7 +32,7 @@ func (s connectionStoreStub) CompleteConnectionRequest(ctx context.Context, id s
 	return s.complete(ctx, id, c, now)
 }
 
-func coreFixture(t *testing.T, store ConnectionStore) (*ConnectionService, ConnectionInput, time.Time) {
+func coreFixture(t *testing.T, store ConnectionServiceStore) (*ConnectionService, ConnectionInput, time.Time) {
 	t.Helper()
 	a, err := NewConnectionService(store)
 	if err != nil {

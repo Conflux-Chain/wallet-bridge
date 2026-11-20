@@ -15,7 +15,7 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 )
 
-func connectionCore(t *testing.T, s app.ConnectionStore) *app.ConnectionService {
+func connectionCore(t *testing.T, s app.ConnectionServiceStore) *app.ConnectionService {
 	t.Helper()
 	core, err := app.NewConnectionService(s)
 	if err != nil {
@@ -96,13 +96,13 @@ func TestConnectionCorePersistentCreationRetries(t *testing.T) {
 }
 
 type coreReadBarrier struct {
-	app.ConnectionStore
+	app.ConnectionServiceStore
 	ready   sync.WaitGroup
 	release chan struct{}
 }
 
 func (b *coreReadBarrier) GetConnectionRequest(ctx context.Context, id string) (app.ConnectionRequest, error) {
-	r, err := b.ConnectionStore.GetConnectionRequest(ctx, id)
+	r, err := b.ConnectionServiceStore.GetConnectionRequest(ctx, id)
 	b.ready.Done()
 	select {
 	case <-b.release:
@@ -122,7 +122,7 @@ func TestConnectionCoreConcurrentCompletion(t *testing.T) {
 			if _, err := connectionCore(t, s).Create(ctx, input); err != nil {
 				t.Fatal(err)
 			}
-			barrier := &coreReadBarrier{ConnectionStore: s, release: make(chan struct{})}
+			barrier := &coreReadBarrier{ConnectionServiceStore: s, release: make(chan struct{})}
 			barrier.ready.Add(2)
 			core := connectionCore(t, barrier)
 			type outcome struct {

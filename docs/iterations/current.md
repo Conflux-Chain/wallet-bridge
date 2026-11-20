@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0～2-3b1 已合并；PR 2-3b2 钱包交接与终态存储待评审，PR 入口及证据见 plan。
+- 当前步骤：PR 2-0～2-3b2 已合并；PR 2-3b3 协调核心接入待评审，PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-评审钱包交接与终态存储；合并后接入协调核心，再推进 HTTP／CLI。
+评审协调核心与统一启动／周期维护；随后细化 HTTP 接口及权限映射。
 
 ## 4. 验证记录
 
