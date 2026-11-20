@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0 已合并，PR 2-1 钱包发现与选择本地完成，准备提交评审；PR 链接和后续检查点统一见 plan。
+- 当前步骤：PR 2-0 已合并，PR 2-1 钱包发现与选择待评审；PR 链接和后续检查点统一见 plan。
 
 ## 3. 下一步
 
-完成 PR 2-1 验证与评审；连接存储／核心流程前补齐对应产品细节。
+评审 PR 2-1，真实扩展发现保留待验；进入连接存储／核心流程前补齐对应产品细节。
 
 ## 4. 验证记录
 
