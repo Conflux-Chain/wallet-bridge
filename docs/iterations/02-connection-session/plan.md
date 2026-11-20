@@ -13,7 +13,7 @@
 | PR 2-3a1：生命周期存储 | 有效 Session 访问／关闭、批量到期的事务存储 | 凭据隔离、终止后不续期、维护回滚及并发竞争 | [#19](https://github.com/Conflux-Chain/wallet-bridge/pull/19) 已合并 |
 | PR 2-3a2a：单一本机凭据 | 合并服务普通／控制角色，自动复用一份密钥；不改连接存储 | 单文件初始化、旧目录复用、共享管理、浏览器边界和旧服务拒绝 | [#20](https://github.com/Conflux-Chain/wallet-bridge/pull/20) 已合并 |
 | PR 2-3a2b：资源凭据移除 | 追加迁移并调整存储接口，以 ID 定位连接／Session | 升级保留记录、原子回滚、期限与历史不变 | [#21](https://github.com/Conflux-Chain/wallet-bridge/pull/21) 已合并 |
-| PR 2-3a2c：连接与 Session 核心 | 创建、完成、拒绝、取消、查询、关闭／回收与基础重启恢复 | ID 重试、绑定固定、期限、并发竞争和结果保留 | 已实现待评审 |
+| PR 2-3a2c：连接与 Session 核心 | 创建、完成、拒绝、取消、查询、关闭／回收与基础重启恢复 | ID 重试、绑定固定、期限、并发竞争和结果保留 | [#22](https://github.com/Conflux-Chain/wallet-bridge/pull/22) 待评审 |
 | PR 2-3b：执行协调 | 多页领取、钱包调用标记、互斥与显式恢复；不增加交易流程 | 重复领取、页面丢失、迟到回传、不自动重入钱包 | 待开发 |
 | PR 2-4：HTTP 接入 | 核心／执行接口、共享 client 与 Swagger 同步 | client／浏览器权限分离、参数、状态和回传幂等 | 待开发 |
 | PR 2-5：CLI | 连接、请求查询／取消、Session 查询／关闭及 ID 使用 | 实际程序、等待／取消／输出边界、敏感信息保护 | 待开发 |
@@ -94,4 +94,4 @@ PR 2-0：23 份 Markdown 的 170 个本地链接、53 个标题锚点及 Git 空
 - Windows 9 组核心／维护测试通过，覆盖响应丢失重试、全部终态重开、并发相同／冲突绑定、关闭后重放及期限读取；真实临时 SQLite／随机端口验证就绪前恢复、周期维护、失败回滚／资源释放及故障移除后的重启。
 - Windows 完整／`no_web` Go 测试、两种 vet、页面／独立程序构建与空 PATH smoke 通过；Swagger 再生成无差异。25 份 Markdown 的 199 个本地链接、69 个标题锚点及 Git 空白检查通过。
 - 复现见[连接核心与存储测试](../../connection-storage.md)。测试使用临时目录；正式服务未升级或重启。固定端口 service／background／浏览器组合测试由三平台 CI 验证，无新增人工钱包验收项目；原有 Windows 符号链接权限缺项仍保留。
-- 最终 head 的三平台 CI 结果记录在本 PR checks／说明中。
+- 最终 head 的三平台 CI 结果记录在 PR #22 checks／说明中。
