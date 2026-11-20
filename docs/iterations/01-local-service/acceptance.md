@@ -1,6 +1,6 @@
 # 迭代 1 验收记录
 
-状态：2026-11-20 本地组合验证通过，三平台最终检查随本 PR 记录；功能 PR 已合并，环境补验与用户验收尚未完成。范围以 [spec](spec.md) 为准，逐 PR 检查见 [plan](plan.md)。
+状态：2026-11-20 本地组合验证通过，三平台最终检查见 [PR #14](https://github.com/Conflux-Chain/wallet-bridge/pull/14)；功能 PR 已合并，环境补验与用户验收尚未完成。范围以 [spec](spec.md) 为准，逐 PR 检查见 [plan](plan.md)。
 
 ## 执行方式
 

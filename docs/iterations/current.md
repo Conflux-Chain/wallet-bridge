@@ -11,7 +11,7 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](01-local-service/spec.md)、[design](01-local-service/design.md)、[plan](01-local-service/plan.md)。
-- 当前步骤：PR 1-7 已完成本地组合验证，准备提交评审；PR 链接及检查证据统一见 plan。环境缺项见[本轮验收记录](01-local-service/acceptance.md)，本地验证见[浏览器测试指南](../browser-testing.md)。
+- 当前步骤：PR 1-7 已完成本地组合验证并提交评审；PR 链接及检查证据统一见 plan。环境缺项见[本轮验收记录](01-local-service/acceptance.md)，本地验证见[浏览器测试指南](../browser-testing.md)。
 
 ## 3. 下一步
 
