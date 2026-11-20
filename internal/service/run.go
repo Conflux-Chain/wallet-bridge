@@ -35,10 +35,12 @@ func (e *Error) Error() string { return e.Code + ": " + e.Message }
 func (e *Error) Unwrap() error { return e.Cause }
 
 func Run(ctx context.Context, config Config) error {
-	return run(ctx, config, net.Listen)
+	maintenance := time.NewTicker(30 * time.Second)
+	defer maintenance.Stop()
+	return run(ctx, config, net.Listen, maintenance.C)
 }
 
-func run(ctx context.Context, config Config, listen func(string, string) (net.Listener, error)) error {
+func run(ctx context.Context, config Config, listen func(string, string) (net.Listener, error), maintenance <-chan time.Time) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -79,6 +81,13 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 		return &Error{"storage_error", "Cannot initialize or migrate the private database; existing data was retained", err}
 	}
 	defer database.Close()
+	connections, err := app.NewConnectionService(database)
+	if err != nil {
+		return &Error{"configuration_error", "Cannot configure connection lifecycle", err}
+	}
+	if err := expireConnections(ctx, connections); err != nil {
+		return err
+	}
 	browserAuthorization, err := app.NewBrowserAuthorization(database)
 	if err != nil {
 		return &Error{"configuration_error", "Cannot configure browser authorization", err}
@@ -106,11 +115,24 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 			return &Error{"output_error", "Cannot report service readiness", err}
 		}
 	}
-	select {
-	case err := <-served:
-		return &Error{"serve_failed", "The HTTP listener stopped unexpectedly", err}
-	case <-ctx.Done():
-	case <-stop:
+	var maintenanceErr error
+running:
+	for {
+		select {
+		case err := <-served:
+			return &Error{"serve_failed", "The HTTP listener stopped unexpectedly", err}
+		case <-ctx.Done():
+			break running
+		case <-stop:
+			break running
+		case <-maintenance:
+			if maintenanceErr = expireConnections(ctx, connections); maintenanceErr != nil {
+				if ctx.Err() != nil {
+					maintenanceErr = nil
+				}
+				break running
+			}
+		}
 	}
 	shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -119,6 +141,15 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 	}
 	if err := <-served; !errors.Is(err, http.ErrServerClosed) {
 		return &Error{"serve_failed", "The HTTP listener stopped unexpectedly", err}
+	}
+	return maintenanceErr
+}
+
+func expireConnections(ctx context.Context, connections *app.ConnectionService) error {
+	maintenance, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if _, err := connections.Expire(maintenance); err != nil {
+		return &Error{"storage_error", "Cannot maintain connection and Session deadlines; existing data was retained", err}
 	}
 	return nil
 }

@@ -1,16 +1,33 @@
-# 连接存储与事务测试
+# 连接核心与存储测试
 
-PR 2-3a2b 将连接／Session 存储升级到 schema v3，按 ID 查询、访问及关闭，移除独立凭据。此前的连接原子完成和生命周期规则继续保留。本指南验证存储层，尚无 HTTP／CLI／页面连接入口，无需新增人工浏览器操作。
+连接核心已组合 schema v3 存储，支持按 ID 创建重试、完成／终止、查询和 Session 生命周期，新服务接入启动／周期到期维护。尚无 HTTP／CLI／页面连接入口，无需新增人工浏览器操作。
 
 ## 本地验证
 
 前置条件：Windows 或 macOS，安装 [go.mod](../go.mod) 指定的 Go。以下命令在仓库根目录运行，不需要 Node.js、钱包、资金或已启动的 Bridge 服务：
 
 ```sh
+go test -tags no_web ./internal/app ./internal/store ./internal/service -run '^TestConnection(Core|Maintenance)' -count=1 -v
+```
+
+预期 9 组核心／维护测试（含子用例）通过、退出码为 0，验证：
+
+- 创建已保存但响应丢失后，复用 ID 返回原记录；相同链的规范化写法等值，调用方／意图／网络描述变更报冲突。
+- 重开数据库后全部连接状态保留；取消／拒绝／到期后的迟到完成不建 Session。
+- 并发同意产生唯一 Session，相同绑定回传收敛到同一 ID，不同绑定报冲突；已关闭结果重放不重建、不续期。
+- 原连接查询不续期，有效 Session 的 client 查询才续期；关闭后历史仍可查询。
+- 服务就绪前标记已过期连接／Session，保留未过期记录和原期限；模拟定时器触发真实周期维护，不等待五分钟。
+- 注入 SQLite 维护失败后，原事务回滚、服务释放端口和锁并报告 `storage_error`；移除注入故障后启动可恢复。
+
+此组服务测试使用临时目录和系统分配的测试端口，不占用正式固定端口；不需要先停止正在运行的 Bridge。
+
+完整连接存储回归：
+
+```sh
 go test -tags no_web ./internal/store -run '^Test(Connection|Session)' -count=1 -v
 ```
 
-预期 27 组测试（含子用例）通过、退出码为 0，覆盖：
+预期 30 组测试（含上述 3 组核心组合测试及子用例）通过、退出码为 0，覆盖：
 
 - 从 v1 授权库及有记录的 v2 库迁移，成功后原授权、全部连接终态、活跃／关闭 Session 保留；复制或表重建后的失败整体回滚。
 - 请求与 Session 持久化、大 chainId、毫秒时间及原始期限保留；读取不续期或刷新访问时间。
@@ -42,7 +59,7 @@ go test -tags no_web ./internal/store -run '^TestConnection(Completion|Finish|Tr
 go test -tags no_web ./internal/store -run '^(TestSessionLifecycle|TestConnectionSessionExpiryMaintenance)' -count=1 -v
 ```
 
-测试使用临时私有数据库，命令完成即结束并自动清理，无需额外停止；不占用固定服务端口，也不迁移正式用户数据库。部分读取／约束测试用 SQL 准备数据，事务测试调用实际存储方法；均不代表真实钱包连接已验收。
+测试使用临时私有数据库，命令完成即结束并自动清理，无需额外停止；不占用固定服务端口，也不迁移正式用户数据库。部分读取／约束测试用 SQL 准备数据，组合测试调用实际应用核心／存储／服务；均不代表真实钱包连接已验收。
 
 完整后端回归：
 
@@ -55,4 +72,6 @@ go vet -tags no_web ./...
 
 数据库位置及保护方式见[本地服务指南](local-service.md#sqlite-存储测试与数据)。新程序启动时会追加 schema v3；仅支持 v1／v2 的程序会拒绝该版本。测试和构建不更新正在运行的旧服务，正式升级按用户授权执行。
 
-连接／Session 不保存访问令牌或摘要，浏览器授权的 cookie 摘要独立保留；本机接入仍使用[统一服务凭据](local-credentials.md)。`closed_at` 表示显式关闭或空闲回收后的失效时间，历史读取不等于允许钱包操作。维护方法尚未接入启动／周期调用，应用核心、浏览器权限和外部接入由后续 PR 交付。状态与验证证据统一见[迭代 plan](iterations/02-connection-session/plan.md)。
+连接／Session 不保存访问令牌或摘要，浏览器授权的 cookie 摘要独立保留；本机接入仍使用[统一服务凭据](local-credentials.md)。`closed_at` 表示显式关闭或空闲回收后的失效时间，历史读取不等于允许钱包操作。
+
+新服务在就绪前维护一次，此后每 30 秒维护；查询／写入逐次检查期限，不因维护间隔延长有效期。构建和测试不重启正在运行的正式服务。执行协调、浏览器权限接入及外部接口由后续 PR 交付；进度与证据统一见[迭代 plan](iterations/02-connection-session/plan.md)。

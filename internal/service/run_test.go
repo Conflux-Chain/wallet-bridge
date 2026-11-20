@@ -58,7 +58,7 @@ func TestLifecycle(t *testing.T) {
 						address = listener.Addr().String()
 					}
 					return listener, err
-				})
+				}, nil)
 				close(finished)
 			}()
 			t.Cleanup(func() {
@@ -190,7 +190,7 @@ func TestStartupFailureReleasesResources(t *testing.T) {
 					address = listener.Addr().String()
 				}
 				return listener, err
-			})
+			}, nil)
 			var failure *Error
 			if !errors.As(err, &failure) || failure.Code != want {
 				t.Fatalf("failure=%v, want %s", err, want)
