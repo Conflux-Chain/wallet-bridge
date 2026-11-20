@@ -11,7 +11,7 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：固定钱包及[请求审阅交互](../approval-flow.md)已确认，准备提交 PR 2-0 文档评审；PR 链接和后续检查点统一见 plan。
+- 当前步骤：固定钱包及[请求审阅交互](../approval-flow.md)已确认，PR 2-0 文档待评审；PR 链接和后续检查点统一见 plan。
 
 ## 3. 下一步
 
