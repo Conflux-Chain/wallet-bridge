@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0～2-4a 已合并；PR 2-4b1 浏览器执行协调 HTTP 已实现，准备评审；PR 入口及证据见 plan。
+- 当前步骤：PR 2-0～2-4a 已合并；PR 2-4b1 浏览器执行协调 HTTP 待评审，PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-提交并评审浏览器读取与执行协调 HTTP；随后接入交接／最终决定和共用 Go client。
+评审浏览器读取与执行协调 HTTP；随后接入交接／最终决定和共用 Go client。
 
 ## 4. 验证记录
 
