@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { checkStatus, logout } from './api/browser';
 import type { View } from './api/browser';
+import { ConnectionPage } from './connection/ConnectionPage';
 import { WalletPicker } from './wallet/WalletPicker';
 
 const messages = {
@@ -65,6 +66,11 @@ export function App({ initial }: { initial: Promise<View> }) {
     : messages[view.kind];
   const showCommand = ['unauthorized', 'logged-out', 'link-error', 'exchange-uncertain', 'cookie-error'].includes(view.kind);
 
+  const connection = new URLSearchParams(location.search).get('connection');
+  if (authorized && connection !== null) {
+    return /^[0-9a-f]{32}$/.test(connection) ? <ConnectionPage key={connection} id={connection} />
+      : <main><h1>连接链接无效</h1><p>请从调用方重新打开请求链接。</p></main>;
+  }
   return (
     <main>
       <header>
@@ -100,7 +106,7 @@ export function App({ initial }: { initial: Promise<View> }) {
       {(authorized || view.kind === 'preview') && <WalletPicker />}
       <footer>
         <p>私钥由浏览器钱包保管。</p>
-        <p>当前支持浏览器授权管理与钱包发现／选择；钱包连接与交易功能尚未开放。</p>
+        <p>打开调用方提供的连接链接可核对请求并连接钱包。</p>
       </footer>
     </main>
   );

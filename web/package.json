@@ -19,6 +19,8 @@
     "background:smoke": "node ../scripts/background-smoke.mjs",
     "browser:install": "playwright install chromium",
     "test:e2e": "playwright test --project=chromium",
+    "pretry:connection": "npm run bundle",
+    "try:connection": "node ../scripts/try-connection.mjs",
     "test:e2e:chrome": "playwright test --project=chrome",
     "test:wallet": "playwright test --config playwright.wallet.config.ts --project=chromium",
     "test:wallet:chrome": "playwright test --config playwright.wallet.config.ts --project=chrome",
