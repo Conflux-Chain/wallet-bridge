@@ -36,7 +36,7 @@ func (s *Store) BeginConnectionCall(ctx context.Context, ref app.ConnectionCallR
 		result, err := commitExecution(tx, current, app.ErrConnectionExecutionConflict)
 		return app.ConnectionCallPermit{Execution: result}, err
 	}
-	if _, err := tx.ExecContext(ctx, "UPDATE connection_executions SET phase = 'calling', call_id = ? WHERE connection_id = ?", ref.CallID, ref.ConnectionID); err != nil {
+	if _, err := tx.ExecContext(ctx, "UPDATE wallet_executions SET phase = 'calling', call_id = ? WHERE connection_id = ?", ref.CallID, ref.ConnectionID); err != nil {
 		return app.ConnectionCallPermit{}, err
 	}
 	current.Phase, current.CallID = app.ExecutionCalling, ref.CallID
@@ -76,7 +76,7 @@ func (s *Store) ReturnConnectionCall(ctx context.Context, ref app.ConnectionCall
 	} else if current.Phase == app.ExecutionInterruptedCalling {
 		phase = app.ExecutionInterruptedReady
 	}
-	if _, err := tx.ExecContext(ctx, "UPDATE connection_executions SET phase = ? WHERE connection_id = ?", phase, ref.ConnectionID); err != nil {
+	if _, err := tx.ExecContext(ctx, "UPDATE wallet_executions SET phase = ? WHERE connection_id = ?", phase, ref.ConnectionID); err != nil {
 		return app.ConnectionExecution{}, err
 	}
 	current.Phase = phase

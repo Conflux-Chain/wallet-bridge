@@ -193,7 +193,7 @@ func TestTransactionLifecycleV5Recovery(t *testing.T) {
 	}
 	var records []prior
 	for index, state := range []app.TransactionState{app.TransactionCanceled, app.TransactionExpired, app.TransactionPending} {
-		_, session := createLiveSession(t, old, index)
+		_, session := seedMigrationSession(t, old, index)
 		at := session.LastAccessAt
 		_, err := old.db.Exec(`INSERT INTO transaction_requests
 (id,session_id,client_name,intent,from_address,to_address,chain_id,value,data,gas,gas_price,max_fee_per_gas,max_priority_fee_per_gas,created_at,expires_at)

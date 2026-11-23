@@ -40,11 +40,11 @@ func (s *Store) maintainConnectionExecutions(ctx context.Context, now time.Time,
 func maintainExecutions(ctx context.Context, tx *sql.Tx, now time.Time, restart bool) (int64, error) {
 	// A terminal request cannot prove a wallet handoff ended. In particular,
 	// interrupted_calling is never released by liveness or deadline maintenance.
-	result, err := tx.ExecContext(ctx, `UPDATE connection_executions SET phase = CASE
+	result, err := tx.ExecContext(ctx, `UPDATE wallet_executions SET phase = CASE
 WHEN phase = 'calling' THEN 'interrupted_calling'
 WHEN EXISTS (SELECT 1 FROM connection_requests r WHERE r.id = connection_id AND (r.state != 'pending' OR r.expires_at <= ?)) THEN 'finished'
 ELSE 'interrupted_ready' END
-WHERE phase IN ('ready', 'calling') AND (
+WHERE connection_id IS NOT NULL AND phase IN ('ready', 'calling') AND (
 ? OR last_seen_at <= ? OR
 EXISTS (SELECT 1 FROM connection_requests r WHERE r.id = connection_id AND (r.state != 'pending' OR r.expires_at <= ?)) OR
 NOT EXISTS (SELECT 1 FROM browser_grants g WHERE g.id = browser_grant_id AND g.revoked_at IS NULL AND g.issued_at <= ? AND g.expires_at > ?))`,
@@ -56,8 +56,8 @@ NOT EXISTS (SELECT 1 FROM browser_grants g WHERE g.id = browser_grant_id AND g.r
 	if err != nil {
 		return 0, err
 	}
-	result, err = tx.ExecContext(ctx, `UPDATE connection_executions SET phase = 'finished'
-WHERE phase = 'interrupted_ready' AND EXISTS (
+	result, err = tx.ExecContext(ctx, `UPDATE wallet_executions SET phase = 'finished'
+WHERE connection_id IS NOT NULL AND phase = 'interrupted_ready' AND EXISTS (
 SELECT 1 FROM connection_requests r WHERE r.id = connection_id AND (r.state != 'pending' OR r.expires_at <= ?))`, now.UnixMilli())
 	if err != nil {
 		return 0, err

@@ -153,6 +153,24 @@ WHEN OLD.closed_at IS NULL AND NEW.closed_at IS NOT NULL BEGIN
         finished_at = min(expires_at, max(created_at, NEW.closed_at))
     WHERE session_id = NEW.id AND state = 'pending';
 END;
+`, `
+CREATE TABLE wallet_executions (
+    id TEXT PRIMARY KEY NOT NULL CHECK (length(id) = 32 AND id NOT GLOB '*[^0-9a-f]*'),
+    connection_id TEXT UNIQUE REFERENCES connection_requests (id),
+    transaction_id TEXT UNIQUE REFERENCES transaction_requests (id),
+    browser_grant_id TEXT NOT NULL REFERENCES browser_grants (id),
+    phase TEXT NOT NULL CHECK (phase IN ('ready', 'calling', 'interrupted_ready', 'interrupted_calling', 'finished')),
+    last_seen_at INTEGER NOT NULL CHECK (last_seen_at >= 0),
+    call_id TEXT CHECK (length(call_id) = 32 AND call_id NOT GLOB '*[^0-9a-f]*'),
+    CHECK ((connection_id IS NULL) != (transaction_id IS NULL)),
+    CHECK (phase NOT IN ('calling', 'interrupted_calling') OR call_id IS NOT NULL)
+);
+CREATE UNIQUE INDEX wallet_executions_single_slot ON wallet_executions ((1))
+WHERE phase IN ('ready', 'calling', 'interrupted_calling');
+
+INSERT INTO wallet_executions (id, connection_id, browser_grant_id, phase, last_seen_at, call_id)
+SELECT id, connection_id, browser_grant_id, phase, last_seen_at, call_id FROM connection_executions;
+DROP TABLE connection_executions;
 `}
 
 func migrate(ctx context.Context, db *sql.DB, steps []string) error {

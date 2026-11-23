@@ -225,10 +225,10 @@ func TestConnectionCoordinationFailureRecovery(t *testing.T) {
 				}
 				r, before := seedCoordinationExecution(t, observer, true, false, true)
 				raw := coordinationRaw(t, dir)
-				trigger := "CREATE TRIGGER fail_coordinator BEFORE UPDATE ON connection_executions BEGIN SELECT RAISE(ABORT, 'injected failure'); END"
+				trigger := "CREATE TRIGGER fail_coordinator BEFORE UPDATE ON wallet_executions BEGIN SELECT RAISE(ABORT, 'injected failure'); END"
 				if stage == "commit" {
 					trigger = `CREATE TABLE coordinator_guard (id TEXT REFERENCES connection_requests(id) DEFERRABLE INITIALLY DEFERRED);
-CREATE TRIGGER fail_coordinator AFTER UPDATE ON connection_executions BEGIN INSERT INTO coordinator_guard VALUES ('missing'); END`
+CREATE TRIGGER fail_coordinator AFTER UPDATE ON wallet_executions BEGIN INSERT INTO coordinator_guard VALUES ('missing'); END`
 				}
 				if _, err := raw.Exec(trigger); err != nil {
 					t.Fatal(err)

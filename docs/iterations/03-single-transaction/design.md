@@ -9,7 +9,7 @@
 | 交给钱包 | 服务事务核对授权、执行归属、期限与 Session，将交接记录落盘。仅首次获准的页面调用一次 `eth_sendTransaction`，使用冻结的字段与固定的 `from`、`chainId` | 取消与交接只有一方先提交。许可响应丢失、页面崩溃或用户重复点击时，重试不能取得第二次发送许可 |
 | 回报与重启 | 按原请求和那次发送的标识幂等写入钱包结果及活动记录。已交接而无法确认结果的请求可接受迟到 hash | 即使 Session 已关闭仍可写回原结果。重复回报不重复记账，冲突的回报不能覆盖已保存的 hash |
 
-现有执行槽只约束连接记录；连接与交易分别建唯一索引仍可各占一个槽。改造时须回归已有连接的领取、切链及中断恢复。连接的「手动继续」适用于重新核对钱包，交易已获发送许可后只可恢复结果处理。[连接执行设计](../02-connection-session/design.md) · [现有迁移](../../../internal/store/migrations.go)
+连接的「手动继续」适用于重新核对钱包。交易已获发送许可后只可恢复结果处理，手动解除占用的条件见[重启规则](spec.md#钱包弹窗与重启)。[连接执行设计](../02-connection-session/design.md)
 
 Session 回收同时涉及显式访问、关闭、启动恢复和周期维护。接入交易时应从这些入口共同验证未完成请求保护、交接前取消和交接后的结果保留。[现有 Session 存储](../../../internal/store/session_lifecycle_test.go)
 
@@ -58,3 +58,17 @@ go test -tags no_web ./internal/store -run '^TestTransactionLifecycle' -count=1 
 ```
 
 预期五组测试通过，覆盖期限边界、关闭回滚、并发创建与关闭、未完成请求保护 Session 及 v5 数据恢复。命令使用临时 SQLite，退出时自动清理，无需启动服务。
+
+## PR 3-4a 共享执行表
+
+schema v7 将 v6 的连接执行记录迁入 `wallet_executions`，保留执行 ID、浏览器授权、阶段、心跳和钱包调用 ID。每行只引用一个连接请求或交易请求，各自的外键允许两类请求使用相同 UUID。两类记录共用一个部分唯一索引，`ready`、`calling`、`interrupted_calling` 合计最多一行。现有连接维护只更新连接执行记录。
+
+### 共享执行槽测试
+
+在 Windows 或 macOS 的仓库根目录，使用 [go.mod](../../../go.mod) 指定的 Go 运行：
+
+```sh
+go test -tags no_web ./internal/store -run '^TestWalletExecution' -count=1 -v
+```
+
+预期迁移、共享占用和请求外键三组测试通过。测试用临时 SQLite 构造五种旧连接状态，并让两个数据库连接竞争同一执行槽。命令退出即自动清理，无需启动服务或打开钱包。

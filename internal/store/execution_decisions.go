@@ -59,7 +59,7 @@ func (s *Store) decideConnectionExecution(ctx context.Context, ref app.Connectio
 		return app.ConnectionRequest{}, decision
 	}
 	if decision == nil && current.Phase != app.ExecutionFinished {
-		if _, err := tx.ExecContext(ctx, "UPDATE connection_executions SET phase = 'finished' WHERE connection_id = ?", ref.ConnectionID); err != nil {
+		if _, err := tx.ExecContext(ctx, "UPDATE wallet_executions SET phase = 'finished' WHERE connection_id = ?", ref.ConnectionID); err != nil {
 			return app.ConnectionRequest{}, err
 		}
 	}

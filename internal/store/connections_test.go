@@ -66,6 +66,17 @@ func insertSessionFixture(t *testing.T, s *Store, session app.Session) {
 	}
 }
 
+// Historical schemas use their own fixture writes, independent of current execution maintenance.
+func seedMigrationSession(t *testing.T, s *Store, index int) (app.ConnectionRequest, app.Session) {
+	t.Helper()
+	r := createPendingConnection(t, s, index)
+	session := sessionFixture(r)
+	session.ID = fmt.Sprintf("%032x", index+1000)
+	insertSessionFixture(t, s, session)
+	r.State, r.FinishedAt, r.SessionID = app.ConnectionSucceeded, &session.CreatedAt, session.ID
+	return r, session
+}
+
 func TestConnectionMigrationPreservesV1Authorization(t *testing.T) {
 	ctx := context.Background()
 	dir := filepath.Join(t.TempDir(), "data")

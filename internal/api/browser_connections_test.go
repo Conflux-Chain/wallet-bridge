@@ -421,9 +421,9 @@ func TestBrowserConnectionHTTPStorageFailure(t *testing.T) {
 				}
 				before, readErr := f.database.GetConnectionExecution(context.Background(), r.ID)
 				db := browserCoordinationSQL(t, f.dir)
-				trigger := "CREATE TRIGGER fail_browser_coordination BEFORE " + event + " ON connection_executions BEGIN SELECT RAISE(ABORT, 'private failure details'); END"
+				trigger := "CREATE TRIGGER fail_browser_coordination BEFORE " + event + " ON wallet_executions BEGIN SELECT RAISE(ABORT, 'private failure details'); END"
 				if stage == "commit" {
-					trigger = "CREATE TABLE browser_coordination_guard (id TEXT REFERENCES connection_requests(id) DEFERRABLE INITIALLY DEFERRED); CREATE TRIGGER fail_browser_coordination AFTER " + event + " ON connection_executions BEGIN INSERT INTO browser_coordination_guard VALUES ('missing'); END"
+					trigger = "CREATE TABLE browser_coordination_guard (id TEXT REFERENCES connection_requests(id) DEFERRABLE INITIALLY DEFERRED); CREATE TRIGGER fail_browser_coordination AFTER " + event + " ON wallet_executions BEGIN INSERT INTO browser_coordination_guard VALUES ('missing'); END"
 				}
 				if _, err := db.Exec(trigger); err != nil {
 					t.Fatal(err)
