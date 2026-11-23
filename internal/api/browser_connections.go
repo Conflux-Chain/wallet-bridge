@@ -54,7 +54,9 @@ func (h *handler) routeBrowserConnections(w http.ResponseWriter, r *http.Request
 }
 
 func (h *handler) authenticateBrowser(w http.ResponseWriter, r *http.Request) (app.BrowserGrant, bool) {
-	if !sameOrigin(w, r) {
+	// ServeHTTP already validates Host and any supplied Origin. Browsers may
+	// omit Origin on a same-origin GET. Mutations require it explicitly.
+	if r.Method != http.MethodGet && !sameOrigin(w, r) {
 		return app.BrowserGrant{}, false
 	}
 	token, ok := browserCookie(r)
@@ -72,10 +74,10 @@ func (h *handler) authenticateBrowser(w http.ResponseWriter, r *http.Request) (a
 
 // getBrowserConnection observes a request without accessing its Session.
 // @Summary Read a connection for browser review
-// @Description Requires a valid management cookie and exact local Origin. Bearer alone cannot authorize this endpoint. Accepts no body or query parameters. Applies the original request deadline but never renews a Session, takes execution ownership, or invokes a wallet.
+// @Description Requires a valid management cookie. Same-origin GET may omit Origin. Any supplied Origin must match the local service. Bearer alone cannot authorize this endpoint. Accepts no body or query parameters. Applies the original request deadline but never renews a Session, takes execution ownership, or invokes a wallet.
 // @Produce json
 // @Security BrowserCookie
-// @Param Origin header string true "Exact local service origin"
+// @Param Origin header string false "Must match the local service if supplied"
 // @Param id path string true "32-character lowercase hexadecimal connection ID"
 // @Success 200 {object} ConnectionResponse
 // @Failure 400,401,403,404,405,500 {object} ErrorResponse
@@ -86,10 +88,10 @@ func (h *handler) getBrowserConnection(w http.ResponseWriter, r *http.Request, _
 
 // getBrowserExecution observes ownership and progress without renewing liveness.
 // @Summary Read the current connection execution
-// @Description Requires a valid management cookie and exact local Origin. Accepts no body or query parameters. No execution returns 404 execution_not_found. Reads neither normalize stale phases nor acquire ownership or renew heartbeat/Session lifetime; subsequent mutations check liveness transactionally. No browser grant ID or secret is returned.
+// @Description Requires a valid management cookie. Same-origin GET may omit Origin. Any supplied Origin must match the local service. Accepts no body or query parameters. No execution returns 404 execution_not_found. Reads neither normalize stale phases nor acquire ownership or renew heartbeat/Session lifetime; subsequent mutations check liveness transactionally. No browser grant ID or secret is returned.
 // @Produce json
 // @Security BrowserCookie
-// @Param Origin header string true "Exact local service origin"
+// @Param Origin header string false "Must match the local service if supplied"
 // @Param id path string true "32-character lowercase hexadecimal connection ID"
 // @Success 200 {object} ConnectionExecutionResponse
 // @Failure 400,401,403,404,405,500 {object} ErrorResponse

@@ -133,13 +133,20 @@ func TestBrowserConnectionHTTPPermissions(t *testing.T) {
 			method, body = "POST", jsonBody(t, ConnectionExecutionRequest{ID: id})
 		}
 		path := browserConnectionPath(r.ID) + suffix
+		cookieOnly := map[string]string{"Cookie": cookie.Name + "=" + cookie.Value}
+		if method == "GET" {
+			f.request(t, method, path, body, nil, 401)
+			f.request(t, method, path, body, cookieOnly, 200)
+		} else {
+			f.request(t, method, path, body, nil, 403)
+			f.request(t, method, path, body, cookieOnly, 403)
+		}
 		for _, tc := range []struct {
 			headers map[string]string
 			status  int
 		}{
-			{nil, 403}, {map[string]string{"Origin": Origin}, 401},
+			{map[string]string{"Origin": Origin}, 401},
 			{map[string]string{"Origin": Origin, "Authorization": "Bearer " + serviceFixture}, 401},
-			{map[string]string{"Cookie": cookie.Name + "=" + cookie.Value}, 403},
 			{map[string]string{"Origin": "null", "Cookie": cookie.Name + "=" + cookie.Value}, 403},
 			{map[string]string{"Origin": Origin, "Cookie": cookie.Name + "=" + cookie.Value, "Host": "localhost:18765"}, 403},
 			{browserHeaders(expired), 401}, {browserHeaders(revoked), 401},

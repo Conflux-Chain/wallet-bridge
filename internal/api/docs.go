@@ -13,5 +13,5 @@
 // @securityDefinitions.apikey BrowserCookie
 // @in header
 // @name Cookie
-// @description Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=<secret>. Browser connection coordination also requires the exact local Origin. Browser clients receive the cookie through Set-Cookie, never through JSON.
+// @description Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=<secret>. Browser connection mutations require the exact local Origin. Reads may omit it. Browser clients receive the cookie through Set-Cookie, never through JSON.
 package api

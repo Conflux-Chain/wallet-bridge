@@ -39,7 +39,7 @@ go test -tags no_web ./internal/api -run '^TestBrowserConnectionHTTP' -count=1 -
 
 预期 9 组测试（含子用例）通过、退出码为 0，验证：
 
-- 六个入口都要求管理 cookie 与精确 Origin，Bearer 不能替代；拒绝过期／撤销 cookie、重复 cookie／Origin、伪造归属字段、错误方法和超限 body。
+- 六个入口都要求管理 cookie。GET 可以省略 Origin，POST 要求精确 Origin；拒绝过期／撤销 cookie、重复 cookie／Origin、伪造归属字段、错误方法和超限 body。
 - 读取不领取、不续心跳或 Session；领取／恢复重放保留心跳，不返回浏览器授权 ID、cookie 或摘要。
 - 其他页面可读进度，写入须匹配当前主体和执行；中断后显式恢复，旧 ID 不能再操作，新请求不绕过全局执行槽。
 - 心跳失联不能续期复活；连接到期保留原期限。取消／到期／重启不证明钱包调用已结束，未知调用仍占用等待；终态恢复只解除等待，不创建新执行或 Session。
@@ -47,6 +47,18 @@ go test -tags no_web ./internal/api -run '^TestBrowserConnectionHTTP' -count=1 -
 - 随机端口真实 HTTP 验证两个浏览器竞争同一请求或不同请求，只有一个领取成功。
 
 测试使用自动清理的私有临时 SQLite 与随机端口；命令结束即停止并清理。历史授权／期限由测试数据准备，调用阶段由内部方法模拟；重启场景重开数据库并调用真实恢复核心，未调用钱包或渲染连接页面。
+
+### 在 Chrome 中验证读取
+
+安装 Chrome 和 [README](../README.md#环境准备) 中的工具，在仓库根目录执行以下命令。测试需要本机 18765 端口空闲。
+
+```sh
+npm ci --prefix web
+npm --prefix web run bundle
+npm --prefix web run test:e2e:chrome -- connection-reads.spec.ts
+```
+
+预期为 `1 passed`。测试创建临时服务和独立浏览器上下文，用页面原生 fetch 读取连接与执行，核对授权前的 401、授权后的结果和钱包执行领取。测试结束自动停止临时服务并清理数据。
 
 ## 接口与交付边界
 

@@ -328,15 +328,15 @@ paths:
       summary: Exchange a one-time ticket for browser authorization
   /browser/connections/{id}:
     get:
-      description: Requires a valid management cookie and exact local Origin. Bearer
-        alone cannot authorize this endpoint. Accepts no body or query parameters.
-        Applies the original request deadline but never renews a Session, takes execution
-        ownership, or invokes a wallet.
+      description: Requires a valid management cookie. Same-origin GET may omit Origin.
+        Any supplied Origin must match the local service. Bearer alone cannot authorize
+        this endpoint. Accepts no body or query parameters. Applies the original request
+        deadline but never renews a Session, takes execution ownership, or invokes
+        a wallet.
       parameters:
-      - description: Exact local service origin
+      - description: Must match the local service if supplied
         in: header
         name: Origin
-        required: true
         type: string
       - description: 32-character lowercase hexadecimal connection ID
         in: path
@@ -379,16 +379,16 @@ paths:
       summary: Read a connection for browser review
   /browser/connections/{id}/execution:
     get:
-      description: Requires a valid management cookie and exact local Origin. Accepts
-        no body or query parameters. No execution returns 404 execution_not_found.
-        Reads neither normalize stale phases nor acquire ownership or renew heartbeat/Session
-        lifetime; subsequent mutations check liveness transactionally. No browser
-        grant ID or secret is returned.
+      description: Requires a valid management cookie. Same-origin GET may omit Origin.
+        Any supplied Origin must match the local service. Accepts no body or query
+        parameters. No execution returns 404 execution_not_found. Reads neither normalize
+        stale phases nor acquire ownership or renew heartbeat/Session lifetime; subsequent
+        mutations check liveness transactionally. No browser grant ID or secret is
+        returned.
       parameters:
-      - description: Exact local service origin
+      - description: Must match the local service if supplied
         in: header
         name: Origin
-        required: true
         type: string
       - description: 32-character lowercase hexadecimal connection ID
         in: path
@@ -1307,8 +1307,8 @@ schemes:
 securityDefinitions:
   BrowserCookie:
     description: Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=<secret>.
-      Browser connection coordination also requires the exact local Origin. Browser
-      clients receive the cookie through Set-Cookie, never through JSON.
+      Browser connection mutations require the exact local Origin. Reads may omit
+      it. Browser clients receive the cookie through Set-Cookie, never through JSON.
     in: header
     name: Cookie
     type: apiKey

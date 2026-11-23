@@ -199,7 +199,7 @@ EIP-6963 的 UUID 只区分当前页面中的 Provider 会话；`rdns` 用于跨
 | `POST /execution/interrupt` | `InterruptExecution` | `{id}`；中断原执行，不取消连接或撤回钱包调用 |
 | `POST /execution/recover` | `RecoverExecution` | `{id, previousId}`；显式恢复需新 ID，并核对旧 ID |
 
-- 六个入口均要求有效管理 cookie 和精确 Origin，Bearer 不能替代 cookie；同时携带 Bearer 时仍按 cookie 认证。授权主体由 HTTP 层认证后单独传入核心，不接受 body 提供的授权 ID。写事务再次检查授权，防止认证后撤销仍写入。
+- 六个入口均要求固定 Host 和有效管理 cookie。浏览器同源 GET 可以省略 Origin。提供的 Origin 必须唯一且精确匹配，四个 POST 必须提供 Origin。Bearer 不能替代 cookie；同时携带 Bearer 时仍按 cookie 认证。授权主体由 HTTP 层认证后单独传入核心，不接受 body 提供的授权 ID。写事务再次检查授权，防止认证后撤销仍写入。
 - 复用 client HTTP 的 ID 格式、时间格式、读入参拒绝与 1 KiB 控制 body 限制；只接受所列字段。执行响应仅含 `connectionId`、`id`、`phase`、`lastSeenAt` 和可选 `callId`，不返回浏览器授权 ID、cookie 或摘要。
 - 读取不领取、不续心跳或 Session；执行快照不主动归一化阶段，受心跳／期限影响的写入仍由核心当场检查。页面不能凭一次旧快照直接调用钱包；后续交接接口会逐次核验。
 - 相同领取／恢复重试保留原心跳；其他页面可观察进度，但不能借 body 中的授权 ID 修改归属。恢复由页面显式动作发起；请求已终止时只释放等待并返回原执行的 `finished`，不保证安装 body 中的新 ID，更不建立 Session。
