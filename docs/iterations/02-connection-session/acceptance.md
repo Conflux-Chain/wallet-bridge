@@ -16,6 +16,6 @@
 ## 环境与范围
 
 - Windows amd64 10.0.26300、Chrome 157.0.8103.79、Go 1.27.4、Node 24.19.0。独立程序构建通过。默认与 `no_web` 的完整 Go 测试和 vet 通过，本机因权限跳过平台及 SQLite 的符号链接用例。[复现命令](../../connection-http.md)
-- 独立程序与临时服务的 Chrome 测试通过 18 项，钱包发现通过 9 项，钱包行为由模拟 Provider 提供。三平台原生 CI 使用 Chromium，结果见本 PR 的 checks。[页面回归](../../first-connection.md#模拟钱包回归) · [发现回归](../../wallet-discovery.md)
+- 独立程序与临时服务的 Chrome 测试通过 18 项，钱包发现通过 9 项，钱包行为由模拟 Provider 提供。三平台原生 CI 使用 Chromium。[PR 检查结果](https://github.com/Conflux-Chain/wallet-bridge/pull/35/checks) · [页面回归](../../first-connection.md#模拟钱包回归) · [发现回归](../../wallet-discovery.md)
 - 用户已在 PR #30 验证 MetaMask 和 Fluent EVM 各一次真实连接。当时由 HTTP 发起，本轮正式 CLI 的端到端证据来自模拟钱包。钱包版本、真实钱包异常分支及逐平台人工结果待补。[人工记录](plan.md#pr-2-6a)
 - A-07 的发送前校验、A-11 的关闭后待发交易、A-12 的待交易期间回收、A-16 的不确定交易结果及 A-17 的交易排队，随迭代 3／4 验收。最低系统及干净系统覆盖沿用[迭代 1 的待验项](../01-local-service/acceptance.md#尚待验收)。
