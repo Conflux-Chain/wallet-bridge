@@ -1,6 +1,6 @@
 # 连接与 Session HTTP 测试
 
-已实现 client 侧连接／Session HTTP，以及浏览器请求／执行读取、领取／心跳／中断／恢复。当前 API 1.4 公告 `connections.lifecycle` 和 `browser.connections.coordination`。钱包交接／最终决定 HTTP、共用 Go client、CLI 连接命令及连接页面尚未接入，没有真实钱包操作或可用的连接页面链接。
+API 1.5 支持 client 侧连接／Session，以及浏览器执行协调、钱包交接与连接决定。浏览器仍需页面调用 Provider，真实钱包连接安排在首次连接页面交付时验收。
 
 ## 本地验证
 
@@ -48,6 +48,10 @@ go test -tags no_web ./internal/api -run '^TestBrowserConnectionHTTP' -count=1 -
 
 测试使用自动清理的私有临时 SQLite 与随机端口；命令结束即停止并清理。历史授权／期限由测试数据准备，调用阶段由内部方法模拟；重启场景重开数据库并调用真实恢复核心，未调用钱包或渲染连接页面。
 
+### 浏览器钱包交接与决定
+
+在仓库根目录运行 `go test -tags no_web ./internal/api -run '^TestBrowserDecisionHTTP' -count=1 -v`。两组测试使用临时 SQLite 并自动清理，检查调用许可重放、前驱调用 ID、最终同意／拒绝、错误网络及恢复后旧执行失效。
+
 ### 在 Chrome 中验证读取
 
 安装 Chrome 和 [README](../README.md#环境准备) 中的工具，在仓库根目录执行以下命令。测试需要本机 18765 端口空闲。
@@ -58,7 +62,7 @@ npm --prefix web run bundle
 npm --prefix web run test:e2e:chrome -- connection-reads.spec.ts
 ```
 
-预期为 `1 passed`。测试创建临时服务和独立浏览器上下文，用页面原生 fetch 读取连接与执行，核对授权前的 401、授权后的结果和钱包执行领取。测试结束自动停止临时服务并清理数据。
+预期为 `1 passed`。测试创建临时服务和独立浏览器上下文，用页面原生 fetch 读取连接与执行，核对授权前的 401、授权后的结果、钱包交接和同意，最后从 client 接口核对测试账户与网络。测试结束自动停止临时服务并清理数据。
 
 ## 接口与交付边界
 

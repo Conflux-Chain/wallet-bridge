@@ -24,6 +24,14 @@ func (h *handler) routeBrowserConnections(w http.ResponseWriter, r *http.Request
 	case len(parts) == 3 && parts[1] == "execution":
 		verb = http.MethodPost
 		switch parts[2] {
+		case "begin":
+			action = h.beginBrowserCall
+		case "return":
+			action = h.returnBrowserCall
+		case "complete":
+			action = h.completeBrowserConnection
+		case "reject":
+			action = h.rejectBrowserConnection
 		case "claim":
 			action = h.claimBrowserExecution
 		case "heartbeat":

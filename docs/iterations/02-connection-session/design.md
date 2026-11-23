@@ -1,6 +1,6 @@
 # 迭代 2 技术设计草案
 
-状态：2026-11-23，PR 2-1～2-4a 已合并；浏览器执行协调 HTTP 已实现，钱包交接／最终决定待后续 PR。本文沿用[既定架构](../../architecture.md)，不增加模块层级；待定产品行为见 [spec](spec.md)。
+状态：2026-11-23，PR 2-1～2-4b1 已合并，当前接入钱包调用与最终决定 HTTP。本文沿用[既定架构](../../architecture.md)，不增加模块层级；待定产品行为见 [spec](spec.md)。
 
 ## 模块边界
 
@@ -205,6 +205,19 @@ EIP-6963 的 UUID 只区分当前页面中的 Provider 会话；`rdns` 用于跨
 - 相同领取／恢复重试保留原心跳；其他页面可观察进度，但不能借 body 中的授权 ID 修改归属。恢复由页面显式动作发起；请求已终止时只释放等待并返回原执行的 `finished`，不保证安装 body 中的新 ID，更不建立 Session。
 - 缺失／到期／撤销 cookie 为 401，Origin 不符为 403；无执行 404，执行归属／阶段或单槽占用 409。其余沿用 client HTTP 错误映射；409 后重新查询原连接和执行，不自动换 ID 重领。
 - API minor 升为 1.4，新增 `browser.connections.coordination` capability；schema v4、client 侧权限和服务生命周期不变。Swagger 随 handler 注释生成；使用真实临时 SQLite、随机端口 HTTP 验证认证、重放、竞争、中断恢复、期限、撤销和存储失败。
+
+### PR 2-4b2：钱包调用与连接决定 HTTP
+
+在 `/api/v1/browser/connections/{id}/execution` 下增加四个 POST。路径 ID 指向连接，JSON 中的 `id` 指向当前执行。沿用管理 cookie、精确 Origin 与核心事务中的归属校验。
+
+| 后缀 | 输入 | 成功响应 |
+|---|---|---|
+| `/begin` | `id, callId, previousCallId?` | `{execution, invoke}`。只有新交接提交成功且本次响应明确给出 `invoke: true` 才可调用钱包 |
+| `/return` | `id, callId` | 调用已结束后的执行快照。可重试，无论钱包授权／切链成功或失败都需回报 |
+| `/complete` | `id, wallet, account, chainId` | 最终核对并同意后的连接记录，含唯一 Session ID |
+| `/reject` | `id` | 用户拒绝后的连接记录 |
+
+所有 ID 沿用 32 位小写十六进制。新调用携带上一调用 ID，首次调用省略；响应丢失后使用原参数重试。最终决定只调用 `CompleteExecution`／`RejectExecution`。错误只返回稳定错误码；冲突时重新查询快照。验证交接重放、旧执行迟到、权限及终态重试，并通过 Chrome 原生 fetch 检查完整 HTTP 流程。后者使用测试绑定，真实钱包由连接页面验收。
 
 ## 规范依据
 

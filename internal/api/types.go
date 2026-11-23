@@ -16,7 +16,7 @@ type InfoResponse struct {
 	Name         string     `json:"name" example:"wallet-bridge"`
 	Version      string     `json:"version" example:"dev"`
 	APIVersion   APIVersion `json:"apiVersion"`
-	Capabilities []string   `json:"capabilities" example:"service.status,service.stop,browser.authorization,service.auth.shared,connections.lifecycle,browser.connections.coordination"`
+	Capabilities []string   `json:"capabilities" example:"service.status,service.stop,browser.authorization,service.auth.shared,connections.lifecycle,browser.connections.coordination,browser.connections.decisions"`
 	Ready        bool       `json:"ready" example:"true"`
 	Challenge    string     `json:"challenge,omitempty"`
 	Proof        string     `json:"proof,omitempty"`

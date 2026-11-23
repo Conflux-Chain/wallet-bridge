@@ -11,7 +11,7 @@ async function readFromPage(page: Page, path: string) {
   }, path);
 }
 
-test('native fetch reads a connection and execution only while authorized', async ({ page }) => {
+test('native fetch reviews a connection and commits a test binding', async ({ page }) => {
   const id = randomBytes(16).toString('hex');
   const execution = randomBytes(16).toString('hex');
   const key = await readFile(join(process.env.WALLET_BRIDGE_TEST_DATA!, 'client.key'), 'utf8');
@@ -38,4 +38,28 @@ test('native fetch reads a connection and execution only while authorized', asyn
   }, { path, execution });
   expect(claim).toBe(200);
   expect(await readFromPage(page, path + '/execution')).toMatchObject({ status: 200, body: { id: execution, phase: 'ready' } });
+
+  // Exercise the browser transport with a synthetic binding. No provider is installed.
+  const account = '0x' + 'a'.repeat(40);
+  const result = await page.evaluate(async ({ path, execution, account }) => {
+    async function post(action: string, body: object) {
+      const response = await fetch(path + '/execution/' + action, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: execution, ...body }),
+      });
+      if (!response.ok) throw new Error(action + ' returned ' + response.status);
+      return response.json();
+    }
+    const callId = crypto.randomUUID().replaceAll('-', '');
+    const permit = await post('begin', { callId });
+    const retry = await post('begin', { callId });
+    const returned = await post('return', { callId });
+    const approved = await post('complete', { wallet: { kind: 'legacy', name: 'Test wallet' }, account, chainId: '0x47' });
+    return { invoke: permit.invoke, retry: retry.invoke, phase: returned.phase, approved };
+  }, { path, execution, account });
+  expect(result).toMatchObject({ invoke: true, retry: false, phase: 'ready', approved: { id, state: 'succeeded' } });
+  const session = await fetch(origin + '/api/v1/sessions/' + result.approved.sessionId, {
+    redirect: 'error', headers: { Authorization: 'Bearer ' + key.trim() },
+  });
+  expect(session.status).toBe(200);
+  expect(await session.json()).toMatchObject({ account, chainId: '0x47', wallet: { name: 'Test wallet' } });
 });
