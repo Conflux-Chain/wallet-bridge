@@ -1,6 +1,6 @@
 # 迭代 2 技术设计草案
 
-状态：2026-11-20，PR 2-1～2-3b3 已合并；client HTTP 接入已实现，浏览器 HTTP 待后续 PR。本文沿用[既定架构](../../architecture.md)，不增加模块层级；待定产品行为见 [spec](spec.md)。
+状态：2026-11-23，PR 2-1～2-4a 已合并；浏览器执行协调 HTTP 已实现，钱包交接／最终决定待后续 PR。本文沿用[既定架构](../../architecture.md)，不增加模块层级；待定产品行为见 [spec](spec.md)。
 
 ## 模块边界
 
@@ -185,6 +185,26 @@ EIP-6963 的 UUID 只区分当前页面中的 Provider 会话；`rdns` 用于跨
 - 参数错误 400、无认证 401、Host／Origin 403、资源不存在 404、方法错误 405、状态／内容冲突 409、body 超限 413、媒体类型 415、存储失败 500。错误只含稳定 code／message，不回传存储细节；冲突后查询原 ID 对账。
 - API minor 升为 1.3，新增 `connections.lifecycle` capability；不改变已有接口或 schema v4。共用 client 的新能力检查在 PR 2-4c 接入，现有服务管理仍兼容。
 - 在 handler 注释维护契约并生成 `docs/swagger`；真实临时 SQLite／随机端口验证鉴权、创建重试、终态、到期、历史、续期及存储失败时不误报成功或泄露细节。正式服务不升级或重启。
+
+### PR 2-4b1：浏览器执行协调 HTTP
+
+将已有核心映射到 `/api/v1/browser/connections/{id}`，本单元不接入钱包交接、最终决定或页面操作。
+
+| 方法与路径后缀 | 核心方法 | 输入／响应 |
+|---|---|---|
+| `GET` 原路径 | `Get` | 连接快照；不访问／续期 Session |
+| `GET /execution` | `Execution` | 当前执行；尚无执行返回 404 |
+| `POST /execution/claim` | `ClaimExecution` | `{id}` 为新执行 ID；200 返回原子领取结果 |
+| `POST /execution/heartbeat` | `TouchExecution` | `{id}`；只续仍有效执行的心跳 |
+| `POST /execution/interrupt` | `InterruptExecution` | `{id}`；中断原执行，不取消连接或撤回钱包调用 |
+| `POST /execution/recover` | `RecoverExecution` | `{id, previousId}`；显式恢复需新 ID，并核对旧 ID |
+
+- 六个入口均要求有效管理 cookie 和精确 Origin，Bearer 不能替代 cookie；同时携带 Bearer 时仍按 cookie 认证。授权主体由 HTTP 层认证后单独传入核心，不接受 body 提供的授权 ID。写事务再次检查授权，防止认证后撤销仍写入。
+- 复用 client HTTP 的 ID 格式、时间格式、读入参拒绝与 1 KiB 控制 body 限制；只接受所列字段。执行响应仅含 `connectionId`、`id`、`phase`、`lastSeenAt` 和可选 `callId`，不返回浏览器授权 ID、cookie 或摘要。
+- 读取不领取、不续心跳或 Session；执行快照不主动归一化阶段，受心跳／期限影响的写入仍由核心当场检查。页面不能凭一次旧快照直接调用钱包；后续交接接口会逐次核验。
+- 相同领取／恢复重试保留原心跳；其他页面可观察进度，但不能借 body 中的授权 ID 修改归属。恢复由页面显式动作发起；请求已终止时只释放等待并返回原执行的 `finished`，不保证安装 body 中的新 ID，更不建立 Session。
+- 缺失／到期／撤销 cookie 为 401，Origin 不符为 403；无执行 404，执行归属／阶段或单槽占用 409。其余沿用 client HTTP 错误映射；409 后重新查询原连接和执行，不自动换 ID 重领。
+- API minor 升为 1.4，新增 `browser.connections.coordination` capability；schema v4、client 侧权限和服务生命周期不变。Swagger 随 handler 注释生成；使用真实临时 SQLite、随机端口 HTTP 验证认证、重放、竞争、中断恢复、期限、撤销和存储失败。
 
 ## 规范依据
 

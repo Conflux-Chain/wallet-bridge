@@ -43,8 +43,8 @@ func New(config Config) (http.Handler, error) {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 3},
-		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle"}, Ready: true,
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 4},
+		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination"}, Ready: true,
 	}}, nil
 }
 
@@ -100,6 +100,9 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.logoutBrowser(w, r)
 		}
 	default:
+		if h.routeBrowserConnections(w, r) {
+			return
+		}
 		if h.routeConnections(w, r) {
 			return
 		}

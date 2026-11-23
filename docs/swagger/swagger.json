@@ -4,10 +4,10 @@
     ],
     "swagger": "2.0",
     "info": {
-        "description": "Local service access, browser authorization and client connection/Session lifecycle. Browser wallet execution endpoints are delivered separately.",
+        "description": "Local service access, browser authorization, client connection/Session lifecycle and browser execution coordination. Wallet handoff and consent endpoints are delivered separately.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.3"
+        "version": "1.4"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -67,6 +67,570 @@
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/browser/connections/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Requires a valid management cookie and exact local Origin. Bearer alone cannot authorize this endpoint. Accepts no body or query parameters. Applies the original request deadline but never renews a Session, takes execution ownership, or invokes a wallet.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Read a connection for browser review",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exact local service origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/browser/connections/{id}/execution": {
+            "get": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Requires a valid management cookie and exact local Origin. Accepts no body or query parameters. No execution returns 404 execution_not_found. Reads neither normalize stale phases nor acquire ownership or renew heartbeat/Session lifetime; subsequent mutations check liveness transactionally. No browser grant ID or secret is returned.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Read the current connection execution",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exact local service origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionExecutionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/browser/connections/{id}/execution/claim": {
+            "post": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Requires management cookie and exact local Origin; the cookie supplies the browser subject, never the JSON body. Body contains only a fresh execution id, limited to 1024 bytes; query parameters are rejected. Retry with the same id; a matching retry does not renew heartbeat. Another owner/phase or occupied global wallet slot returns 409. Query the original request/execution instead of automatically generating a replacement id. Claiming never invokes a wallet or creates a Session.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Claim the connection execution",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exact local service origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Page execution ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionExecutionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionExecutionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/browser/connections/{id}/execution/heartbeat": {
+            "post": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Requires management cookie and exact local Origin. Body contains only the current execution id, limited to 1024 bytes; no query parameters. Does not extend the connection deadline or Session lifetime. Stale, interrupted, replaced or terminal executions cannot be revived by a heartbeat; query after a 409.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Send an execution heartbeat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exact local service origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Current page execution ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionExecutionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionExecutionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/browser/connections/{id}/execution/interrupt": {
+            "post": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Requires management cookie and exact local Origin. Body contains only the current execution id, limited to 1024 bytes; no query parameters. Repeating interruption is idempotent. An unfinished wallet handoff remains interrupted_calling and occupies the slot; interruption cannot dismiss its popup or cancel the connection.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Interrupt the current page execution",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exact local service origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Current page execution ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionExecutionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionExecutionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/browser/connections/{id}/execution/recover": {
+            "post": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Requires management cookie and exact local Origin. After the user ends the previous page/wallet operation, submit a fresh execution id and the expected previousId; retry with both unchanged. Body is limited to 1024 bytes; no query parameters. An active request gets a new execution and must recheck wallet/account/network. A terminal request only clears outstanding waiting and returns the original execution as finished; the new id is not installed and no Session is created. Old results cannot complete the new execution. Recovery does not invoke a wallet.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Explicitly continue an interrupted execution",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exact local service origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fresh ID and expected previous execution ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionExecutionRecoverRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionExecutionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -962,7 +1526,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 3
+                    "example": 4
                 }
             }
         },
@@ -1076,6 +1640,60 @@
                 }
             }
         },
+        "api.ConnectionExecutionRecoverRequest": {
+            "type": "object",
+            "required": [
+                "id",
+                "previousId"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "previousId": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ConnectionExecutionRequest": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ConnectionExecutionResponse": {
+            "type": "object",
+            "properties": {
+                "callId": {
+                    "type": "string"
+                },
+                "connectionId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lastSeenAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "phase": {
+                    "type": "string",
+                    "enum": [
+                        "ready",
+                        "calling",
+                        "interrupted_ready",
+                        "interrupted_calling",
+                        "finished"
+                    ]
+                }
+            }
+        },
         "api.ConnectionResponse": {
             "type": "object",
             "properties": {
@@ -1151,7 +1769,8 @@
                         "service.stop",
                         "browser.authorization",
                         "service.auth.shared",
-                        "connections.lifecycle"
+                        "connections.lifecycle",
+                        "browser.connections.coordination"
                     ]
                 },
                 "challenge": {
@@ -1263,7 +1882,7 @@
     },
     "securityDefinitions": {
         "BrowserCookie": {
-            "description": "Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=\u003csecret\u003e; only browser status and logout accept it. Browser clients receive it through Set-Cookie, never through JSON.",
+            "description": "Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=\u003csecret\u003e. Browser connection coordination also requires the exact local Origin. Browser clients receive the cookie through Set-Cookie, never through JSON.",
             "type": "apiKey",
             "name": "Cookie",
             "in": "header"

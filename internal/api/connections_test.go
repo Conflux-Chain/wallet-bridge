@@ -127,7 +127,7 @@ func TestConnectionHTTPCreationRetries(t *testing.T) {
 		t.Fatal("retry revived a canceled request", retry)
 	}
 	info := responseJSON[InfoResponse](t, f.request(t, "GET", "/api/v1/info", "", nil, 200))
-	if info.APIVersion.Minor != 3 || !strings.Contains(jsonBody(t, info.Capabilities), "connections.lifecycle") {
+	if info.APIVersion.Minor < 3 || !strings.Contains(jsonBody(t, info.Capabilities), "connections.lifecycle") {
 		t.Fatal("missing lifecycle capability", info)
 	}
 }

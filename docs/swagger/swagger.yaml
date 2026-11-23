@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 3
+        example: 4
         type: integer
     type: object
   api.BrowserAuthorizeRequest:
@@ -84,6 +84,43 @@ definitions:
     - clientName
     - id
     type: object
+  api.ConnectionExecutionRecoverRequest:
+    properties:
+      id:
+        type: string
+      previousId:
+        type: string
+    required:
+    - id
+    - previousId
+    type: object
+  api.ConnectionExecutionRequest:
+    properties:
+      id:
+        type: string
+    required:
+    - id
+    type: object
+  api.ConnectionExecutionResponse:
+    properties:
+      callId:
+        type: string
+      connectionId:
+        type: string
+      id:
+        type: string
+      lastSeenAt:
+        format: date-time
+        type: string
+      phase:
+        enum:
+        - ready
+        - calling
+        - interrupted_ready
+        - interrupted_calling
+        - finished
+        type: string
+    type: object
   api.ConnectionResponse:
     properties:
       chainId:
@@ -137,6 +174,7 @@ definitions:
         - browser.authorization
         - service.auth.shared
         - connections.lifecycle
+        - browser.connections.coordination
         items:
           type: string
         type: array
@@ -216,10 +254,11 @@ definitions:
 host: 127.0.0.1:18765
 info:
   contact: {}
-  description: Local service access, browser authorization and client connection/Session
-    lifecycle. Browser wallet execution endpoints are delivered separately.
+  description: Local service access, browser authorization, client connection/Session
+    lifecycle and browser execution coordination. Wallet handoff and consent endpoints
+    are delivered separately.
   title: Wallet Bridge Local API
-  version: "1.3"
+  version: "1.4"
 paths:
   /browser/authorize:
     post:
@@ -287,6 +326,402 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Exchange a one-time ticket for browser authorization
+  /browser/connections/{id}:
+    get:
+      description: Requires a valid management cookie and exact local Origin. Bearer
+        alone cannot authorize this endpoint. Accepts no body or query parameters.
+        Applies the original request deadline but never renews a Session, takes execution
+        ownership, or invokes a wallet.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: 32-character lowercase hexadecimal connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Read a connection for browser review
+  /browser/connections/{id}/execution:
+    get:
+      description: Requires a valid management cookie and exact local Origin. Accepts
+        no body or query parameters. No execution returns 404 execution_not_found.
+        Reads neither normalize stale phases nor acquire ownership or renew heartbeat/Session
+        lifetime; subsequent mutations check liveness transactionally. No browser
+        grant ID or secret is returned.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: 32-character lowercase hexadecimal connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionExecutionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Read the current connection execution
+  /browser/connections/{id}/execution/claim:
+    post:
+      consumes:
+      - application/json
+      description: Requires management cookie and exact local Origin; the cookie supplies
+        the browser subject, never the JSON body. Body contains only a fresh execution
+        id, limited to 1024 bytes; query parameters are rejected. Retry with the same
+        id; a matching retry does not renew heartbeat. Another owner/phase or occupied
+        global wallet slot returns 409. Query the original request/execution instead
+        of automatically generating a replacement id. Claiming never invokes a wallet
+        or creates a Session.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: 32-character lowercase hexadecimal connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page execution ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ConnectionExecutionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionExecutionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Claim the connection execution
+  /browser/connections/{id}/execution/heartbeat:
+    post:
+      consumes:
+      - application/json
+      description: Requires management cookie and exact local Origin. Body contains
+        only the current execution id, limited to 1024 bytes; no query parameters.
+        Does not extend the connection deadline or Session lifetime. Stale, interrupted,
+        replaced or terminal executions cannot be revived by a heartbeat; query after
+        a 409.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: 32-character lowercase hexadecimal connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Current page execution ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ConnectionExecutionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionExecutionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Send an execution heartbeat
+  /browser/connections/{id}/execution/interrupt:
+    post:
+      consumes:
+      - application/json
+      description: Requires management cookie and exact local Origin. Body contains
+        only the current execution id, limited to 1024 bytes; no query parameters.
+        Repeating interruption is idempotent. An unfinished wallet handoff remains
+        interrupted_calling and occupies the slot; interruption cannot dismiss its
+        popup or cancel the connection.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: 32-character lowercase hexadecimal connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Current page execution ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ConnectionExecutionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionExecutionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Interrupt the current page execution
+  /browser/connections/{id}/execution/recover:
+    post:
+      consumes:
+      - application/json
+      description: Requires management cookie and exact local Origin. After the user
+        ends the previous page/wallet operation, submit a fresh execution id and the
+        expected previousId; retry with both unchanged. Body is limited to 1024 bytes;
+        no query parameters. An active request gets a new execution and must recheck
+        wallet/account/network. A terminal request only clears outstanding waiting
+        and returns the original execution as finished; the new id is not installed
+        and no Session is created. Old results cannot complete the new execution.
+        Recovery does not invoke a wallet.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: 32-character lowercase hexadecimal connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fresh ID and expected previous execution ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ConnectionExecutionRecoverRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionExecutionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Explicitly continue an interrupted execution
   /browser/logout:
     post:
       consumes:
@@ -871,9 +1306,9 @@ schemes:
 - http
 securityDefinitions:
   BrowserCookie:
-    description: Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=<secret>;
-      only browser status and logout accept it. Browser clients receive it through
-      Set-Cookie, never through JSON.
+    description: Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=<secret>.
+      Browser connection coordination also requires the exact local Origin. Browser
+      clients receive the cookie through Set-Cookie, never through JSON.
     in: header
     name: Cookie
     type: apiKey

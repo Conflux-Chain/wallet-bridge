@@ -193,12 +193,20 @@ func httpChainID(value string) (string, bool) {
 
 func connectionFailure(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, app.ErrInvalidConnectionRequest), errors.Is(err, app.ErrInvalidSession):
+	case errors.Is(err, app.ErrInvalidConnectionRequest), errors.Is(err, app.ErrInvalidSession), errors.Is(err, app.ErrInvalidConnectionExecution):
 		failure(w, http.StatusBadRequest, "bad_request", "Invalid connection input or Session ID")
+	case errors.Is(err, app.ErrInvalidBrowserCredential):
+		authorizationFailure(w, err)
 	case errors.Is(err, app.ErrConnectionRequestNotFound):
 		failure(w, http.StatusNotFound, "connection_not_found", "The connection request does not exist")
 	case errors.Is(err, app.ErrSessionNotFound):
 		failure(w, http.StatusNotFound, "session_not_found", "The Session does not exist")
+	case errors.Is(err, app.ErrConnectionExecutionNotFound):
+		failure(w, http.StatusNotFound, "execution_not_found", "No execution is recorded for this connection")
+	case errors.Is(err, app.ErrConnectionExecutionConflict):
+		failure(w, http.StatusConflict, "execution_conflict", "The execution owner or phase changed; query the original connection and execution")
+	case errors.Is(err, app.ErrConnectionExecutionBusy):
+		failure(w, http.StatusConflict, "wallet_busy", "Another connection occupies the wallet operation slot; wait or inspect its progress")
 	case errors.Is(err, app.ErrConnectionConflict), errors.Is(err, app.ErrConnectionRequestExists):
 		failure(w, http.StatusConflict, "connection_conflict", "The request conflicts with the original input or outcome; query its ID")
 	default:

@@ -1,6 +1,6 @@
 # 迭代 2 PR 计划
 
-状态：2026-11-20 PR 2-0～2-3b3 已合并；client HTTP 接入待评审。沿用 [spec](spec.md)、[design](design.md)。
+状态：2026-11-23 PR 2-0～2-4a 已合并；浏览器执行协调 HTTP 已实现，准备评审。沿用 [spec](spec.md)、[design](design.md)。
 
 ## 分步交付
 
@@ -18,8 +18,9 @@
 | PR 2-3b1：执行记录与领取 | 追加 schema、单执行槽、领取／心跳／中断及恢复存储 | 升级、重复领取、并发互斥及恢复失效 | [#24](https://github.com/Conflux-Chain/wallet-bridge/pull/24) 已合并 |
 | PR 2-3b2：钱包交接与终态 | 调用交接／回报、受执行归属保护的原子完成／拒绝 | 响应丢失、迟到回报、取消／到期保留等待、终态竞争 | [#25](https://github.com/Conflux-Chain/wallet-bridge/pull/25) 已合并 |
 | PR 2-3b3：协调核心接入 | 组合存储、浏览器主体与启动／周期恢复 | 心跳、授权失效、重启不重入钱包；不增加外部接口 | [#26](https://github.com/Conflux-Chain/wallet-bridge/pull/26) 已合并 |
-| PR 2-4a：client HTTP | 创建／查询／取消连接、访问／关闭 Session；同步 Swagger | 服务凭据、ID 重试、期限、历史及错误映射 | [#27](https://github.com/Conflux-Chain/wallet-bridge/pull/27) 待评审 |
-| PR 2-4b：浏览器 HTTP | 请求读取、执行及受归属保护的同意／拒绝；同步 Swagger | cookie／Origin、主体填入、重放及中断 | 待开发 |
+| PR 2-4a：client HTTP | 创建／查询／取消连接、访问／关闭 Session；同步 Swagger | 服务凭据、ID 重试、期限、历史及错误映射 | [#27](https://github.com/Conflux-Chain/wallet-bridge/pull/27) 已合并 |
+| PR 2-4b1：浏览器执行协调 HTTP | 请求／执行读取、领取／心跳／中断／恢复；同步 Swagger | cookie／Origin、主体填入、重放及恢复后旧执行失效 | 已实现，准备评审 |
+| PR 2-4b2：浏览器交接与决定 HTTP | 钱包调用交接／回报、受归属保护的同意／拒绝；同步 Swagger | 丢包不重入、终态竞争与权限、唯一 Session | 待开发 |
 | PR 2-4c：共用 Go client | 封装连接／Session HTTP，供后续 CLI／MCP 使用 | 能力检查、ID 重试、错误及机器可读结果 | 待开发 |
 | PR 2-5：CLI | 连接、请求查询／取消、Session 查询／关闭及 ID 使用 | 实际程序、等待／取消／输出边界、敏感信息保护 | 待开发 |
 | PR 2-6：连接页面 | 集成钱包授权、切链、单账户选择、本次同意与结果 | 模拟 Provider 的真实页面流程、状态变化、多页竞争 | 待开发 |
@@ -29,7 +30,7 @@ PR 2-1 后依次接入存储、核心、HTTP、CLI 与页面；必要测试和�
 
 ## 当前步骤与检查点
 
-- PR #26 已按用户“继续”合并为 `db18e9a`；核对分支内容与 main 一致后清理本地／远端分支。本单元基于该 main，分支为 `feat/connection-client-http`。
+- PR #27 已按用户“继续”合并为 `bf8c10a`；核对分支内容与 main 一致后清理本地／远端分支。本单元基于该 main，分支为 `feat/browser-connection-coordination-http`。
 - 用户确认手动继续及等待原钱包调用（D-036／037）；协调核心与维护已合并，HTTP 按 client、浏览器、共用 Go client 分步接入，随后实现 CLI／页面。
 - 用户确认按请求 ID 幂等重试（D-035），不新增资源凭据或恢复文件。
 - 用户已确认首次连接在最终账户／网络就绪后同意，取消／到期后即使钱包返回成功也不再建 Session；记录为 D-030／031。
@@ -138,3 +139,11 @@ PR 2-0：23 份 Markdown 的 170 个本地链接、53 个标题锚点及 Git 空
 - Windows 新增 7 组真实 SQLite／HTTP 测试通过：ID／内容重试、大 chainId、权限拒绝、参数与错误码、请求读取不续期、Session 有效访问与关闭／空闲历史、取消保留未知调用等待、重开及存储失败、随机端口并发相同／冲突提交。
 - Windows 完整／`no_web` Go 测试、两种 vet、页面／独立程序构建与空 PATH smoke 通过；Swagger 已按 handler 注释生成。26 份 Markdown 的本地链接、标题锚点及 Git 空白检查通过；三平台最终 head 的 CI 结果随 PR checks／说明记录。
 - 本地步骤见[连接与 Session HTTP 测试](../../connection-http.md)。测试仅使用临时数据和随机端口，未重启或升级正式服务；固定端口组合／模拟浏览器验证由 CI 执行，不计作真实钱包或人工验收，现有 Windows 符号链接权限缺项保留。
+- 最终 head `cd9494f` 的[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/44723981528) 全部通过。
+
+### PR 2-4b1
+
+- 已接入六个浏览器读取／执行协调 HTTP 入口，cookie 认证后绑定主体，API 1.4 公告 `browser.connections.coordination`。执行响应不含授权 ID 或凭据；复用已有核心及 schema v4，钱包交接／最终决定 HTTP 和页面随后交付。
+- Windows 新增 9 组真实临时 SQLite／HTTP 测试通过：读取不续期、归属及参数校验、重放、中断恢复、心跳／请求期限、取消／到期／重启保留未知调用等待、写入／提交失败回滚、认证后撤销拒绝，以及随机端口多浏览器竞争。
+- Windows 完整／`no_web` Go 测试、两种 vet、页面／独立程序构建与空 PATH smoke 通过；Swagger 已生成并核对六个入口的 cookie／Origin 契约。26 份 Markdown 的本地链接、标题锚点及 Git 空白检查通过；最终 head 三平台 CI 结果随 PR checks／说明记录。
+- 本地步骤见[浏览器执行协调 HTTP 验证](../../connection-http.md#浏览器执行协调-http-验证)。数据与端口均隔离，未启动、升级或迁移用户服务；固定端口组合／模拟页面验证由 CI 执行。未调用真实钱包或渲染连接页面，既有 Windows 符号链接权限缺项保留。
