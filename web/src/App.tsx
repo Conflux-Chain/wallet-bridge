@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { checkStatus, logout } from './api/browser';
 import type { View } from './api/browser';
+import { WalletOperationNotice } from './connection/WalletOperationNotice';
 import { ConnectionPage } from './connection/ConnectionPage';
 import { WalletPicker } from './wallet/WalletPicker';
 
@@ -68,7 +69,7 @@ export function App({ initial }: { initial: Promise<View> }) {
 
   const connection = new URLSearchParams(location.search).get('connection');
   if (authorized && connection !== null) {
-    return /^[0-9a-f]{32}$/.test(connection) ? <ConnectionPage key={connection} id={connection} />
+    return /^[0-9a-f]{32}$/.test(connection) ? <ConnectionPage key={connection} id={connection} operation={view.status.walletOperation} refreshStatus={() => perform(checkStatus)} />
       : <main><h1>连接链接无效</h1><p>请从调用方重新打开请求链接。</p></main>;
   }
   return (
@@ -103,6 +104,7 @@ export function App({ initial }: { initial: Promise<View> }) {
           </div>
         )}
       </section>
+      {authorized && view.status.walletOperation && <WalletOperationNotice operation={view.status.walletOperation} />}
       {(authorized || view.kind === 'preview') && <WalletPicker />}
       <footer>
         <p>私钥由浏览器钱包保管。</p>

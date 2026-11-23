@@ -43,8 +43,8 @@ func New(config Config) (http.Handler, error) {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 5},
-		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions"}, Ready: true,
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 6},
+		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation"}, Ready: true,
 	}}, nil
 }
 
@@ -176,6 +176,7 @@ func (h *handler) getInfo(w http.ResponseWriter, r *http.Request) {
 
 // getStatus reports the running service's state.
 // @Summary Read authenticated service status
+// @Description With an active browser cookie, the optional walletOperation identifies the connection occupying the wallet slot. Reading status does not renew or acquire an execution. Service Bearer responses omit browser-specific data.
 // @Produce json
 // @Security ServiceBearer
 // @Security BrowserCookie
@@ -185,13 +186,20 @@ func (h *handler) getInfo(w http.ResponseWriter, r *http.Request) {
 // @Failure 405 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /status [get]
-func (h *handler) getStatus(w http.ResponseWriter, _ *http.Request, browser *app.BrowserGrant) {
+func (h *handler) getStatus(w http.ResponseWriter, r *http.Request, browser *app.BrowserGrant) {
 	response := StatusResponse{
 		State: "running", StartedAt: h.config.StartedAt.UTC().Format(time.RFC3339Nano), Info: h.info,
 	}
 	if browser != nil {
 		metadata := browserGrantResponse(*browser, time.Now())
 		response.Browser = &metadata
+		occupied, err := h.config.Connections.OccupiedExecution(r.Context(), *browser)
+		if err == nil {
+			response.WalletOperation = &WalletOperationResponse{ConnectionID: occupied.ConnectionID, Phase: string(occupied.Phase)}
+		} else if !errors.Is(err, app.ErrConnectionExecutionNotFound) {
+			connectionFailure(w, err)
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, response)
 }

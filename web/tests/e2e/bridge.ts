@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
-import { dirname } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import type { Page } from '@playwright/test';
@@ -21,6 +22,17 @@ export async function cli(args: string[], directory = process.env.WALLET_BRIDGE_
   } catch {
     throw new Error(`Test CLI operation failed: ${args[0]} ${args[1] ?? ''}`);
   }
+}
+
+export async function connectionClient(path: string, body?: object) {
+  const key = await readFile(join(process.env.WALLET_BRIDGE_TEST_DATA!, 'client.key'), 'utf8');
+  const response = await fetch(origin + '/api/v1/' + path, {
+    method: body ? 'POST' : 'GET', redirect: 'error',
+    headers: { Authorization: 'Bearer ' + key.trim(), 'Content-Type': 'application/json' },
+    body: body && JSON.stringify(body),
+  });
+  if (response.status !== 200) throw new Error('Test client received HTTP ' + response.status);
+  return response.json();
 }
 
 export async function link() { return cli(['ui', '--print-url']); }

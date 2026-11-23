@@ -18,7 +18,7 @@ import (
 var serviceFixture = strings.Repeat("11", 32)
 var legacyControlFixture = strings.Repeat("22", 32)
 
-func testHandler(t *testing.T, stop func(), browser ...*app.BrowserAuthorization) http.Handler {
+func testHandler(t *testing.T, stop func()) http.Handler {
 	t.Helper()
 	// These basic boundary tests never access storage. Browser behavior tests
 	// supply a real SQLite-backed core below instead of this unused dependency.
@@ -26,13 +26,15 @@ func testHandler(t *testing.T, stop func(), browser ...*app.BrowserAuthorization
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(browser) != 0 {
-		authorization = browser[0]
-	}
 	connections, err := app.NewConnectionService(struct{ app.ConnectionServiceStore }{})
 	if err != nil {
 		t.Fatal(err)
 	}
+	return testHandlerWithCores(t, stop, authorization, connections)
+}
+
+func testHandlerWithCores(t *testing.T, stop func(), authorization *app.BrowserAuthorization, connections *app.ConnectionService) http.Handler {
+	t.Helper()
 	h, err := New(Config{
 		Version: "test", ServiceToken: serviceFixture,
 		StartedAt: time.Date(2026, 11, 19, 0, 0, 0, 0, time.UTC), Stop: stop,
@@ -155,7 +157,7 @@ func TestInfoProofBindsMetadata(t *testing.T) {
 		t.Fatal("info response invalid", err)
 	}
 	proof := info.Proof
-	data := []byte(`{"name":"wallet-bridge","version":"test","apiVersion":{"major":1,"minor":5},"capabilities":["service.status","service.stop","browser.authorization","service.auth.shared","connections.lifecycle","browser.connections.coordination","browser.connections.decisions"],"ready":true,"challenge":"` + challenge + `"}`)
+	data := []byte(`{"name":"wallet-bridge","version":"test","apiVersion":{"major":1,"minor":6},"capabilities":["service.status","service.stop","browser.authorization","service.auth.shared","connections.lifecycle","browser.connections.coordination","browser.connections.decisions","browser.wallet-operation"],"ready":true,"challenge":"` + challenge + `"}`)
 	key, _ := hex.DecodeString(serviceFixture)
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte("wallet-bridge.info.v1\n"))

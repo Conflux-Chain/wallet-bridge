@@ -1,7 +1,7 @@
 // Package api exposes the local service HTTP interface.
 //
 // @title Wallet Bridge Local API
-// @version 1.5
+// @version 1.6
 // @description Local service access, browser authorization, client connection/Session lifecycle and browser execution coordination, wallet handoff and connection consent.
 // @host 127.0.0.1:18765
 // @BasePath /api/v1

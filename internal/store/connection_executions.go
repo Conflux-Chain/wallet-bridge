@@ -21,6 +21,10 @@ func (s *Store) GetConnectionExecution(ctx context.Context, id string) (app.Conn
 	return scanExecution(s.db.QueryRowContext(ctx, executionSelect+" WHERE connection_id = ?", id))
 }
 
+func (s *Store) GetOccupiedExecution(ctx context.Context) (app.ConnectionExecution, error) {
+	return scanExecution(s.db.QueryRowContext(ctx, executionSelect+" WHERE "+executionOccupied))
+}
+
 func (s *Store) ClaimConnectionExecution(ctx context.Context, ref app.ConnectionExecutionRef, now time.Time) (app.ConnectionExecution, error) {
 	tx, err := s.beginExecution(ctx, ref, now)
 	if err != nil {

@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 4
+        example: 6
         type: integer
     type: object
   api.BrowserAuthorizeRequest:
@@ -222,6 +222,7 @@ definitions:
         - connections.lifecycle
         - browser.connections.coordination
         - browser.connections.decisions
+        - browser.wallet-operation
         items:
           type: string
         type: array
@@ -279,11 +280,24 @@ definitions:
       state:
         example: running
         type: string
+      walletOperation:
+        $ref: '#/definitions/api.WalletOperationResponse'
     type: object
   api.StopResponse:
     properties:
       state:
         example: stopping
+        type: string
+    type: object
+  api.WalletOperationResponse:
+    properties:
+      connectionId:
+        type: string
+      phase:
+        enum:
+        - ready
+        - calling
+        - interrupted_calling
         type: string
     type: object
   api.WalletResponse:
@@ -304,7 +318,7 @@ info:
   description: Local service access, browser authorization, client connection/Session
     lifecycle and browser execution coordination, wallet handoff and connection consent.
   title: Wallet Bridge Local API
-  version: "1.5"
+  version: "1.6"
 paths:
   /browser/authorize:
     post:
@@ -1600,6 +1614,9 @@ paths:
       summary: Close a Session
   /status:
     get:
+      description: With an active browser cookie, the optional walletOperation identifies
+        the connection occupying the wallet slot. Reading status does not renew or
+        acquire an execution. Service Bearer responses omit browser-specific data.
       produces:
       - application/json
       responses:

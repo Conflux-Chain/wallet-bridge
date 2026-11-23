@@ -60,6 +60,7 @@ type ConnectionMaintenanceCounts struct {
 type ConnectionExecutionStore interface {
 	// Reads do not renew liveness, take ownership, or normalize stale phases.
 	GetConnectionExecution(context.Context, string) (ConnectionExecution, error)
+	GetOccupiedExecution(context.Context) (ConnectionExecution, error)
 	ClaimConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionExecution, error)
 	TouchConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionExecution, error)
 	InterruptConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionExecution, error)

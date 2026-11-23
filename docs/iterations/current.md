@@ -11,12 +11,12 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0～2-4b2 已合并，首次连接页面待评审，PR 入口及证据见 plan。
+- 当前步骤：首次连接页面已合并，PR 2-6b 连接中断与找回待评审，PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-按[首次连接指南](../first-connection.md)实测 MetaMask、Fluent，随后完善跨标签页找回占用请求和 CLI。
+评审跨标签页找回请求，随后接入共用 Go client 与 CLI。
 
 ## 4. 验证记录
 
-- 已完成的交付与验证见当轮 plan；用户已确认双钱包发现，真实账户授权和连接尚未验收。迭代 1 环境补验与用户验收缺项见[验收记录](01-local-service/acceptance.md)。
+- 已完成的交付与验证见当轮 plan；用户已确认 MetaMask 和 Fluent 的首次连接通过。迭代 1 环境补验与用户验收缺项见[验收记录](01-local-service/acceptance.md)。
