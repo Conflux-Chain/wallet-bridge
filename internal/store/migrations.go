@@ -113,6 +113,25 @@ CREATE TABLE connection_executions (
 );
 CREATE UNIQUE INDEX connection_executions_single_slot ON connection_executions ((1))
 WHERE phase IN ('ready', 'calling', 'interrupted_calling');
+`, `
+CREATE TABLE transaction_requests (
+    id TEXT PRIMARY KEY NOT NULL CHECK (length(id) = 32 AND id NOT GLOB '*[^0-9a-f]*'),
+    session_id TEXT NOT NULL REFERENCES sessions (id),
+    client_name TEXT NOT NULL CHECK (length(trim(client_name)) > 0),
+    intent TEXT NOT NULL,
+    from_address TEXT NOT NULL,
+    to_address TEXT NOT NULL,
+    chain_id TEXT NOT NULL,
+    value TEXT NOT NULL,
+    data TEXT NOT NULL,
+    gas TEXT NOT NULL,
+    gas_price TEXT NOT NULL,
+    max_fee_per_gas TEXT NOT NULL,
+    max_priority_fee_per_gas TEXT NOT NULL,
+    created_at INTEGER NOT NULL CHECK (created_at >= 0),
+    expires_at INTEGER NOT NULL CHECK (expires_at - created_at = 300000)
+);
+CREATE INDEX transaction_requests_by_session ON transaction_requests (session_id);
 `}
 
 func migrate(ctx context.Context, db *sql.DB, steps []string) error {

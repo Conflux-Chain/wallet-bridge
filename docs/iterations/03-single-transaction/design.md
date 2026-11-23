@@ -28,3 +28,17 @@ go test -tags no_web ./internal/app -run '^TestTransactionInput' -count=1 -v
 ```
 
 预期 `TestTransactionInput` 和 `TestTransactionInputErrors` 及其子用例全部通过。测试在内存中校验已有 Session 的绑定与交易字段，命令退出即结束，无需启动服务、安装钱包或清理数据。
+
+## PR 3-2 创建事务
+
+schema v5 保存请求 ID、Session ID、自报来源与意图、规范化交易、创建和到期时间。在 SQLite 写事务内先按请求 ID 查原记录。重试以地址值、规范化数量及字节比较，仍返回首次保存的地址拼写。只有新请求才校验有效 Session，将续期与插入一起提交。空闲时间到达边界时按原期限关闭 Session。创建记录用于重取原始内容，后续的取消、到期和可执行状态在 PR 3-3 接入。
+
+### 创建与重试测试
+
+在 Windows 或 macOS 的仓库根目录，用 [go.mod](../../../go.mod) 指定的 Go 运行：
+
+```sh
+go test -tags no_web ./internal/store -run '^TestTransactionRequest' -count=1 -v
+```
+
+预期迁移与重试、提交回滚与空闲到期、双连接并发创建三组均通过。命令使用临时 SQLite 数据库，结束后自动清理，无需启动本机服务。

@@ -46,8 +46,8 @@ func TestConnectionExecutionMigrationPreservesHistory(t *testing.T) {
 	legacy.Close()
 	s := openTestStore(t, dir)
 	var version, count int
-	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 4 {
-		t.Fatal("execution migration did not select v4", version, err)
+	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != len(migrations) {
+		t.Fatal("execution migration did not reach the current schema", version, err)
 	}
 	if err := s.db.QueryRow("SELECT count(*) FROM connection_executions").Scan(&count); err != nil || count != 0 {
 		t.Fatal("migration synthesized an active execution", count, err)
