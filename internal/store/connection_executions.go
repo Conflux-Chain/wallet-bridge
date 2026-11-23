@@ -14,7 +14,7 @@ import (
 
 var _ app.ConnectionExecutionStore = (*Store)(nil)
 
-const executionSelect = `SELECT connection_id, id, browser_grant_id, phase, last_seen_at, call_id FROM connection_executions`
+const executionSelect = `SELECT connection_id, id, browser_grant_id, phase, last_seen_at, call_id FROM wallet_executions`
 const executionOccupied = `phase IN ('ready', 'calling', 'interrupted_calling')`
 
 func (s *Store) GetConnectionExecution(ctx context.Context, id string) (app.ConnectionExecution, error) {
@@ -22,7 +22,7 @@ func (s *Store) GetConnectionExecution(ctx context.Context, id string) (app.Conn
 }
 
 func (s *Store) GetOccupiedExecution(ctx context.Context) (app.ConnectionExecution, error) {
-	return scanExecution(s.db.QueryRowContext(ctx, executionSelect+" WHERE "+executionOccupied))
+	return scanExecution(s.db.QueryRowContext(ctx, executionSelect+" WHERE connection_id IS NOT NULL AND "+executionOccupied))
 }
 
 func (s *Store) ClaimConnectionExecution(ctx context.Context, ref app.ConnectionExecutionRef, now time.Time) (app.ConnectionExecution, error) {
@@ -54,7 +54,7 @@ func (s *Store) ClaimConnectionExecution(ctx context.Context, ref app.Connection
 		return app.ConnectionExecution{}, err
 	}
 	current = app.ConnectionExecution{ConnectionExecutionRef: ref, Phase: app.ExecutionReady, LastSeenAt: time.UnixMilli(now.UnixMilli()).UTC()}
-	_, err = tx.ExecContext(ctx, `INSERT INTO connection_executions
+	_, err = tx.ExecContext(ctx, `INSERT INTO wallet_executions
 (connection_id, id, browser_grant_id, phase, last_seen_at) VALUES (?, ?, ?, 'ready', ?)`, ref.ConnectionID, ref.ID, ref.BrowserGrantID, now.UnixMilli())
 	if err != nil {
 		return app.ConnectionExecution{}, executionWriteError(err)
@@ -76,7 +76,7 @@ func (s *Store) TouchConnectionExecution(ctx context.Context, ref app.Connection
 		return commitExecution(tx, current, app.ErrConnectionExecutionConflict)
 	}
 	if now.UnixMilli() > current.LastSeenAt.UnixMilli() {
-		if _, err := tx.ExecContext(ctx, "UPDATE connection_executions SET last_seen_at = ? WHERE connection_id = ?", now.UnixMilli(), ref.ConnectionID); err != nil {
+		if _, err := tx.ExecContext(ctx, "UPDATE wallet_executions SET last_seen_at = ? WHERE connection_id = ?", now.UnixMilli(), ref.ConnectionID); err != nil {
 			return app.ConnectionExecution{}, err
 		}
 		current.LastSeenAt = time.UnixMilli(now.UnixMilli()).UTC()
@@ -104,7 +104,7 @@ func (s *Store) InterruptConnectionExecution(ctx context.Context, ref app.Connec
 		phase = app.ExecutionInterruptedCalling
 	}
 	if phase != current.Phase {
-		if _, err := tx.ExecContext(ctx, "UPDATE connection_executions SET phase = ? WHERE connection_id = ?", phase, ref.ConnectionID); err != nil {
+		if _, err := tx.ExecContext(ctx, "UPDATE wallet_executions SET phase = ? WHERE connection_id = ?", phase, ref.ConnectionID); err != nil {
 			return app.ConnectionExecution{}, err
 		}
 		current.Phase = phase
@@ -142,7 +142,7 @@ func (s *Store) RecoverConnectionExecution(ctx context.Context, previousID strin
 	if !pendingExecutionRequest(request, now) {
 		// Explicit user recovery can clear an outstanding wallet wait, but must
 		// never turn a terminal connection into a new execution or Session.
-		if _, err := tx.ExecContext(ctx, "UPDATE connection_executions SET phase = 'finished' WHERE connection_id = ?", ref.ConnectionID); err != nil {
+		if _, err := tx.ExecContext(ctx, "UPDATE wallet_executions SET phase = 'finished' WHERE connection_id = ?", ref.ConnectionID); err != nil {
 			return app.ConnectionExecution{}, err
 		}
 		current.Phase = app.ExecutionFinished
@@ -160,7 +160,7 @@ func (s *Store) RecoverConnectionExecution(ctx context.Context, previousID strin
 	if seen < current.LastSeenAt.UnixMilli() {
 		seen = current.LastSeenAt.UnixMilli()
 	}
-	_, err = tx.ExecContext(ctx, `UPDATE connection_executions
+	_, err = tx.ExecContext(ctx, `UPDATE wallet_executions
 SET id = ?, browser_grant_id = ?, phase = 'ready', last_seen_at = ?, call_id = NULL WHERE connection_id = ?`, ref.ID, ref.BrowserGrantID, seen, ref.ConnectionID)
 	if err != nil {
 		return app.ConnectionExecution{}, executionWriteError(err)

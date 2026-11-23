@@ -227,7 +227,7 @@ func TestConnectionGuardedDecisionRollback(t *testing.T) {
 				case "session":
 					table, event = "sessions", "INSERT"
 				case "execution", "commit":
-					table = "connection_executions"
+					table = "wallet_executions"
 				case "session collision":
 					_, session := createLiveSession(t, s, 1)
 					completion.SessionID = session.ID
@@ -236,7 +236,7 @@ func TestConnectionGuardedDecisionRollback(t *testing.T) {
 					trigger := "CREATE TRIGGER fail_decision BEFORE " + event + " ON " + table + " BEGIN SELECT RAISE(ABORT, 'injected failure'); END"
 					if stage == "commit" {
 						trigger = `CREATE TABLE decision_guard (id TEXT REFERENCES connection_requests(id) DEFERRABLE INITIALLY DEFERRED);
-CREATE TRIGGER fail_decision AFTER UPDATE ON connection_executions BEGIN INSERT INTO decision_guard VALUES ('missing'); END`
+CREATE TRIGGER fail_decision AFTER UPDATE ON wallet_executions BEGIN INSERT INTO decision_guard VALUES ('missing'); END`
 					}
 					if _, err := s.db.Exec(trigger); err != nil {
 						t.Fatal(err)

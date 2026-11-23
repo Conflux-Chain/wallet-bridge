@@ -1,14 +1,16 @@
 # 迭代 3 PR 计划
 
-当前步骤为 PR 3-3，交付交易交接前的查询、取消、到期与 Session 关闭。[需求](spec.md) · [设计](design.md)
+当前步骤为 PR 3-4a，先评审共享执行表迁移，再接入占用状态与交易领取。[需求](spec.md) · [设计](design.md)
 
 | 步骤 | 单一交付 | 主要检查 |
 |---|---|---|
 | 3-0 | 需求、设计草案和 PR 计划 | [#36](https://github.com/Conflux-Chain/wallet-bridge/pull/36) 合并为 `30efa4b`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45128899817) 通过 |
 | 3-1 | Go 交易输入及校验 | [#37](https://github.com/Conflux-Chain/wallet-bridge/pull/37) 合并为 `6d17b49`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45134102824) 通过 |
 | 3-2 | 请求持久化与幂等创建 | [#38](https://github.com/Conflux-Chain/wallet-bridge/pull/38) 合并为 `c6804cb`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45138626143) 通过 |
-| 3-3 | 交接前的取消、到期与 Session 生命周期 | 关闭及空闲回收与并发创建，重启后无过期重置 |
-| 3-4 | 连接与交易共用钱包执行槽 | 同请求多页、跨请求竞争、旧连接恢复回归 |
+| 3-3 | 交接前的取消、到期与 Session 生命周期 | [#39](https://github.com/Conflux-Chain/wallet-bridge/pull/39) 合并为 `9a0e9fb`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45144595938) 通过 |
+| 3-4a | SQLite 共享执行表与全局唯一占用约束 | 旧连接执行迁移、失败回滚、两类同 ID 请求竞争 |
+| 3-4b | 占用状态按请求类型定位 | 管理页和已有连接页识别连接或交易占用，保留已有连接接口兼容性 |
+| 3-4c | 交易发送前的执行归属与中断恢复 | 同请求多页、双向竞争、重启及过期恢复，发送许可见 3-5 |
 | 3-5 | 交易发送许可与 Session 关闭竞争 | 点击重放、交接响应丢失、取消和关闭的先后顺序 |
 | 3-6 | 钱包结果、活动持久化及恢复 | 拒绝、hash、未确定、迟到回报、提交失败和重启 |
 | 3-7 | Client 侧交易 HTTP 接口及 Swagger | 创建、读取、取消、服务凭据及错误映射 |
@@ -32,3 +34,7 @@ Windows 临时 SQLite 实测通过 v4 升级及迁移回滚、重开后幂等重
 ## PR 3-3 验证
 
 Windows 临时 SQLite 的五组生命周期测试通过，覆盖到期前一毫秒、恰好到期、重开后时钟回拨，以及关闭 Session 时同批请求分别到期和取消。双连接并发创建与关闭重复 30 次通过。[本地复现](design.md#取消与到期测试)
+
+## PR 3-4a 验证
+
+Windows 临时 SQLite 验证了五种旧连接执行状态的升级与失败回滚、请求外键及双向占用。两类请求使用相同 UUID，双数据库连接并发争用重复 30 次通过。默认及 `no_web` Go 测试和 vet 通过，本机跳过需符号链接权限的用例。交易执行由测试写入，浏览器领取和真实钱包发送在后续 PR 验收。[本地复现](design.md#共享执行槽测试)

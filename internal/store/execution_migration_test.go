@@ -49,7 +49,7 @@ func TestConnectionExecutionMigrationPreservesHistory(t *testing.T) {
 	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != len(migrations) {
 		t.Fatal("execution migration did not reach the current schema", version, err)
 	}
-	if err := s.db.QueryRow("SELECT count(*) FROM connection_executions").Scan(&count); err != nil || count != 0 {
+	if err := s.db.QueryRow("SELECT count(*) FROM wallet_executions").Scan(&count); err != nil || count != 0 {
 		t.Fatal("migration synthesized an active execution", count, err)
 	}
 	assertConnectionUnchanged(t, s, r)
@@ -131,7 +131,7 @@ func TestConnectionExecutionSchemaConstraints(t *testing.T) {
 			}
 		})
 	}
-	for _, damage := range []string{"DROP TABLE connection_executions", "ALTER TABLE connection_executions RENAME COLUMN call_id TO missing_call"} {
+	for _, damage := range []string{"DROP TABLE wallet_executions", "ALTER TABLE wallet_executions RENAME COLUMN call_id TO missing_call"} {
 		t.Run(damage, func(t *testing.T) {
 			dir := filepath.Join(t.TempDir(), "data")
 			db := openTestStore(t, dir)
@@ -151,7 +151,7 @@ func TestConnectionExecutionSchemaConstraints(t *testing.T) {
 }
 
 func insertExecutionPhase(s *Store, ref app.ConnectionExecutionRef, phase app.ConnectionExecutionPhase, seen int64, call any) error {
-	_, err := s.db.Exec(`INSERT INTO connection_executions
+	_, err := s.db.Exec(`INSERT INTO wallet_executions
 (connection_id, id, browser_grant_id, phase, last_seen_at, call_id) VALUES (?, ?, ?, ?, ?, ?)`, ref.ConnectionID, ref.ID, ref.BrowserGrantID, phase, seen, call)
 	return err
 }

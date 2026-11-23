@@ -27,7 +27,7 @@ func TestTransactionRequestMigrationAndReplay(t *testing.T) {
 	ctx := context.Background()
 	dir := filepath.Join(t.TempDir(), "data")
 	old := openConnectionSchema(t, dir, 4)
-	connection, session := createLiveSession(t, old, 0)
+	connection, session := seedMigrationSession(t, old, 0)
 	broken := append([]string{}, migrations[:5]...)
 	broken[4] += "INVALID SQL"
 	if err := migrate(ctx, old.db, broken); err == nil {

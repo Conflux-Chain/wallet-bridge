@@ -209,12 +209,12 @@ func TestConnectionCoordinatorMaintenanceAtomicity(t *testing.T) {
 					case "session":
 						table = "sessions"
 					case "execution", "commit":
-						table = "connection_executions"
+						table = "wallet_executions"
 					}
 					trigger := "CREATE TRIGGER fail_coordination BEFORE UPDATE ON " + table + " BEGIN SELECT RAISE(ABORT, 'injected failure'); END"
 					if failure == "commit" {
 						trigger = `CREATE TABLE coordination_guard (id TEXT REFERENCES connection_requests(id) DEFERRABLE INITIALLY DEFERRED);
-CREATE TRIGGER fail_coordination AFTER UPDATE ON connection_executions BEGIN INSERT INTO coordination_guard VALUES ('missing'); END`
+CREATE TRIGGER fail_coordination AFTER UPDATE ON wallet_executions BEGIN INSERT INTO coordination_guard VALUES ('missing'); END`
 					}
 					if _, err := s.db.Exec(trigger); err != nil {
 						t.Fatal(err)
@@ -275,10 +275,10 @@ func TestConnectionCoordinatorCancelRollback(t *testing.T) {
 					t.Fatal(err)
 				}
 				if stage != "none" {
-					trigger := "CREATE TRIGGER fail_cancel BEFORE UPDATE ON connection_executions BEGIN SELECT RAISE(ABORT, 'injected failure'); END"
+					trigger := "CREATE TRIGGER fail_cancel BEFORE UPDATE ON wallet_executions BEGIN SELECT RAISE(ABORT, 'injected failure'); END"
 					if stage == "commit" {
 						trigger = `CREATE TABLE coordination_guard (id TEXT REFERENCES connection_requests(id) DEFERRABLE INITIALLY DEFERRED);
-CREATE TRIGGER fail_cancel AFTER UPDATE ON connection_executions BEGIN INSERT INTO coordination_guard VALUES ('missing'); END`
+CREATE TRIGGER fail_cancel AFTER UPDATE ON wallet_executions BEGIN INSERT INTO coordination_guard VALUES ('missing'); END`
 					}
 					if _, err := s.db.Exec(trigger); err != nil {
 						t.Fatal(err)

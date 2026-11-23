@@ -38,7 +38,7 @@ func claimExecution(t *testing.T, s *Store, ref app.ConnectionExecutionRef, now 
 // here so this PR can verify it is never released by deadline/liveness cleanup.
 func callingExecution(t *testing.T, s *Store, ref app.ConnectionExecutionRef) {
 	t.Helper()
-	if _, err := s.db.Exec("UPDATE connection_executions SET phase='calling', call_id=? WHERE connection_id=?", fmt.Sprintf("%032x", 5000), ref.ConnectionID); err != nil {
+	if _, err := s.db.Exec("UPDATE wallet_executions SET phase='calling', call_id=? WHERE connection_id=?", fmt.Sprintf("%032x", 5000), ref.ConnectionID); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -287,7 +287,7 @@ func TestConnectionExecutionConcurrentOwnership(t *testing.T) {
 			if successes != want {
 				t.Fatal("incorrect successful owners", successes, want)
 			}
-			if err := stores[0].db.QueryRow("SELECT count(*) FROM connection_executions WHERE " + executionOccupied).Scan(&count); err != nil || count != 1 {
+			if err := stores[0].db.QueryRow("SELECT count(*) FROM wallet_executions WHERE " + executionOccupied).Scan(&count); err != nil || count != 1 {
 				t.Fatal("concurrent ownership did not leave one slot", count, err)
 			}
 		})
@@ -314,10 +314,10 @@ func TestConnectionExecutionRollback(t *testing.T) {
 				if operation == "claim" {
 					event = "INSERT"
 				}
-				trigger := "CREATE TRIGGER fail_execution BEFORE " + event + " ON connection_executions BEGIN SELECT RAISE(ABORT, 'injected failure'); END"
+				trigger := "CREATE TRIGGER fail_execution BEFORE " + event + " ON wallet_executions BEGIN SELECT RAISE(ABORT, 'injected failure'); END"
 				if stage == "commit" {
 					trigger = `CREATE TABLE execution_guard (id TEXT REFERENCES connection_requests(id) DEFERRABLE INITIALLY DEFERRED);
-CREATE TRIGGER fail_execution AFTER ` + event + ` ON connection_executions BEGIN INSERT INTO execution_guard VALUES ('missing'); END`
+CREATE TRIGGER fail_execution AFTER ` + event + ` ON wallet_executions BEGIN INSERT INTO execution_guard VALUES ('missing'); END`
 				}
 				if _, err := s.db.Exec(trigger); err != nil {
 					t.Fatal(err)
