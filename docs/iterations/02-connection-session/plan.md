@@ -154,4 +154,4 @@ PR 2-0：23 份 Markdown 的 170 个本地链接、53 个标题锚点及 Git 空
 
 - 接入开始／结束钱包调用与最终同意／拒绝，使用既有执行事务，API 1.5 公告 `browser.connections.decisions`。
 - Windows Go 回归及 Chrome 原生 fetch 验证通过。覆盖许可重放、旧执行、错误网络、同意及拒绝重试，并从 client 接口核对测试绑定。[本地验证](../../connection-http.md)
-- 真实钱包账户授权、切链及确认由 PR 2-6a 验收。
+- D-038 已确认。HTTP 测试验证调用回报后 client 仍取得原 pending 请求和期限，可重试，显式拒绝后 client 可查 rejected。真实钱包账户授权、切链及确认由 PR 2-6a 验收。

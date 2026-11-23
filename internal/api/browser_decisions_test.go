@@ -44,6 +44,12 @@ func TestBrowserDecisionHTTPHandoffAndConsent(t *testing.T) {
 	f.request(t, "POST", path+"complete", jsonBody(t, consent), headers, 409)
 	f.request(t, "POST", path+"return", jsonBody(t, returned), headers, 200)
 	f.request(t, "POST", path+"return", jsonBody(t, returned), headers, 200)
+	// A settled wallet prompt (including user rejection) does not reject
+	// the bridge request or extend its original five-minute deadline.
+	pending := responseJSON[ConnectionResponse](t, f.request(t, "GET", "/api/v1/connections/"+r.ID, "", controlHeaders(), 200))
+	if pending != r {
+		t.Fatal("wallet return changed pending client request", pending)
+	}
 	next := ConnectionBeginCallRequest{ID: id, CallID: strings.Repeat("c", 32)}
 	f.request(t, "POST", path+"begin", jsonBody(t, next), headers, 409)
 	next.PreviousCallID = callID
@@ -89,7 +95,7 @@ func TestBrowserDecisionHTTPReplacedExecution(t *testing.T) {
 	post("reject", ConnectionExecutionRequest{ID: id}, 409)
 	post("reject", ConnectionExecutionRequest{ID: replacement}, 200)
 	post("reject", ConnectionExecutionRequest{ID: replacement}, 200)
-	final := responseJSON[ConnectionResponse](t, f.request(t, "GET", browserConnectionPath(r.ID), "", browserHeaders(cookie), 200))
+	final := responseJSON[ConnectionResponse](t, f.request(t, "GET", "/api/v1/connections/"+r.ID, "", controlHeaders(), 200))
 	if final.State != "rejected" || final.SessionID != "" {
 		t.Fatal(final)
 	}
