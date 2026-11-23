@@ -34,10 +34,17 @@ try {
   console.log('在装有钱包的 Chrome 测试配置中打开以下一次性授权链接：');
   console.log(cli('ui', '--print-url').trim());
   console.log('在同一配置中依次打开终端给出的两个连接链接，分别选择 MetaMask 和 Fluent（EVM）。');
-  const helper = spawn('go', ['test', '-tags', 'manual_wallet', './internal/client', '-run', '^TestManualWalletConnection$',
-    '-v', '-count=2', '-timeout=12m', '-args', '-wallet-data-dir', data], { cwd: root, stdio: 'inherit', windowsHide: true });
-  const code = await new Promise((resolve, reject) => { helper.once('error', reject); helper.once('exit', resolve); });
-  if (code !== 0) process.exitCode = 1;
+  for (const wallet of ['MetaMask', 'Fluent']) {
+    console.log(`请使用 ${wallet} 完成本次连接。`);
+    const command = spawn(binary, ['connect', '--no-open', '--chain-id', '71', '--chain-name', 'Conflux eSpace Testnet',
+      '--client-name', 'Wallet Bridge 验收', '--intent', '核对选定的钱包、账户与网络', '--data-dir', data],
+      { cwd: root, stdio: 'inherit', windowsHide: true });
+    const code = await new Promise((resolve, reject) => { command.once('error', reject); command.once('exit', resolve); });
+    if (code !== 0 || !started) {
+      process.exitCode ||= code || 1;
+      break;
+    }
+  }
 } finally {
   process.off('SIGINT', interrupt);
   stop();

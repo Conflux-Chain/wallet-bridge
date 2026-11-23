@@ -47,6 +47,7 @@
 | D-038 | 用户确认 | 首次连接的钱包弹窗拒绝保留原请求，交互与期限见[迭代 2 spec](iterations/02-connection-session/spec.md#已确认与沿用) | 2026-11-23，用户选择“保留原请求，页面可重试或拒绝” |
 | D-039 | 用户确认 | CLI 连接等待期间按 Ctrl+C 保留服务端请求，见[迭代 2 spec](iterations/02-connection-session/spec.md#已确认与沿用) | 2026-11-23，用户选择“只结束等待，保留请求” |
 | D-040 | 用户确认 | 管理已有连接请求或 Session 时，CLI 按需启动服务并恢复数据，见[迭代 2 spec](iterations/02-connection-session/spec.md#已确认与沿用) | 2026-11-23，用户选择“自动启动并执行” |
+| D-041 | 用户确认 | CLI 默认等待用户完成连接，异步返回和打开浏览器可分别控制，见[迭代 2 spec](iterations/02-connection-session/spec.md#已确认与沿用) | 2026-11-23，用户选择“默认等待，支持 --no-wait” |
 
 ## 新增记录时应包含
 
