@@ -28,13 +28,14 @@ async function waitingConnect() {
   throw new Error('CLI exited before printing its pending request');
 }
 
-async function review(page: Page, receipt: { id: string; url: string }) {
-  await page.addInitScript(({ first, second }) => {
+async function review(page: Page, receipt: { id: string; url: string }, supportsSwitch = true) {
+  await page.addInitScript(({ first, second, supportsSwitch }) => {
     let denied = false;
     let accounts: string[] = [];
     let network = '0x1';
     const events = new EventTarget();
-    window.addEventListener('test-network-change', () => { network = '0x1'; });
+    window.addEventListener('test-network-change', event => { network = (event as CustomEvent<string>).detail; });
+    window.addEventListener('test-accounts-change', event => { accounts = (event as CustomEvent<string[]>).detail; });
     const provider = {
       on: (name: string, cb: EventListener) => events.addEventListener(name, cb),
       removeListener: (name: string, cb: EventListener) => events.removeEventListener(name, cb),
@@ -48,6 +49,7 @@ async function review(page: Page, receipt: { id: string; url: string }) {
           return accounts;
         }
         if (method === 'wallet_switchEthereumChain') {
+          if (!supportsSwitch) throw { code: 4902 };
           network = params![0].chainId;
           events.dispatchEvent(new Event('chainChanged'));
           return null;
@@ -59,7 +61,7 @@ async function review(page: Page, receipt: { id: string; url: string }) {
     window.addEventListener('eip6963:requestProvider', () => {
       window.dispatchEvent(new CustomEvent('eip6963:announceProvider', { detail: { info, provider } }));
     });
-  }, { first, second });
+  }, { first, second, supportsSwitch });
   const created = await client('connections/' + receipt.id);
   await authorize(page);
   await expect(page.getByRole('status')).toHaveText('浏览器已授权');
@@ -86,7 +88,7 @@ test('wallet refusal can be retried before selecting and confirming the second a
   await page.getByRole('button', {name:'切换到 0x47'}).click();
   await account.selectOption(second);
   // The provider changed network without delivering an event. Final consent must reread it.
-  await page.evaluate(() => window.dispatchEvent(new Event('test-network-change')));
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('test-network-change', {detail: '0x1'})));
   await consent.click();
   await expect(consent).toBeDisabled();
   expect(await client('connections/' + original.id)).toEqual(original);
@@ -105,6 +107,62 @@ test('wallet refusal can be retried before selecting and confirming the second a
   expect(closed).toMatchObject({ ...active, state: 'closed', closedAt: expect.any(String) });
   expect(JSON.parse(await cli(['session', 'get', result.sessionId, '--json']))).toEqual(closed);
   expect(JSON.parse(await cli(['connection', 'get', original.id, '--json']))).toEqual(result);
+});
+
+test('target network uses the client name, a known network name, or the chain ID alone', async ({page}) => {
+  await authorize(page);
+  await expect(page.getByRole('status')).toHaveText('浏览器已授权');
+  const cases = [
+    {chain: '1030', expected: 'Conflux eSpace · 0x406'},
+    {chain: '71', expected: 'Conflux eSpace Testnet · 0x47'},
+    {chain: '1', expected: 'Ethereum Mainnet · 0x1'},
+    {chain: '71', name: 'Client test network', expected: 'Client test network · 0x47'},
+    {chain: '0x10000000000000047', expected: '0x10000000000000047'},
+  ];
+  for (const {chain, name, expected} of cases) {
+    await test.step(expected, async () => {
+      const args = ['connect', '--chain-id', chain, '--no-open', '--no-wait', '--json'];
+      if (name) args.push('--chain-name', name);
+      const {url} = JSON.parse(await cli(args));
+      await page.goto(url);
+      await expect(page.getByRole('region', {name: '连接请求'}).getByRole('definition')
+        .filter({hasText: expected})).toHaveText(expected);
+    });
+  }
+});
+
+test('unsupported switch and a silently removed account keep the original request pending', async ({page}) => {
+  const receipt = JSON.parse(await cli([...connectArgs, '--no-wait']));
+  const original = await review(page, receipt, false);
+  await page.evaluate(accounts => window.dispatchEvent(new CustomEvent('test-accounts-change', {detail: accounts})), [first, second]);
+  await page.getByRole('radio', {name: /Simulated Wallet/}).check();
+  const read = page.getByRole('button', {name: '读取账户和网络'});
+  const account = page.getByRole('combobox', {name: '本次连接账户'});
+  const consent = page.getByRole('button', {name: '同意连接'});
+  await read.click();
+  await account.selectOption(second);
+  await page.getByRole('button', {name: '切换到 0x47'}).click();
+  await expect(page.getByRole('status')).toContainText('钱包无法自动切换');
+  await expect(consent).toBeDisabled();
+  expect(await client('connections/' + original.id)).toEqual(original);
+
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('test-network-change', {detail: '0x47'})));
+  await read.click();
+  await expect(consent).toBeEnabled();
+  await page.evaluate(remaining => window.dispatchEvent(new CustomEvent('test-accounts-change', {detail: [remaining]})), first);
+  await consent.click();
+  await expect(page.getByRole('status')).toContainText('账户或网络已改变');
+  await expect(consent).toBeDisabled();
+  await expect(account).toHaveValue('');
+  expect(await client('connections/' + original.id)).toEqual(original);
+
+  await account.selectOption(first);
+  await consent.click();
+  await expect(page.getByRole('heading', {name: '已同意连接'})).toBeVisible();
+  const result = await client('connections/' + original.id);
+  expect(await client('sessions/' + result.sessionId)).toMatchObject({
+    connectionId: original.id, account: first, chainId: '0x47', wallet: {name: 'Simulated Wallet'},
+  });
 });
 
 test('CLI recovers the original request after a service stop and explicitly cancels it', async () => {

@@ -25,6 +25,8 @@ wallet-bridge connect --chain-id 71 --client-name "Example CLI" --intent "核对
 
 命令会确保本地服务就绪，打印普通请求链接并请求打开默认浏览器。在页面核对并同意后，终端输出钱包、账户、chainId 和 Session ID。按 Ctrl+C 可结束本地等待（退出码 130），原链接在原五分钟期限内仍可使用。打开浏览器失败时可手动打开输出的链接，按原 ID 查询。
 
+上例的「目标网络」应显示 `Conflux eSpace Testnet · 0x47`。传入 `--chain-name` 时优先显示调用方给出的名称和 chainId。省略名称且网络未知时，页面只显示 chainId。
+
 脚本可以组合两个选项，自行打开链接和查询结果：
 
 ```sh
@@ -53,7 +55,7 @@ npm --prefix web run bundle
 npm --prefix web run test:e2e:chrome -- connection-page.spec.ts
 ```
 
-预期输出 `3 passed`。独立 CLI 在同意后返回固定绑定，在拒绝后以 1 退出。异步请求可在测试服务停机后按原 ID 查询和取消。测试使用模拟钱包，结束时停止隔离服务并清理临时目录。
+预期输出 `5 passed`。测试覆盖网络名称的显示顺序、拒绝后重试、切链不支持时手动恢复、同意前账户或网络变化，以及显式拒绝和服务重启。独立 CLI 在用户确认后返回最终绑定。测试使用模拟钱包，结束时停止隔离服务并清理临时目录。
 
 ## 用 CLI 管理已有连接
 
