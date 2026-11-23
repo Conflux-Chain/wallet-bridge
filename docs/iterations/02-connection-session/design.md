@@ -248,6 +248,14 @@ CLI 与 MCP 可在提交前调用 `client.NewConnectionID`，为一次逻辑连�
 
 成功读取或变更返回 0，包括已关闭的历史记录。JSON 模式向 stdout 写一条 HTTP 结果，操作失败向 stderr 写稳定的错误对象并返回 1。参数错误沿用 CLI 约定，显示用法并返回 2。创建连接、打开链接和等待结果在 PR 2-5b 交付。
 
+### PR 2-5b：CLI 发起连接
+
+`connect --chain-id <id>` 接受十进制或十六进制字符串，以及可选的调用方名称、用途和网络名称。服务就绪后创建请求。创建响应不确定时，CLI 用相同 ID 和参数再提交一次。只有 pending 请求需要打开页面，轮询始终使用原 ID。
+
+等待时先将 ID、普通链接及期限写到 stderr，stdout 留给最终结果。`--json` 下每条记录为一个 JSON 对象。成功时核对 Session 的连接 ID、网络和有效状态。`--no-wait` 将请求快照直接写入 stdout。打开失败时返回原链接，调用方可手动继续。
+
+成功返回 0，用法错误返回 2，用户中断等待返回 130。拒绝、请求取消、到期及服务操作失败返回 1，错误码标明原因。D-039、D-041 见 [spec](spec.md#已确认与沿用)。
+
 ## 规范依据
 
 - [EIP-6963](https://eips.ethereum.org/EIPS/eip-6963)：多 Provider 发现、UUID／rdns 与图标边界。

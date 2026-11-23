@@ -15,6 +15,24 @@ npm --prefix web run try:connection
 
 命令构建独立程序并使用临时数据目录。两次测试结束后自动停止测试服务并清理，提前停止按 Ctrl+C。若端口已占用，先确认占用服务，再按[本地服务指南](local-service.md)处理。需要反馈时提供钱包与 Chrome 版本、操作步骤和核对结果，授权链接留在本机。
 
+## 用 CLI 发起连接
+
+使用包含页面的本机程序。下例用 `wallet-bridge` 代表构建后的可执行文件。首次使用时运行 `wallet-bridge ui`，在装有钱包的浏览器配置中完成 Bridge 管理页授权。
+
+```sh
+wallet-bridge connect --chain-id 71 --client-name "Example CLI" --intent "核对本次使用的账户"
+```
+
+命令会确保本地服务就绪，打印普通请求链接并请求打开默认浏览器。在页面核对并同意后，终端输出钱包、账户、chainId 和 Session ID。按 Ctrl+C 可结束本地等待（退出码 130），原链接在原五分钟期限内仍可使用。打开浏览器失败时可手动打开输出的链接，按原 ID 查询。
+
+脚本可以组合两个选项，自行打开链接和查询结果：
+
+```sh
+wallet-bridge connect --chain-id 0x47 --no-open --no-wait --json
+```
+
+stdout 返回一个 JSON 对象，其中 `id`、`url`、`state`、`expiresAt` 可直接使用。等待模式先将请求信息写入 stderr，成功时 stdout 的 JSON 还含 `session`。用户拒绝、显式取消或到期时退出码为 1，stderr 的最后一条 JSON 给出错误码。省略 `--client-name` 时页面显示「Wallet Bridge CLI」。用完可通过下方管理命令关闭 Session，停止服务使用 `wallet-bridge service stop`。
+
 ## 跨标签页找回请求
 
 沿用上述环境，在仓库根目录运行：
@@ -35,7 +53,7 @@ npm --prefix web run bundle
 npm --prefix web run test:e2e:chrome -- connection-page.spec.ts
 ```
 
-预期输出 `3 passed`。其中一个用例先停止测试服务，再用独立 CLI 查询原请求、核对期限并显式取消。另一个用例在页面同意后，通过 CLI 核对固定绑定、关闭 Session 并查询历史。测试使用模拟钱包，结束时停止隔离服务并清理临时目录。
+预期输出 `3 passed`。独立 CLI 在同意后返回固定绑定，在拒绝后以 1 退出。异步请求可在测试服务停机后按原 ID 查询和取消。测试使用模拟钱包，结束时停止隔离服务并清理临时目录。
 
 ## 用 CLI 管理已有连接
 

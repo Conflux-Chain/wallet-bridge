@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：共用 Go client 已合并，PR 2-5a「CLI 管理已有连接和 Session」待评审。PR 入口及证据见 plan。
+- 当前步骤：CLI 管理命令已合并，PR 2-5b「CLI 发起连接」待评审。PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-PR 2-5b 将接入 CLI 发起连接，细化打开链接、异步返回与等待结果的选项，并验证 Ctrl+C 保留原请求。
+PR 2-7 按验收场景汇总 CLI、服务、页面与钱包组合结果，并记录需要用户或原生环境补验的项目。
 
 ## 4. 验证记录
 

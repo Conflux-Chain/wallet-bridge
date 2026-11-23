@@ -36,7 +36,7 @@ npm ci --prefix web
 
 运行 `npm --prefix web run try:connection`，按终端提示用 MetaMask 与 Fluent 分别建立一次连接。前置条件、操作、核对及清理见[首次钱包连接指南](docs/first-connection.md)。
 
-已有请求和 Session 可通过 CLI 查询、取消或关闭。[命令示例](docs/first-connection.md#用-cli-管理已有连接) · [独立程序与模拟钱包回归](docs/first-connection.md#模拟钱包回归)
+使用 `wallet-bridge connect --chain-id 71` 发起连接，可等待用户确认或异步返回。已有请求和 Session 可按 ID 管理。[发起连接](docs/first-connection.md#用-cli-发起连接) · [查询、取消与关闭](docs/first-connection.md#用-cli-管理已有连接) · [独立程序与模拟钱包回归](docs/first-connection.md#模拟钱包回归)
 
 ### 页面预览
 
