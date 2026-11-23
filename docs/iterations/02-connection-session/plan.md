@@ -21,7 +21,7 @@
 | PR 2-4a：client HTTP | 创建／查询／取消连接、访问／关闭 Session；同步 Swagger | 服务凭据、ID 重试、期限、历史及错误映射 | [#27](https://github.com/Conflux-Chain/wallet-bridge/pull/27) 已合并 |
 | PR 2-4b1：浏览器执行协调 HTTP | 请求／执行读取、领取／心跳／中断／恢复；同步 Swagger | cookie／Origin、主体填入、重放及恢复后旧执行失效 | [#28](https://github.com/Conflux-Chain/wallet-bridge/pull/28) 已合并 |
 | PR 2-4b2：浏览器交接与决定 HTTP | 钱包调用交接／回报、受归属保护的同意／拒绝；同步 Swagger | 丢包不重入、终态竞争与权限、唯一 Session | [#29](https://github.com/Conflux-Chain/wallet-bridge/pull/29) 已合并 |
-| PR 2-6a：首次连接页面 | 用现有 HTTP 创建请求，页面展示调用方／网络，选择钱包及账户，确认后由 client 核对固定绑定 | 模拟页面流程，随后用 MetaMask、Fluent EVM 各完成一次真实连接并记录结果 | 待评审及钱包实测 |
+| PR 2-6a：首次连接页面 | 用现有 HTTP 创建请求，页面展示调用方／网络，选择钱包及账户，确认后由 client 核对固定绑定 | 模拟页面流程，随后用 MetaMask、Fluent EVM 各完成一次真实连接并记录结果 | [#30](https://github.com/Conflux-Chain/wallet-bridge/pull/30) 待评审及钱包实测 |
 | PR 2-6b：连接中断与找回 | 已授权页面可定位占用钱包的请求，展示进度并引导手动继续 | 同一 Chrome 配置双标签页：A 等待钱包后关闭，从 B 找回 A，核对迟到结果和实际调用次数 | 待开发 |
 | PR 2-4c：共用 Go client | 封装连接／Session HTTP，供后续 CLI／MCP 使用 | 能力检查、ID 重试、错误及机器可读结果 | 待开发 |
 | PR 2-5：CLI | 连接、请求查询／取消、Session 查询／关闭及 ID 使用 | 实际程序、等待／取消／输出边界、敏感信息保护 | 待开发 |
