@@ -236,6 +236,12 @@ EIP-6963 的 UUID 只区分当前页面中的 Provider 会话；`rdns` 用于跨
 - 页面中断后，用户先处理已有钱包弹窗，再明确继续。有效请求重新选择钱包，终态请求只解除等待。解除后回到等待页可重新检查并主动开始。
 - 使用同一 Chrome 配置中的多个标签页验证原页面关闭、原调用迟到及终态释放，记录实际 Provider 调用次数。
 
+### PR 2-4c：共用 Go client
+
+CLI 与 MCP 可在提交前调用 `client.NewConnectionID`，为一次逻辑连接保留同一份创建参数。`CreateConnection` 每次提交一次，响应中断时调用方可以按原 ID 查询或原样重试（D-035）。等待、重试次数及退出行为由各入口决定。
+
+`GetConnection`、`CancelConnection`、`GetSession` 与 `CloseSession` 复用 PR 2-4a 的 HTTP 类型和状态。每次调用通过同一条 TCP 连接验证 API 1.3+ 与 `connections.lifecycle` 后发送服务凭据。返回前核对资源 ID、状态及关联字段，HTTP 失败提供稳定错误码。
+
 ## 规范依据
 
 - [EIP-6963](https://eips.ethereum.org/EIPS/eip-6963)：多 Provider 发现、UUID／rdns 与图标边界。

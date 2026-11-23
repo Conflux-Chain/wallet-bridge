@@ -29,6 +29,16 @@ go test -tags no_web ./... -count=1
 go vet -tags no_web ./...
 ```
 
+## 共用 Go 客户端验证
+
+在仓库根目录使用上述 Go 环境运行。测试通过随机端口访问临时服务，结束时自动关闭服务并清理 SQLite 数据。
+
+```sh
+go test -tags no_web ./internal/client -run '^TestConnectionClient' -count=1 -v
+```
+
+预期五组测试均显示 `PASS`。其中一组在创建请求提交后断开响应，再用原 ID 查询并重试，核对原内容、状态和期限。其余检查覆盖 Session 固定绑定和关闭历史、发送凭据前的能力检查、调用中止、无效响应与错误码。Session 的测试绑定由核心方法创建。
+
 ## 浏览器执行协调 HTTP 验证
 
 前置条件及工作目录同上，无需服务、浏览器或钱包：
