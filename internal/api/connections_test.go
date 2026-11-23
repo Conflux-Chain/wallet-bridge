@@ -17,27 +17,11 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 )
 
-type connectionHTTPFixture struct {
-	browserFixture
-	core *app.ConnectionService
-}
+type connectionHTTPFixture struct{ browserFixture }
 
 func newConnectionHTTPFixture(t *testing.T, dir string) connectionHTTPFixture {
 	t.Helper()
-	f := newBrowserFixture(t, dir)
-	authorization, err := app.NewBrowserAuthorization(f.database)
-	if err != nil {
-		t.Fatal(err)
-	}
-	core, err := app.NewConnectionService(f.database)
-	if err != nil {
-		t.Fatal(err)
-	}
-	f.handler, err = New(Config{Version: "test", ServiceToken: serviceFixture, Stop: func() { t.Error("unexpected service stop") }, BrowserAuthorization: authorization, Connections: core})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return connectionHTTPFixture{f, core}
+	return connectionHTTPFixture{newBrowserFixture(t, dir)}
 }
 
 func connectionHTTPInput(index int) ConnectionCreateRequest {

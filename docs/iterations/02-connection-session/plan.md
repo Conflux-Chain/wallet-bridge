@@ -1,6 +1,6 @@
 # 迭代 2 PR 计划
 
-状态：2026-11-23 PR 2-0～2-4b2 已合并，当前开发首次连接页面。沿用 [spec](spec.md)、[design](design.md)。
+状态：2026-11-23 首次连接页面已合并，请求找回待评审。沿用 [spec](spec.md)、[design](design.md)。
 
 ## 分步交付
 
@@ -21,8 +21,8 @@
 | PR 2-4a：client HTTP | 创建／查询／取消连接、访问／关闭 Session；同步 Swagger | 服务凭据、ID 重试、期限、历史及错误映射 | [#27](https://github.com/Conflux-Chain/wallet-bridge/pull/27) 已合并 |
 | PR 2-4b1：浏览器执行协调 HTTP | 请求／执行读取、领取／心跳／中断／恢复；同步 Swagger | cookie／Origin、主体填入、重放及恢复后旧执行失效 | [#28](https://github.com/Conflux-Chain/wallet-bridge/pull/28) 已合并 |
 | PR 2-4b2：浏览器交接与决定 HTTP | 钱包调用交接／回报、受归属保护的同意／拒绝；同步 Swagger | 丢包不重入、终态竞争与权限、唯一 Session | [#29](https://github.com/Conflux-Chain/wallet-bridge/pull/29) 已合并 |
-| PR 2-6a：首次连接页面 | 用现有 HTTP 创建请求，页面展示调用方／网络，选择钱包及账户，确认后由 client 核对固定绑定 | 模拟页面流程，随后用 MetaMask、Fluent EVM 各完成一次真实连接并记录结果 | [#30](https://github.com/Conflux-Chain/wallet-bridge/pull/30) 待评审及钱包实测 |
-| PR 2-6b：连接中断与找回 | 已授权页面可定位占用钱包的请求，展示进度并引导手动继续 | 同一 Chrome 配置双标签页：A 等待钱包后关闭，从 B 找回 A，核对迟到结果和实际调用次数 | 待开发 |
+| PR 2-6a：首次连接页面 | 用现有 HTTP 创建请求，页面展示调用方／网络，选择钱包及账户，确认后由 client 核对固定绑定 | 模拟页面流程，随后用 MetaMask、Fluent EVM 各完成一次真实连接并记录结果 | [#30](https://github.com/Conflux-Chain/wallet-bridge/pull/30) 已合并，双钱包首次连接人工通过 |
+| PR 2-6b：连接中断与找回 | 已授权页面可定位占用钱包的请求，展示进度并引导手动继续 | 同一 Chrome 配置双标签页：A 等待钱包后关闭，从 B 找回 A，核对迟到结果和实际调用次数 | 待评审 |
 | PR 2-4c：共用 Go client | 封装连接／Session HTTP，供后续 CLI／MCP 使用 | 能力检查、ID 重试、错误及机器可读结果 | 待开发 |
 | PR 2-5：CLI | 连接、请求查询／取消、Session 查询／关闭及 ID 使用 | 实际程序、等待／取消／输出边界、敏感信息保护 | 待开发 |
 | PR 2-7：组合验收 | 三平台组合与 MetaMask／Fluent 连接验收、交接资料 | A-04～07、11～12、16～17；明确模拟、实际环境及用户验收 | 待开发 |
@@ -160,4 +160,9 @@ PR 2-0：23 份 Markdown 的 170 个本地链接、53 个标题锚点及 Git 空
 ### PR 2-6a
 
 - 普通请求链接展示调用方、用途及实际网络／账户，页面在最终确认前复核固定 Provider。Windows Chrome 的 13 个服务页面用例和 9 个钱包发现用例通过，覆盖钱包拒绝后原期限、切链、网络悄然变化、单账户确认及显式拒绝。
-- [首次连接指南](../../first-connection.md)的验收命令已在 Windows Chrome 用模拟钱包连续跑完两个请求，client 核对绑定并正常清理测试服务。MetaMask、Fluent EVM 真实连接及用户验收待补。
+- [首次连接指南](../../first-connection.md)的验收命令已在 Windows Chrome 用模拟钱包连续跑完两个请求，client 核对绑定并正常清理测试服务。2026-11-23 用户反馈“验证通过”，确认 MetaMask、Fluent EVM 首次连接人工通过。Chrome／钱包具体版本与异常分支未单独报告。PR #30 合并为 `aa0ea77`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45106980781) 通过。
+
+### PR 2-6b
+
+- 管理首页与等待页可在新标签页打开占用钱包的请求。服务状态复用持久化执行阶段，返回的请求 ID 可定位到原页面。
+- Windows Chrome 用模拟钱包连续三轮跑通两项跨页用例，覆盖正常观察、关闭原页后显式继续、取消后解除等待，以及迟到回报。Go 测试覆盖取消、过期、重启后的定位和释放。[本地复现](../../first-connection.md#跨标签页找回请求)

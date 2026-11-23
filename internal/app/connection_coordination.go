@@ -37,6 +37,13 @@ func (a *ConnectionService) Execution(ctx context.Context, browser BrowserGrant,
 	return a.store.GetConnectionExecution(ctx, id)
 }
 
+func (a *ConnectionService) OccupiedExecution(ctx context.Context, browser BrowserGrant) (ConnectionExecution, error) {
+	if !connectionID(browser.ID) {
+		return ConnectionExecution{}, ErrInvalidBrowserCredential
+	}
+	return a.store.GetOccupiedExecution(ctx)
+}
+
 func (a *ConnectionService) ClaimExecution(ctx context.Context, browser BrowserGrant, input ConnectionExecutionInput) (ConnectionExecution, error) {
 	ref, err := executionRef(browser, input)
 	if err != nil {

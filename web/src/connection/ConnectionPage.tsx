@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { connectionAPI, ConnectionError, newID, type Connection, type Execution } from '../api/connections';
+import type { WalletOperation } from '../api/browser';
+import { WalletOperationNotice } from './WalletOperationNotice';
 import { WalletDiscovery, type DiscoveredWallet } from '../wallet/discovery';
 import { WalletPicker } from '../wallet/WalletPicker';
 import { walletState } from '../wallet/state';
@@ -10,7 +12,6 @@ function errorMessage(error: unknown) {
   if (error instanceof ConnectionError) {
     const messages: Record<string, string> = {
       wallet_changed: '钱包状态已改变，请重新读取账户和网络。',
-      wallet_busy: '另一个请求正在使用钱包，请等当前操作结束后重试。',
       execution_conflict: '执行状态已改变，请重新核对请求进度。',
       connection_conflict: '请求状态已改变，请核对最新结果。',
       connection_not_found: '找不到这个连接请求，请核对原链接。',
@@ -24,7 +25,13 @@ function errorMessage(error: unknown) {
   return '暂时无法确认结果。请检查钱包和本机服务，再重新读取进度。';
 }
 
-export function ConnectionPage({ id }: { id: string }) {
+interface ConnectionPageProps {
+  id: string;
+  operation?: WalletOperation;
+  refreshStatus: () => Promise<void>;
+}
+
+export function ConnectionPage({ id, operation, refreshStatus }: ConnectionPageProps) {
   const [discovery] = useState(() => new WalletDiscovery(window));
   const { wallets, selectedId } = useSyncExternalStore(discovery.subscribe, discovery.getSnapshot);
   const wallet = wallets.find((item) => item.id === selectedId);
@@ -107,7 +114,16 @@ export function ConnectionPage({ id }: { id: string }) {
     setBusy(true);
     setMessage('');
     try { await action(); }
-    catch (error) { if (live.current) setMessage(errorMessage(error)); }
+    catch (error) {
+      if (live.current) {
+        if (error instanceof ConnectionError && error.code === 'wallet_busy') {
+          own.current = '';
+          await refreshStatus();
+        } else {
+          setMessage(errorMessage(error));
+        }
+      }
+    }
     finally {
       if (live.current) await refresh();
       op.current = false;
@@ -178,17 +194,21 @@ export function ConnectionPage({ id }: { id: string }) {
     }
     const replacement = newID();
     own.current = replacement; // A lost response can be reconciled by observing this ID.
-    const next = await connectionAPI<Execution>(id, '/execution/recover', { id: replacement, previousId: execution.id });
-    own.current = next.phase === 'ready' ? next.id : '';
     previousCall.current = '';
     setAccount('');
     setSnapshot(undefined);
     discovery.clearSelection();
+    const next = await connectionAPI<Execution>(id, '/execution/recover', { id: replacement, previousId: execution.id });
+    own.current = next.phase === 'ready' ? next.id : '';
     setExecution(next);
   }
 
   const pending = request?.state === 'pending' && Date.parse(request.expiresAt) > Date.now();
-  const available = !execution || execution.id === own.current && execution.phase === 'ready';
+  const blocker = operation?.connectionId !== id ? operation : undefined;
+  const available = !blocker && (!execution || execution.id === own.current && execution.phase === 'ready');
+  const interrupted = execution?.phase === 'interrupted_ready' || execution?.phase === 'interrupted_calling';
+  const canResume = interrupted || execution?.phase === 'calling' && execution.id === own.current;
+  const recoveryAction = pending ? '已处理原钱包弹窗，继续连接' : '已处理原钱包弹窗，解除等待';
   return <main className="connection-page">
     <header><h1>连接钱包</h1></header>
     {request && <section aria-label="连接请求">
@@ -199,6 +219,7 @@ export function ConnectionPage({ id }: { id: string }) {
         <div><dt>有效期至</dt><dd>{new Date(request.expiresAt).toLocaleTimeString()}</dd></div>
       </dl>
     </section>}
+    {pending && blocker && <WalletOperationNotice operation={blocker} />}
     {pending && available && <WalletPicker discovery={discovery} disabled={busy} />}
     <section aria-label="连接操作" aria-busy={busy}>
       {!!request && !pending && <h2>{request.state === 'pending' ? '连接请求已到期' : terminal[request.state]}</h2>}
@@ -223,10 +244,12 @@ export function ConnectionPage({ id }: { id: string }) {
           setRequest(result);
         })}>拒绝本次连接</button>
       </>}
-      {execution && !busy && (execution.phase.startsWith('interrupted_') || execution.id === own.current && execution.phase === 'calling') && <button onClick={() => void perform(resume)}>已处理原钱包弹窗，继续</button>}
-      {pending && !available && <p>{execution?.phase.includes('calling') ? '正在等待钱包操作结束。' : '此请求已有连接操作，请在原页面核对进度。'}</p>}
+      {request && canResume && !blocker && !busy && <button onClick={() => void perform(resume)}>
+        {execution?.phase === 'interrupted_ready' ? '继续连接' : recoveryAction}
+      </button>}
+      {pending && !available && !blocker && <p>{execution?.phase.includes('calling') ? '正在等待钱包操作结束。' : '此请求已有连接操作，请在原页面核对进度。'}</p>}
       <p role="status">{message || (busy ? '正在处理…' : !request ? '正在读取请求…' : '')}</p>
-      <button className="secondary" disabled={busy} onClick={() => void refresh()}>重新检查请求</button>
+      <button className="secondary" disabled={busy} onClick={() => { setMessage(''); void refreshStatus(); void refresh(); }}>重新检查请求</button>
     </section>
     <a href="/">浏览器授权管理</a>
   </main>;

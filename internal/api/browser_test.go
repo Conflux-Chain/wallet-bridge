@@ -21,6 +21,7 @@ import (
 )
 
 type browserFixture struct {
+	core     *app.ConnectionService
 	database *store.Store
 	handler  http.Handler
 	dir      string
@@ -40,7 +41,11 @@ func newBrowserFixture(t *testing.T, dir string) browserFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return browserFixture{database: database, handler: testHandler(t, func() { t.Error("browser test stopped the service") }, core), dir: dir}
+	connections, err := app.NewConnectionService(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return browserFixture{core: connections, database: database, handler: testHandlerWithCores(t, func() { t.Error("browser test stopped the service") }, core, connections), dir: dir}
 }
 
 func (f browserFixture) request(t *testing.T, method, path, body string, headers map[string]string, expected int) *httptest.ResponseRecorder {

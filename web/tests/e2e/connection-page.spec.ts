@@ -1,22 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { authorize, origin } from './bridge';
+import { authorize, connectionClient as client } from './bridge';
 
 const first = '0x' + '1'.repeat(40);
 const second = '0x' + '2'.repeat(40);
-
-async function client(path: string, body?: object) {
-  const key = await readFile(join(process.env.WALLET_BRIDGE_TEST_DATA!, 'client.key'), 'utf8');
-  const response = await fetch(origin + '/api/v1/' + path, {
-    method: body ? 'POST' : 'GET', redirect: 'error',
-    headers: { Authorization: 'Bearer ' + key.trim(), 'Content-Type': 'application/json' },
-    body: body && JSON.stringify(body),
-  });
-  expect(response.status).toBe(200);
-  return response.json();
-}
 
 async function review(page: Page) {
   await page.addInitScript(({ first, second }) => {

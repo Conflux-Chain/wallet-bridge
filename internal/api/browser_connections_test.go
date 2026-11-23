@@ -340,6 +340,21 @@ func TestBrowserConnectionHTTPWalletWaiting(t *testing.T) {
 			if waiting.Phase != "interrupted_calling" || waiting.CallID != call.CallID {
 				t.Fatal("waiting lost", waiting)
 			}
+			status := func(headers map[string]string) StatusResponse {
+				t.Helper()
+				return responseJSON[StatusResponse](t, f.request(t, "GET", "/api/v1/status", "", headers, 200))
+			}
+			observer, _ := seedBrowserCookie(t, f, 2, now.Add(-24*time.Hour))
+			op := status(browserHeaders(observer)).WalletOperation
+			if op == nil || op.ConnectionID != r.ID || op.Phase != "interrupted_calling" {
+				t.Fatal("authorized observer could not locate outstanding wallet call", op)
+			}
+			if status(controlHeaders()).WalletOperation != nil {
+				t.Fatal("client status included browser wallet operation")
+			}
+			if observed := responseJSON[ConnectionExecutionResponse](t, f.execution(t, cookie, r.ID, "", "", "", 200)); observed != waiting {
+				t.Fatal("status read changed execution", observed)
+			}
 			other := f.create(t, connectionHTTPInput(1))
 			newID := fmt.Sprintf("%032x", 501)
 			w = f.execution(t, cookie, other.ID, "claim", fmt.Sprintf("%032x", 502), "", 409)
@@ -357,7 +372,13 @@ func TestBrowserConnectionHTTPWalletWaiting(t *testing.T) {
 			} else if recovered.Phase != "finished" || recovered.ID != ref.ID {
 				t.Fatal("terminal recovery created a new execution", recovered)
 			}
+			if status(browserHeaders(observer)).WalletOperation != nil {
+				t.Fatal("released slot still advertised an occupied request")
+			}
 			f.execution(t, cookie, other.ID, "claim", fmt.Sprintf("%032x", 502), "", 200)
+			if op := status(browserHeaders(observer)).WalletOperation; op == nil || op.ConnectionID != other.ID || op.Phase != "ready" {
+				t.Fatal("status did not switch to the new occupant", op)
+			}
 			current, err := f.database.GetConnectionRequest(context.Background(), r.ID)
 			if err != nil || current.SessionID != "" || !current.ExpiresAt.Equal(r.ExpiresAt) {
 				t.Fatal("recovery created Session or reset deadline", current, err)

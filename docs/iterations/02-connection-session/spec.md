@@ -1,6 +1,6 @@
 # 迭代 2：连接钱包与 Session
 
-状态：2026-11-23 PR 2-1～2-4b2 已合并，首次连接页面待评审及真实钱包验收。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
+状态：2026-11-23 首次连接页面已合并，用户已确认双钱包首次连接通过，当前开发请求找回。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
 
 ## 目标与边界
 

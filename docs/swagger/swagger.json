@@ -7,7 +7,7 @@
         "description": "Local service access, browser authorization, client connection/Session lifecycle and browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.5"
+        "version": "1.6"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -1891,6 +1891,7 @@
                         "BrowserCookie": []
                     }
                 ],
+                "description": "With an active browser cookie, the optional walletOperation identifies the connection occupying the wallet slot. Reading status does not renew or acquire an execution. Service Bearer responses omit browser-specific data.",
                 "produces": [
                     "application/json"
                 ],
@@ -1940,7 +1941,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 4
+                    "example": 6
                 }
             }
         },
@@ -2253,7 +2254,8 @@
                         "service.auth.shared",
                         "connections.lifecycle",
                         "browser.connections.coordination",
-                        "browser.connections.decisions"
+                        "browser.connections.decisions",
+                        "browser.wallet-operation"
                     ]
                 },
                 "challenge": {
@@ -2332,6 +2334,9 @@
                 "state": {
                     "type": "string",
                     "example": "running"
+                },
+                "walletOperation": {
+                    "$ref": "#/definitions/api.WalletOperationResponse"
                 }
             }
         },
@@ -2341,6 +2346,22 @@
                 "state": {
                     "type": "string",
                     "example": "stopping"
+                }
+            }
+        },
+        "api.WalletOperationResponse": {
+            "type": "object",
+            "properties": {
+                "connectionId": {
+                    "type": "string"
+                },
+                "phase": {
+                    "type": "string",
+                    "enum": [
+                        "ready",
+                        "calling",
+                        "interrupted_calling"
+                    ]
                 }
             }
         },
