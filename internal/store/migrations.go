@@ -132,6 +132,27 @@ CREATE TABLE transaction_requests (
     expires_at INTEGER NOT NULL CHECK (expires_at - created_at = 300000)
 );
 CREATE INDEX transaction_requests_by_session ON transaction_requests (session_id);
+`, `
+ALTER TABLE transaction_requests ADD COLUMN state TEXT NOT NULL DEFAULT 'pending'
+    CHECK (state IN ('pending', 'canceled', 'expired'));
+ALTER TABLE transaction_requests ADD COLUMN finished_at INTEGER
+    CHECK ((state = 'pending' AND finished_at IS NULL) OR
+           (state = 'expired' AND finished_at IS NOT NULL AND finished_at = expires_at) OR
+           (state = 'canceled' AND finished_at IS NOT NULL AND finished_at >= created_at AND finished_at < expires_at));
+CREATE INDEX transaction_requests_by_deadline ON transaction_requests (expires_at) WHERE state = 'pending';
+
+UPDATE transaction_requests SET
+    state = CASE WHEN expires_at <= s.closed_at THEN 'expired' ELSE 'canceled' END,
+    finished_at = min(expires_at, max(transaction_requests.created_at, s.closed_at))
+FROM sessions AS s WHERE session_id = s.id AND s.closed_at IS NOT NULL;
+
+CREATE TRIGGER close_session_transactions AFTER UPDATE OF closed_at ON sessions
+WHEN OLD.closed_at IS NULL AND NEW.closed_at IS NOT NULL BEGIN
+    UPDATE transaction_requests SET
+        state = CASE WHEN expires_at <= NEW.closed_at THEN 'expired' ELSE 'canceled' END,
+        finished_at = min(expires_at, max(created_at, NEW.closed_at))
+    WHERE session_id = NEW.id AND state = 'pending';
+END;
 `}
 
 func migrate(ctx context.Context, db *sql.DB, steps []string) error {

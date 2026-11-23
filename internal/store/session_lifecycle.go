@@ -45,7 +45,21 @@ func updateSessionInTx(ctx context.Context, tx *sql.Tx, id string, now time.Time
 		return session, nil
 	}
 	expires := session.LastAccessAt.Add(app.SessionIdleLifetime)
-	if !now.Before(expires) {
+	idle := !now.Before(expires)
+	if idle {
+		var protected bool
+		err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM transaction_requests
+WHERE session_id = ? AND state = 'pending' AND expires_at > ?)`, id, now.UnixMilli()).Scan(&protected)
+		if err != nil {
+			return app.Session{}, err
+		}
+		idle = !protected
+	}
+	if idle {
+		// Materialize overdue requests before the Session closure trigger runs.
+		if _, err := tx.ExecContext(ctx, expireDueTransactions+" AND session_id = ?", now.UnixMilli(), id); err != nil {
+			return app.Session{}, err
+		}
 		session.ClosedAt = &expires
 	} else if closeSession {
 		// A clock adjustment must not put closure before the last client access.
@@ -94,14 +108,21 @@ WHERE state = 'pending' AND expires_at <= ?`, now.UnixMilli())
 	if err != nil {
 		return app.ConnectionExpiryCounts{}, err
 	}
-	// Creating a transaction renews its Session through the request deadline.
-	// Wallet handoff must also protect calls that outlive that deadline.
+	transactions, err := tx.ExecContext(ctx, expireDueTransactions, now.UnixMilli())
+	if err != nil {
+		return app.ConnectionExpiryCounts{}, err
+	}
 	sessions, err := tx.ExecContext(ctx, `UPDATE sessions SET closed_at = last_access_at + ?
-WHERE closed_at IS NULL AND last_access_at <= ?`, app.SessionIdleLifetime.Milliseconds(), now.UnixMilli()-app.SessionIdleLifetime.Milliseconds())
+WHERE closed_at IS NULL AND last_access_at <= ? AND NOT EXISTS
+(SELECT 1 FROM transaction_requests WHERE session_id = sessions.id AND state = 'pending')`,
+		app.SessionIdleLifetime.Milliseconds(), now.UnixMilli()-app.SessionIdleLifetime.Milliseconds())
 	if err != nil {
 		return app.ConnectionExpiryCounts{}, err
 	}
 	var counts app.ConnectionExpiryCounts
+	if counts.TransactionRequests, err = transactions.RowsAffected(); err != nil {
+		return app.ConnectionExpiryCounts{}, err
+	}
 	if counts.ConnectionRequests, err = connections.RowsAffected(); err != nil {
 		return app.ConnectionExpiryCounts{}, err
 	}

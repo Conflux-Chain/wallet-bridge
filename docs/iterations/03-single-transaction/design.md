@@ -42,3 +42,19 @@ go test -tags no_web ./internal/store -run '^TestTransactionRequest' -count=1 -v
 ```
 
 预期迁移与重试、提交回滚与空闲到期、双连接并发创建三组均通过。命令使用临时 SQLite 数据库，结束后自动清理，无需启动本机服务。
+
+## PR 3-3 交接前的生命周期
+
+schema v6 保存 `pending`、`canceled`、`expired` 和完成时间。v5 已关闭 Session 的交易按关闭时间与原期限回填。启动和周期维护先处理到期交易，再回收空闲 Session。SQLite 在 Session 关闭的同一事务内逐笔结束仍待处理的交易，任何一步失败都会整体回滚。
+
+查询在观察到期限时进入写事务，再读一次最新决定。创建重试、取消和查询返回相同终态，即使服务重启或时钟回拨也保留完成时间。
+
+### 取消与到期测试
+
+在 Windows 或 macOS 的仓库根目录，用 [go.mod](../../../go.mod) 指定的 Go 运行：
+
+```sh
+go test -tags no_web ./internal/store -run '^TestTransactionLifecycle' -count=1 -v
+```
+
+预期五组测试通过，覆盖期限边界、关闭回滚、并发创建与关闭、未完成请求保护 Session 及 v5 数据恢复。命令使用临时 SQLite，退出时自动清理，无需启动服务。

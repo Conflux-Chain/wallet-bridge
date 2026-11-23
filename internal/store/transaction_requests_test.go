@@ -90,7 +90,9 @@ func TestTransactionRequestMigrationAndReplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, err := s.CreateTransactionRequest(ctx, input, created.ExpiresAt.Add(time.Hour)); err != nil || got != created {
+	if got, err := s.CreateTransactionRequest(ctx, input, created.ExpiresAt.Add(time.Hour)); err != nil ||
+		got.State != app.TransactionCanceled || got.FinishedAt == nil || !got.FinishedAt.Equal(*closed.ClosedAt) ||
+		got.Transaction != created.Transaction || !got.ExpiresAt.Equal(created.ExpiresAt) {
 		t.Fatal("historical replay", got, err)
 	}
 	assertSessionUnchanged(t, s, closed)
@@ -121,7 +123,7 @@ CREATE TRIGGER fail_create AFTER INSERT ON transaction_requests BEGIN INSERT INT
 		t.Fatal("failed commit returned success", got, err)
 	}
 	assertSessionUnchanged(t, s, session)
-	if _, err := s.GetTransactionRequest(ctx, input.ID); !errors.Is(err, app.ErrTransactionRequestNotFound) {
+	if _, err := s.GetTransactionRequest(ctx, input.ID, now); !errors.Is(err, app.ErrTransactionRequestNotFound) {
 		t.Fatal("failed commit left a record", err)
 	}
 	if _, err := s.db.Exec("DROP TRIGGER fail_create"); err != nil {
@@ -167,7 +169,7 @@ func TestTransactionRequestConcurrentCreation(t *testing.T) {
 	}
 	session.LastAccessAt = a.req.CreatedAt
 	assertSessionUnchanged(t, first, session)
-	if got, err := second.GetTransactionRequest(ctx, input.ID); err != nil || got != a.req {
+	if got, err := second.GetTransactionRequest(ctx, input.ID, a.req.CreatedAt); err != nil || got != a.req {
 		t.Fatal("stored result differs from acknowledged creation", got, err)
 	}
 }
