@@ -8,6 +8,23 @@ import { walletState } from '../wallet/state';
 
 const terminal = { succeeded: '已同意连接', rejected: '已拒绝本次连接', canceled: '调用方已取消连接', expired: '连接请求已到期' };
 
+const networkNames = new Map([
+  ['0x406', 'Conflux eSpace'],
+  ['0x47', 'Conflux eSpace Testnet'],
+  ['0x1', 'Ethereum Mainnet'],
+  ['0xaa36a7', 'Sepolia'],
+  ['0xa', 'OP Mainnet'],
+  ['0x38', 'BNB Smart Chain'],
+  ['0x89', 'Polygon PoS'],
+  ['0x2105', 'Base'],
+  ['0xa4b1', 'Arbitrum One'],
+]);
+
+function targetNetwork({ chainId, chainName }: Connection) {
+  const name = chainName?.trim() || networkNames.get(chainId);
+  return name ? `${name} · ${chainId}` : chainId;
+}
+
 function errorMessage(error: unknown) {
   if (error instanceof ConnectionError) {
     const messages: Record<string, string> = {
@@ -214,7 +231,7 @@ export function ConnectionPage({ id, operation, refreshStatus }: ConnectionPageP
     {request && <section aria-label="连接请求">
       <dl>
         <div><dt>调用方提供的名称</dt><dd>{request.clientName}</dd></div>
-        <div><dt>目标网络</dt><dd>{request.chainName ? request.chainName + ' · ' : ''}{request.chainId}</dd></div>
+        <div><dt>目标网络</dt><dd>{targetNetwork(request)}</dd></div>
         {request.intent && <div><dt>调用方描述</dt><dd>{request.intent}</dd></div>}
         <div><dt>有效期至</dt><dd>{new Date(request.expiresAt).toLocaleTimeString()}</dd></div>
       </dl>

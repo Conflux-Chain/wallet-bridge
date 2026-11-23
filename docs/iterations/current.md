@@ -6,16 +6,16 @@
 
 ## 1. 当前阶段
 
-- 迭代 1 全部 PR 已合并，自动组合验证通过；迭代 2 开始按 PR 分步实现。
+- 迭代 2 已交付通过 CLI／HTTP 连接钱包、确认账户和网络、查询及关闭 Session，进入组合验收。
 
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：CLI 管理命令已合并，PR 2-5b「CLI 发起连接」待评审。PR 入口及证据见 plan。
+- 当前步骤为 PR 2-7「连接与 Session 组合验收」。[验收记录](02-connection-session/acceptance.md)列出各场景的结果与环境缺项。
 
 ## 3. 下一步
 
-PR 2-7 按验收场景汇总 CLI、服务、页面与钱包组合结果，并记录需要用户或原生环境补验的项目。
+评审 PR 2-7 后，按路线图细化迭代 3 的单笔交易需求与 PR 计划。
 
 ## 4. 验证记录
 
