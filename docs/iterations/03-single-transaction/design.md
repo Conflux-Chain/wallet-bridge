@@ -12,3 +12,19 @@
 现有执行槽只约束连接记录；连接与交易分别建唯一索引仍可各占一个槽。改造时须回归已有连接的领取、切链及中断恢复。连接的「手动继续」适用于重新核对钱包，交易已获发送许可后只可恢复结果处理。[连接执行设计](../02-connection-session/design.md) · [现有迁移](../../../internal/store/migrations.go)
 
 Session 回收同时涉及显式访问、关闭、启动恢复和周期维护。接入交易时应从这些入口共同验证未完成请求保护、交接前取消和交接后的结果保留。[现有 Session 存储](../../../internal/store/session_lifecycle_test.go)
+
+## PR 3-1 交易输入
+
+Go 应用层接收具名字符串字段和 Session 绑定，产生可按值比较的交易。地址按 20 字节核对，data 按完整字节处理并保留前导零；整数接受十进制或 `0x` 十六进制，输出规范十六进制。金额及费用按最小单位精确处理，显式零与省略费用分别保留。未知字段及显式空字符串返回字段错误。Session 的活跃状态由 PR 3-2 在创建事务内检查。
+
+目标地址保留调用方提供的大小写。value、gas 和费率接受无符号 256 位整数，chainId 沿用连接层的大整数范围。
+
+### 本地验证
+
+在仓库根目录使用 [go.mod](../../../go.mod) 指定的 Go 运行：
+
+```sh
+go test -tags no_web ./internal/app -run '^TestTransactionInput' -count=1 -v
+```
+
+预期 `TestTransactionInput` 和 `TestTransactionInputErrors` 及其子用例全部通过。测试在内存中校验已有 Session 的绑定与交易字段，命令退出即结束，无需启动服务、安装钱包或清理数据。

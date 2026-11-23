@@ -1,6 +1,6 @@
 # 迭代 3 PR 计划
 
-当前为规划 PR，已核对 31 份 Markdown 的 278 个本地链接和 100 个标题锚点。下列每行是一个可独立评审的交付，按合并后的 `main` 顺序开发。检查点见 [spec](spec.md)，跨组件边界见 [design](design.md)。
+规划 [PR #36](https://github.com/Conflux-Chain/wallet-bridge/pull/36) 已合并为 `30efa4b`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45128899817) 通过。当前为 PR 3-1，交付 Go 交易字段校验与固定绑定核对。检查点见 [spec](spec.md)，跨组件边界见 [design](design.md)。
 
 | 步骤 | 单一交付 | 主要检查 |
 |---|---|---|
@@ -20,3 +20,7 @@
 | 3-13 | 组合验收与指南 | A-07～16、三平台 CI、MetaMask／Fluent EVM 测试网及 client 查链分别留证 |
 
 首个实现 PR 只交付交易输入。真实钱包发送按用户授权执行，逐 PR 在 README 已链接的指南补充可复现步骤。完整交易队列和日志清理按[路线图](../../roadmap.md)在迭代 4 细化。
+
+## PR 3-1 验证
+
+Windows amd64 的交易输入专项、默认及 `no_web` 完整 Go 测试和两种 vet 通过。本机缺少创建符号链接的权限，平台／SQLite 的相关用例跳过。交易校验使用内存中的 Session，钱包调用在后续页面 PR 验证。[本地复现](design.md#本地验证)
