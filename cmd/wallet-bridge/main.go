@@ -23,6 +23,7 @@ func main() {
 	info.UIEmbedded = err == nil && !entry.IsDir()
 	os.Exit(cli.Run(os.Args[1:], cli.Dependencies{
 		BuildInfo:   info,
+		NewClient:   client.New,
 		OpenBrowser: platform.OpenBrowser,
 		BrowserLink: func(dir string) (api.BrowserTicketResponse, error) {
 			c, err := client.New(dir)

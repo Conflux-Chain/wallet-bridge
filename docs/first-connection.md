@@ -35,4 +35,19 @@ npm --prefix web run bundle
 npm --prefix web run test:e2e:chrome -- connection-page.spec.ts
 ```
 
-浏览器测试自动启动及清理隔离服务，验证拒绝后重试、切链、显式选账户、同意前复核和最终拒绝。真实扩展的账户授权与切链由上面的人工步骤验收。
+预期输出 `3 passed`。其中一个用例先停止测试服务，再用独立 CLI 查询原请求、核对期限并显式取消。另一个用例在页面同意后，通过 CLI 核对固定绑定、关闭 Session 并查询历史。测试使用模拟钱包，结束时停止隔离服务并清理临时目录。
+
+## 用 CLI 管理已有连接
+
+构建后使用 `dist/` 下的本机程序。以下用 `wallet-bridge` 代表该可执行文件。将 `<request-id>` 换成普通连接链接中 `?connection=` 后的 ID。若发起方使用了自定义数据目录，各命令附上相同的 `--data-dir <绝对路径>`。
+
+```text
+wallet-bridge connection get <request-id> --json
+wallet-bridge connection cancel <request-id> --json
+wallet-bridge session get <session-id> --json
+wallet-bridge session close <session-id> --json
+```
+
+查询连接可见状态和原期限。待处理时可用 `cancel` 取消；成功后使用结果中的 `sessionId` 查询钱包、账户和网络，或用 `close` 关闭。关闭后再次查询返回 `closed` 和原绑定。查询有效 Session 会刷新五分钟空闲计时。
+
+服务停止时命令会自动启动并恢复数据。省略 `--json` 可查看终端文本。自动化脚本可按退出码区分成功（0）、服务或资源错误（1）、用法错误（2）。要手动停止服务，运行 `wallet-bridge service stop` 并沿用同一数据目录。

@@ -15,6 +15,7 @@ import (
 
 type Dependencies struct {
 	BuildInfo     buildinfo.Info
+	NewClient     func(dataDir string) (*client.Client, error)
 	RunService    func(dataDir string) error
 	ManageService func(action, dataDir string) (client.Status, error)
 	BrowserLink   func(dataDir string) (api.BrowserTicketResponse, error)
@@ -24,7 +25,7 @@ type Dependencies struct {
 }
 
 const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status|stop [--data-dir <absolute path>] [--json]"
-const usage = "Usage: wallet-bridge version [--json]\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage
+const usage = "Usage: wallet-bridge version [--json]\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectionUsage + "\n" + sessionUsage
 
 func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
 	info := dependencies.BuildInfo
@@ -40,6 +41,9 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 	}
 	if args[0] == "browser" {
 		return runBrowser(args[1:], dependencies, stdout, stderr)
+	}
+	if args[0] == "connection" || args[0] == "session" {
+		return runResource(args, dependencies, stdout, stderr)
 	}
 	if args[0] != "version" {
 		fmt.Fprintf(stderr, "Unknown command: %s\n%s\n", args[0], usage)
