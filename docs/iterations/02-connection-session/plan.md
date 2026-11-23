@@ -1,6 +1,6 @@
 # 迭代 2 PR 计划
 
-状态：2026-11-23 连接 CLI 已合并，正在验证本轮连接与 Session 流程。沿用 [spec](spec.md)、[design](design.md)。
+状态：2026-11-23 本轮 PR 全部合并。[验收记录](acceptance.md)列出连接与 Session 的验证结果和待补环境。
 
 ## 分步交付
 
@@ -26,7 +26,7 @@
 | PR 2-4c：共用 Go client | 封装连接／Session HTTP，供后续 CLI／MCP 使用 | 能力检查、ID 重试、错误及机器可读结果 | [#32](https://github.com/Conflux-Chain/wallet-bridge/pull/32) 已合并 |
 | PR 2-5a：管理已有记录 | 按 ID 查询／取消连接、查询／关闭 Session | 独立程序、自动启动、历史、JSON 与退出码 | [#33](https://github.com/Conflux-Chain/wallet-bridge/pull/33) 已合并 |
 | PR 2-5b：发起连接 | 创建请求、输出／打开链接、等待或异步返回 | 实际程序、幂等重试、Ctrl+C 保留原请求、固定绑定 | [#34](https://github.com/Conflux-Chain/wallet-bridge/pull/34) 已合并 |
-| PR 2-7：组合验收 | 修正连接页目标网络名称，补验切链失败和账户变化，汇总连接与 Session 的验收证据 | [本轮八项验收记录](acceptance.md) | [#35](https://github.com/Conflux-Chain/wallet-bridge/pull/35) 待评审 |
+| PR 2-7：组合验收 | 修正连接页目标网络名称，补验切链失败和账户变化，汇总连接与 Session 的验收证据 | [本轮八项验收记录](acceptance.md) | [#35](https://github.com/Conflux-Chain/wallet-bridge/pull/35) 已合并为 `a851890`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45124156298) 通过 |
 
 按表中顺序开发。首次真实钱包连接安排在完整 CLI 前，使用现有 client HTTP 发起和查询。每个实现单元从合并后的 main 创建分支；本轮只连接钱包，不请求签名或发送交易。
 
