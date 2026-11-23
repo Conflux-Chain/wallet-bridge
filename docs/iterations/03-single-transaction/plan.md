@@ -10,7 +10,7 @@
 | 3-3 | 交接前的取消、到期与 Session 生命周期 | [#39](https://github.com/Conflux-Chain/wallet-bridge/pull/39) 合并为 `9a0e9fb`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45144595938) 通过 |
 | 3-4a | SQLite 共享执行表与全局唯一占用约束 | [#40](https://github.com/Conflux-Chain/wallet-bridge/pull/40) 合并为 `d1d5662`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45148199287) 通过 |
 | 3-4b | 占用状态按请求类型定位 | [#41](https://github.com/Conflux-Chain/wallet-bridge/pull/41) 合并为 `9dc8ba4`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45154618967) 通过 |
-| 3-4c | 交易发送前的执行归属与中断恢复 | 同请求多页、双向竞争、重启及过期恢复，发送许可见 3-5 |
+| 3-4c | 交易发送前的执行归属与中断恢复 | [#42](https://github.com/Conflux-Chain/wallet-bridge/pull/42) 待评审，已验证同请求多页、双向竞争与重启恢复，发送许可见 3-5 |
 | 3-5 | 交易发送许可与 Session 关闭竞争 | 点击重放、交接响应丢失、取消和关闭的先后顺序 |
 | 3-6 | 钱包结果、活动持久化及恢复 | 拒绝、hash、未确定、迟到回报、提交失败和重启 |
 | 3-7 | Client 侧交易 HTTP 接口及 Swagger | 创建、读取、取消、服务凭据及错误映射 |
