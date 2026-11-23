@@ -97,3 +97,11 @@ footer p { margin-bottom: 4px; }
   dl { grid-template-columns: 1fr; }
   .actions button { width: 100%; }
 }
+
+.connection-page section { margin-top: 16px; }
+.connection-page dl { margin: 0; }
+.connection-page section[aria-label="连接操作"] { display: grid; gap: 12px; justify-items: start; }
+.connection-page label, .connection-page select { max-width: 100%; }
+.connection-page select { display: block; margin: 8px 0; padding: 8px; font: inherit; }
+.connection-page a { display: inline-block; margin-top: 20px; }
+.connection-page [role=status]:empty { display: none; }

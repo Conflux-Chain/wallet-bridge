@@ -95,6 +95,8 @@ export class WalletDiscovery {
     }
   };
 
+  clearSelection = () => { this.update({ ...this.snapshot, selectedId: null }); };
+
   select = (id: string) => {
     if (this.snapshot.selectedId === id || !this.snapshot.wallets.some((wallet) => wallet.id === id)) return;
     this.update({ ...this.snapshot, selectedId: id });

@@ -32,6 +32,10 @@
 npm ci --prefix web
 ```
 
+### 验证首次连接
+
+运行 `npm --prefix web run try:connection`，按终端提示用 MetaMask 与 Fluent 分别建立一次连接。前置条件、操作、核对及清理见[首次钱包连接指南](docs/first-connection.md)。
+
 ### 页面预览
 
 ```sh

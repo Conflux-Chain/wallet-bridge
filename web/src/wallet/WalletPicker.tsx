@@ -1,8 +1,8 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { WalletDiscovery } from './discovery';
 
-export function WalletPicker() {
-  const [discovery] = useState(() => new WalletDiscovery(window));
+export function WalletPicker({ discovery: shared, disabled = false }: { discovery?: WalletDiscovery; disabled?: boolean }) {
+  const [discovery] = useState(() => shared ?? new WalletDiscovery(window));
   const { wallets, selectedId } = useSyncExternalStore(discovery.subscribe, discovery.getSnapshot);
   useEffect(() => {
     discovery.start();
@@ -13,11 +13,11 @@ export function WalletPicker() {
   return (
     <section aria-labelledby="wallet-title">
       <h2 id="wallet-title">选择浏览器钱包</h2>
-      <p className="description">选择本次页面要使用的钱包。当前仅提供发现与选择，连接功能将在后续开放。</p>
+      <p className="description">{shared ? '选择本次连接使用的钱包。' : '选择要查看的浏览器钱包。'}</p>
       {wallets.length === 0 ? (
         <p className="wallet-empty">尚未发现钱包。请确认当前浏览器配置已安装并启用钱包扩展，允许其访问此页面，然后重新检测或刷新页面。</p>
       ) : (
-        <fieldset className="wallet-options">
+        <fieldset className="wallet-options" disabled={disabled}>
           <legend>已发现的钱包</legend>
           {wallets.map((wallet) => {
             const uuid = wallet.info?.uuid;
