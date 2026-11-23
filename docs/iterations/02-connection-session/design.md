@@ -1,6 +1,6 @@
 # 迭代 2 技术设计草案
 
-状态：2026-11-20，PR 2-1～2-3b2 已合并；协调核心及统一启动／周期维护已实现，外部接口待后续 PR。本文沿用[既定架构](../../architecture.md)，不增加模块层级；待定产品行为见 [spec](spec.md)。
+状态：2026-11-20，PR 2-1～2-3b3 已合并；client HTTP 接入已实现，浏览器 HTTP 待后续 PR。本文沿用[既定架构](../../architecture.md)，不增加模块层级；待定产品行为见 [spec](spec.md)。
 
 ## 模块边界
 
@@ -165,6 +165,26 @@ EIP-6963 的 UUID 只区分当前页面中的 Provider 会话；`rdns` 用于跨
 - 连接取消／到期等终态与执行中断在同一事务协调；未结束调用保留等待。统一维护在一个 SQLite 事务内处理连接到期、Session 回收及执行阶段，失败整体回滚，不改变 schema v4。
 - 服务就绪前统一恢复，显式中断原执行；每 30 秒统一维护心跳、授权及期限，查询／写入仍逐次检查期限。普通打开第二个存储连接不触发重启恢复；没有自动钱包调用或队列调度。
 - 维护仍设五秒超时；失败沿正常关闭路径释放 HTTP、数据库及服务锁并报告 `storage_error`。测试用临时时钟／数据和随机端口验证恢复在就绪前完成、等待保留、故障回滚及清除故障后重启；正式服务不升级或重启。
+
+### PR 2-4a：client HTTP 接入
+
+本单元仅将已有连接／Session 核心映射到 HTTP；浏览器执行接口、共用 Go client、命令和页面分别交付。
+
+| 方法与路径（均在 `/api/v1` 下） | 核心方法 | 成功响应 |
+|---|---|---|
+| `POST /connections` | `Create` | 200，原连接快照；新建与相同内容重试一致 |
+| `GET /connections/{id}` | `Get` | 200，连接状态及可选 Session ID；不续期 Session |
+| `POST /connections/{id}/cancel` | `Cancel` | 200，已取消快照；终态竞争返回 409，随后查询原记录 |
+| `GET /sessions/{id}` | `Session` | 200，绑定、访问／关闭时间及 active／closed；仅有效访问续期 |
+| `POST /sessions/{id}/close` | `CloseSession` | 200，失效 Session 历史；重复关闭不改时间 |
+
+- 五个入口仅接受服务 Bearer；cookie 不能创建／取消连接、续期／关闭 Session，更不能凭服务令牌建立 Session。继续沿用全局 Host／Origin 检查，不开启 CORS。
+- JSON 输入沿用 camelCase；创建字段为 `id`、`clientName`、可选 `intent`、`chainId`、可选 `chainName`。ID 继续使用 32 位小写十六进制；chainId 必须是十进制或 `0x` 十六进制字符串，以整数等值规范化输出，禁止 JSON 数字及浮点转换。
+- 创建 body 限 8 KiB；取消／关闭继续限 1 KiB，可为空或 `{}`。拒绝未知字段、尾随 JSON 及 query；读取不接受 body 或 query。期限与状态由服务生成，不能由 body 指定。
+- 连接响应包含原输入、状态、创建／到期／可选完成时间及 `sessionId`；取得 Session 后显式访问其接口获取固定钱包／账户／网络。不在本单元返回尚未实现的页面链接。
+- 参数错误 400、无认证 401、Host／Origin 403、资源不存在 404、方法错误 405、状态／内容冲突 409、body 超限 413、媒体类型 415、存储失败 500。错误只含稳定 code／message，不回传存储细节；冲突后查询原 ID 对账。
+- API minor 升为 1.3，新增 `connections.lifecycle` capability；不改变已有接口或 schema v4。共用 client 的新能力检查在 PR 2-4c 接入，现有服务管理仍兼容。
+- 在 handler 注释维护契约并生成 `docs/swagger`；真实临时 SQLite／随机端口验证鉴权、创建重试、终态、到期、历史、续期及存储失败时不误报成功或泄露细节。正式服务不升级或重启。
 
 ## 规范依据
 

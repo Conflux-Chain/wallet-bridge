@@ -124,7 +124,7 @@ func (f browserFixture) exchange(t *testing.T, ticket string) (*http.Cookie, Bro
 		t.Fatal("incorrect cookie protection or expiration")
 	}
 	expires, err := time.Parse(time.RFC3339Nano, grant.ExpiresAt)
-	if err != nil || !cookie.Expires.Equal(expires.Truncate(time.Second)) || grant.State != "active" || !validGrantID(grant.ID) {
+	if err != nil || !cookie.Expires.Equal(expires.Truncate(time.Second)) || grant.State != "active" || !validResourceID(grant.ID) {
 		t.Fatal("cookie and grant metadata disagree")
 	}
 	if strings.Contains(w.Body.String(), cookie.Value) || strings.Contains(w.Body.String(), ticket) {

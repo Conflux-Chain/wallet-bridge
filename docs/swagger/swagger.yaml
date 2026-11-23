@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 1
+        example: 3
         type: integer
     type: object
   api.BrowserAuthorizeRequest:
@@ -65,6 +65,58 @@ definitions:
       url:
         type: string
     type: object
+  api.ConnectionCreateRequest:
+    properties:
+      chainId:
+        example: "71"
+        type: string
+      chainName:
+        type: string
+      clientName:
+        example: Example CLI
+        type: string
+      id:
+        type: string
+      intent:
+        type: string
+    required:
+    - chainId
+    - clientName
+    - id
+    type: object
+  api.ConnectionResponse:
+    properties:
+      chainId:
+        example: "0x47"
+        type: string
+      chainName:
+        type: string
+      clientName:
+        type: string
+      createdAt:
+        format: date-time
+        type: string
+      expiresAt:
+        format: date-time
+        type: string
+      finishedAt:
+        format: date-time
+        type: string
+      id:
+        type: string
+      intent:
+        type: string
+      sessionId:
+        type: string
+      state:
+        enum:
+        - pending
+        - succeeded
+        - rejected
+        - canceled
+        - expired
+        type: string
+    type: object
   api.ErrorResponse:
     properties:
       code:
@@ -83,6 +135,8 @@ definitions:
         - service.status
         - service.stop
         - browser.authorization
+        - service.auth.shared
+        - connections.lifecycle
         items:
           type: string
         type: array
@@ -99,6 +153,34 @@ definitions:
       version:
         example: dev
         type: string
+    type: object
+  api.SessionResponse:
+    properties:
+      account:
+        type: string
+      chainId:
+        example: "0x47"
+        type: string
+      closedAt:
+        format: date-time
+        type: string
+      connectionId:
+        type: string
+      createdAt:
+        format: date-time
+        type: string
+      id:
+        type: string
+      lastAccessAt:
+        format: date-time
+        type: string
+      state:
+        enum:
+        - active
+        - closed
+        type: string
+      wallet:
+        $ref: '#/definitions/api.WalletResponse'
     type: object
   api.StatusResponse:
     properties:
@@ -119,13 +201,25 @@ definitions:
         example: stopping
         type: string
     type: object
+  api.WalletResponse:
+    properties:
+      kind:
+        enum:
+        - eip6963
+        - legacy
+        type: string
+      name:
+        type: string
+      rdns:
+        type: string
+    type: object
 host: 127.0.0.1:18765
 info:
   contact: {}
-  description: Local service access and browser authorization. Wallet APIs are delivered
-    in later iterations.
+  description: Local service access, browser authorization and client connection/Session
+    lifecycle. Browser wallet execution endpoints are delivered separately.
   title: Wallet Bridge Local API
-  version: "1.2"
+  version: "1.3"
 paths:
   /browser/authorize:
     post:
@@ -249,6 +343,174 @@ paths:
       security:
       - BrowserCookie: []
       summary: Log out the current browser
+  /connections:
+    post:
+      consumes:
+      - application/json
+      description: Requires the service Bearer, never a browser cookie. Generate a
+        32-character lowercase hexadecimal ID once and reuse it for transport retries.
+        Matching content returns the original state and deadline; changed content
+        returns 409. Both creation and replay return 200, which does not imply user
+        consent. chainId must be a decimal or 0x hexadecimal string, never a JSON
+        number. Body limit is 8192 bytes. Query parameters and unknown fields are
+        rejected. No browser link or wallet invocation is provided by this endpoint.
+      parameters:
+      - description: Immutable connection input
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ConnectionCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ServiceBearer: []
+      summary: Create or retry a connection request
+  /connections/{id}:
+    get:
+      description: Requires the service Bearer. No body or query parameters. Expired
+        pending requests become expired; reads never renew the resulting Session.
+        On success, use sessionId to explicitly access the fixed wallet/account/network
+        through GET /sessions/{id}. A terminal request remains queryable after Session
+        closure.
+      parameters:
+      - description: 32-character lowercase hexadecimal request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ServiceBearer: []
+      summary: Read connection status and result
+  /connections/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Requires the service Bearer. Accepts no body or an empty JSON object,
+        limited to 1024 bytes; no query parameters. Repeated cancellation preserves
+        the original result. A different terminal outcome, including expiry, returns
+        409; query the original ID to reconcile. This does not close an existing Session
+        or dismiss a wallet popup.
+      parameters:
+      - description: 32-character lowercase hexadecimal request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ServiceBearer: []
+      summary: Cancel a pending connection request
   /control/browser-grants:
     get:
       description: Requires the local service token; browser cookies cannot list grants.
@@ -474,6 +736,108 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Read service version and capabilities
+  /sessions/{id}:
+    get:
+      description: Requires the service Bearer. No body or query parameters. Only
+        an active Session renews its five-minute idle time. Expired or explicitly
+        closed records return state=closed with their original fixed binding and closure
+        time; reading never revives them. GET /connections/{id} does not renew this
+        idle time.
+      parameters:
+      - description: 32-character lowercase hexadecimal Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ServiceBearer: []
+      summary: Access a Session or its closed history
+  /sessions/{id}/close:
+    post:
+      consumes:
+      - application/json
+      description: Requires the service Bearer. Accepts no body or an empty JSON object,
+        limited to 1024 bytes; no query parameters. Closure is idempotent and does
+        not delete history. A Session cannot be created or rebound by this endpoint.
+      parameters:
+      - description: 32-character lowercase hexadecimal Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ServiceBearer: []
+      summary: Close a Session
   /status:
     get:
       produces:

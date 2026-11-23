@@ -4,10 +4,10 @@
     ],
     "swagger": "2.0",
     "info": {
-        "description": "Local service access and browser authorization. Wallet APIs are delivered in later iterations.",
+        "description": "Local service access, browser authorization and client connection/Session lifecycle. Browser wallet execution endpoints are delivered separately.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.2"
+        "version": "1.3"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -161,6 +161,245 @@
                     },
                     "405": {
                         "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/connections": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceBearer": []
+                    }
+                ],
+                "description": "Requires the service Bearer, never a browser cookie. Generate a 32-character lowercase hexadecimal ID once and reuse it for transport retries. Matching content returns the original state and deadline; changed content returns 409. Both creation and replay return 200, which does not imply user consent. chainId must be a decimal or 0x hexadecimal string, never a JSON number. Body limit is 8192 bytes. Query parameters and unknown fields are rejected. No browser link or wallet invocation is provided by this endpoint.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create or retry a connection request",
+                "parameters": [
+                    {
+                        "description": "Immutable connection input",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/connections/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ServiceBearer": []
+                    }
+                ],
+                "description": "Requires the service Bearer. No body or query parameters. Expired pending requests become expired; reads never renew the resulting Session. On success, use sessionId to explicitly access the fixed wallet/account/network through GET /sessions/{id}. A terminal request remains queryable after Session closure.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Read connection status and result",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/connections/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceBearer": []
+                    }
+                ],
+                "description": "Requires the service Bearer. Accepts no body or an empty JSON object, limited to 1024 bytes; no query parameters. Repeated cancellation preserves the original result. A different terminal outcome, including expiry, returns 409; query the original ID to reconcile. This does not close an existing Session or dismiss a wallet popup.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Cancel a pending connection request",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ConnectionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -515,6 +754,155 @@
                 }
             }
         },
+        "/sessions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ServiceBearer": []
+                    }
+                ],
+                "description": "Requires the service Bearer. No body or query parameters. Only an active Session renews its five-minute idle time. Expired or explicitly closed records return state=closed with their original fixed binding and closure time; reading never revives them. GET /connections/{id} does not renew this idle time.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Access a Session or its closed history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.SessionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions/{id}/close": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceBearer": []
+                    }
+                ],
+                "description": "Requires the service Bearer. Accepts no body or an empty JSON object, limited to 1024 bytes; no query parameters. Closure is idempotent and does not delete history. A Session cannot be created or rebound by this endpoint.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Close a Session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.SessionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/status": {
             "get": {
                 "security": [
@@ -574,7 +962,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 1
+                    "example": 3
                 }
             }
         },
@@ -661,6 +1049,79 @@
                 }
             }
         },
+        "api.ConnectionCreateRequest": {
+            "type": "object",
+            "required": [
+                "chainId",
+                "clientName",
+                "id"
+            ],
+            "properties": {
+                "chainId": {
+                    "type": "string",
+                    "example": "71"
+                },
+                "chainName": {
+                    "type": "string"
+                },
+                "clientName": {
+                    "type": "string",
+                    "example": "Example CLI"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "intent": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ConnectionResponse": {
+            "type": "object",
+            "properties": {
+                "chainId": {
+                    "type": "string",
+                    "example": "0x47"
+                },
+                "chainName": {
+                    "type": "string"
+                },
+                "clientName": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "finishedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "intent": {
+                    "type": "string"
+                },
+                "sessionId": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "succeeded",
+                        "rejected",
+                        "canceled",
+                        "expired"
+                    ]
+                }
+            }
+        },
         "api.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -688,7 +1149,9 @@
                     "example": [
                         "service.status",
                         "service.stop",
-                        "browser.authorization"
+                        "browser.authorization",
+                        "service.auth.shared",
+                        "connections.lifecycle"
                     ]
                 },
                 "challenge": {
@@ -708,6 +1171,46 @@
                 "version": {
                     "type": "string",
                     "example": "dev"
+                }
+            }
+        },
+        "api.SessionResponse": {
+            "type": "object",
+            "properties": {
+                "account": {
+                    "type": "string"
+                },
+                "chainId": {
+                    "type": "string",
+                    "example": "0x47"
+                },
+                "closedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "connectionId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lastAccessAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "closed"
+                    ]
+                },
+                "wallet": {
+                    "$ref": "#/definitions/api.WalletResponse"
                 }
             }
         },
@@ -736,6 +1239,24 @@
                 "state": {
                     "type": "string",
                     "example": "stopping"
+                }
+            }
+        },
+        "api.WalletResponse": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "eip6963",
+                        "legacy"
+                    ]
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rdns": {
+                    "type": "string"
                 }
             }
         }

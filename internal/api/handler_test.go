@@ -29,11 +29,16 @@ func testHandler(t *testing.T, stop func(), browser ...*app.BrowserAuthorization
 	if len(browser) != 0 {
 		authorization = browser[0]
 	}
+	connections, err := app.NewConnectionService(struct{ app.ConnectionServiceStore }{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	h, err := New(Config{
 		Version: "test", ServiceToken: serviceFixture,
 		StartedAt: time.Date(2026, 11, 19, 0, 0, 0, 0, time.UTC), Stop: stop,
 		Assets:               fstest.MapFS{"index.html": {Data: []byte("<h1>Wallet Bridge</h1>")}, "assets/app.js": {Data: []byte("console.log('bridge')")}},
 		BrowserAuthorization: authorization,
+		Connections:          connections,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -150,7 +155,7 @@ func TestInfoProofBindsMetadata(t *testing.T) {
 		t.Fatal("info response invalid", err)
 	}
 	proof := info.Proof
-	data := []byte(`{"name":"wallet-bridge","version":"test","apiVersion":{"major":1,"minor":2},"capabilities":["service.status","service.stop","browser.authorization","service.auth.shared"],"ready":true,"challenge":"` + challenge + `"}`)
+	data := []byte(`{"name":"wallet-bridge","version":"test","apiVersion":{"major":1,"minor":3},"capabilities":["service.status","service.stop","browser.authorization","service.auth.shared","connections.lifecycle"],"ready":true,"challenge":"` + challenge + `"}`)
 	key, _ := hex.DecodeString(serviceFixture)
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte("wallet-bridge.info.v1\n"))

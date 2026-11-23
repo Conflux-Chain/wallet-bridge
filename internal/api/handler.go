@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"mime"
@@ -26,6 +27,7 @@ type Config struct {
 	StartedAt            time.Time
 	Stop                 func()
 	BrowserAuthorization *app.BrowserAuthorization
+	Connections          *app.ConnectionService
 }
 
 type handler struct {
@@ -37,12 +39,12 @@ type handler struct {
 func New(config Config) (http.Handler, error) {
 	key, err := hex.DecodeString(config.ServiceToken)
 	if err != nil || len(key) != 32 || hex.EncodeToString(key) != config.ServiceToken ||
-		config.Stop == nil || config.BrowserAuthorization == nil {
+		config.Stop == nil || config.BrowserAuthorization == nil || config.Connections == nil {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 2},
-		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared"}, Ready: true,
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 3},
+		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle"}, Ready: true,
 	}}, nil
 }
 
@@ -98,6 +100,9 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.logoutBrowser(w, r)
 		}
 	default:
+		if h.routeConnections(w, r) {
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			failure(w, http.StatusNotFound, "not_found", "Unknown API endpoint")
 			return
@@ -211,15 +216,19 @@ func (h *handler) stop(w http.ResponseWriter, r *http.Request) {
 }
 
 func decodeBody(w http.ResponseWriter, r *http.Request, target any, allowEmpty bool) bool {
+	return decodeBodyLimit(w, r, target, allowEmpty, MaxControlBody)
+}
+
+func decodeBodyLimit(w http.ResponseWriter, r *http.Request, target any, allowEmpty bool, limit int64) bool {
 	if r.URL.RawQuery != "" {
 		failure(w, http.StatusBadRequest, "bad_request", "Query parameters are not accepted")
 		return false
 	}
-	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, MaxControlBody))
+	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
 	if err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			failure(w, http.StatusRequestEntityTooLarge, "request_too_large", "Request exceeds 1024 bytes")
+			failure(w, http.StatusRequestEntityTooLarge, "request_too_large", fmt.Sprintf("Request exceeds %d bytes", limit))
 		} else {
 			failure(w, http.StatusBadRequest, "bad_request", "Cannot read request body")
 		}

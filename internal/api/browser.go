@@ -171,7 +171,7 @@ func (h *handler) listBrowserGrants(w http.ResponseWriter, r *http.Request) {
 	start := 0
 	if _, exists := query["after"]; exists {
 		start = -1
-		if validGrantID(after) {
+		if validResourceID(after) {
 			for index, grant := range grants {
 				if grant.ID == after {
 					start = index + 1
@@ -211,7 +211,7 @@ func (h *handler) revokeBrowserGrants(w http.ResponseWriter, r *http.Request) {
 	if !decodeBody(w, r, &request, false) {
 		return
 	}
-	if (request.ID == "" && !request.All) || (request.ID != "" && (request.All || !validGrantID(request.ID))) {
+	if (request.ID == "" && !request.All) || (request.ID != "" && (request.All || !validResourceID(request.ID))) {
 		failure(w, http.StatusBadRequest, "bad_request", "Choose a lowercase grant ID or all=true, exclusively")
 		return
 	}
@@ -245,7 +245,7 @@ func browserGrantResponse(grant app.BrowserGrant, now time.Time) BrowserGrantRes
 	return response
 }
 
-func validGrantID(id string) bool {
+func validResourceID(id string) bool {
 	value, err := hex.DecodeString(id)
 	return err == nil && len(value) == 16 && hex.EncodeToString(value) == id
 }
