@@ -221,7 +221,7 @@ export function ConnectionPage({ id, operation, refreshStatus }: ConnectionPageP
   }
 
   const pending = request?.state === 'pending' && Date.parse(request.expiresAt) > Date.now();
-  const blocker = operation?.connectionId !== id ? operation : undefined;
+  const blocker = operation?.kind === 'connection' && operation.id === id ? undefined : operation;
   const available = !blocker && (!execution || execution.id === own.current && execution.phase === 'ready');
   const interrupted = execution?.phase === 'interrupted_ready' || execution?.phase === 'interrupted_calling';
   const canResume = interrupted || execution?.phase === 'calling' && execution.id === own.current;

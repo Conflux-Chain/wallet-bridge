@@ -206,7 +206,7 @@ func connectionFailure(w http.ResponseWriter, err error) {
 	case errors.Is(err, app.ErrConnectionExecutionConflict):
 		failure(w, http.StatusConflict, "execution_conflict", "The execution owner or phase changed; query the original connection and execution")
 	case errors.Is(err, app.ErrConnectionExecutionBusy):
-		failure(w, http.StatusConflict, "wallet_busy", "Another connection occupies the wallet operation slot; wait or inspect its progress")
+		failure(w, http.StatusConflict, "wallet_busy", "Another request occupies the wallet; check browser status for its progress")
 	case errors.Is(err, app.ErrConnectionConflict), errors.Is(err, app.ErrConnectionRequestExists):
 		failure(w, http.StatusConflict, "connection_conflict", "The request conflicts with the original input or outcome; query its ID")
 	default:

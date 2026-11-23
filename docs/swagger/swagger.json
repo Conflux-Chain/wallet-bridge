@@ -7,7 +7,7 @@
         "description": "Local service access, browser authorization, client connection/Session lifecycle and browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.6"
+        "version": "1.7"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -1891,7 +1891,7 @@
                         "BrowserCookie": []
                     }
                 ],
-                "description": "With an active browser cookie, the optional walletOperation identifies the connection occupying the wallet slot. Reading status does not renew or acquire an execution. Service Bearer responses omit browser-specific data.",
+                "description": "With an active browser cookie, activeWalletRequest identifies the connection or transaction occupying the wallet. For connections, walletOperation also supplies the API 1.6 representation. Both fields are omitted for an idle wallet and for service Bearer callers. Reading status does not renew or acquire an execution.",
                 "produces": [
                     "application/json"
                 ],
@@ -1941,7 +1941,30 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 6
+                    "example": 7
+                }
+            }
+        },
+        "api.ActiveWalletRequestResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "connection",
+                        "transaction"
+                    ]
+                },
+                "phase": {
+                    "type": "string",
+                    "enum": [
+                        "ready",
+                        "calling",
+                        "interrupted_calling"
+                    ]
                 }
             }
         },
@@ -2321,6 +2344,9 @@
         "api.StatusResponse": {
             "type": "object",
             "properties": {
+                "activeWalletRequest": {
+                    "$ref": "#/definitions/api.ActiveWalletRequestResponse"
+                },
                 "browser": {
                     "$ref": "#/definitions/api.BrowserGrantResponse"
                 },
