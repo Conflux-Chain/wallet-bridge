@@ -171,6 +171,13 @@ WHERE phase IN ('ready', 'calling', 'interrupted_calling');
 INSERT INTO wallet_executions (id, connection_id, browser_grant_id, phase, last_seen_at, call_id)
 SELECT id, connection_id, browser_grant_id, phase, last_seen_at, call_id FROM connection_executions;
 DROP TABLE connection_executions;
+`, `
+CREATE TRIGGER end_transaction_review AFTER UPDATE OF state ON transaction_requests
+WHEN OLD.state = 'pending' AND NEW.state IN ('canceled', 'expired') BEGIN
+    UPDATE wallet_executions SET phase = CASE
+        WHEN phase = 'calling' THEN 'interrupted_calling' ELSE 'finished' END
+    WHERE transaction_id = NEW.id AND phase IN ('ready', 'interrupted_ready', 'calling');
+END;
 `}
 
 func migrate(ctx context.Context, db *sql.DB, steps []string) error {

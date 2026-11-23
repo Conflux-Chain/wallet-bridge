@@ -22,7 +22,7 @@ var (
 	ErrInvalidConnectionExecution  = errors.New("invalid connection execution")
 	ErrConnectionExecutionNotFound = errors.New("connection execution not found")
 	ErrConnectionExecutionConflict = errors.New("connection execution conflicts with the current owner or phase")
-	ErrConnectionExecutionBusy     = errors.New("another request occupies the wallet slot")
+	ErrWalletBusy                  = errors.New("another request occupies the wallet slot")
 )
 
 // Execution IDs distinguish operations, not credentials. BrowserGrantID must

@@ -1,6 +1,6 @@
 # 迭代 3 PR 计划
 
-当前步骤为 PR 3-4b，交付管理页与连接页的跨类型占用提示。[需求](spec.md) · [设计](design.md)
+当前步骤为 PR 3-4c，交付交易发送前的执行归属、准备调用和中断恢复。[需求](spec.md) · [设计](design.md)
 
 | 步骤 | 单一交付 | 主要检查 |
 |---|---|---|
@@ -9,8 +9,8 @@
 | 3-2 | 请求持久化与幂等创建 | [#38](https://github.com/Conflux-Chain/wallet-bridge/pull/38) 合并为 `c6804cb`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45138626143) 通过 |
 | 3-3 | 交接前的取消、到期与 Session 生命周期 | [#39](https://github.com/Conflux-Chain/wallet-bridge/pull/39) 合并为 `9a0e9fb`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45144595938) 通过 |
 | 3-4a | SQLite 共享执行表与全局唯一占用约束 | [#40](https://github.com/Conflux-Chain/wallet-bridge/pull/40) 合并为 `d1d5662`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45148199287) 通过 |
-| 3-4b | 占用状态按请求类型定位 | [#41](https://github.com/Conflux-Chain/wallet-bridge/pull/41) 待评审，管理页和连接页区分交易占用，兼容 1.6 状态响应 |
-| 3-4c | 交易发送前的执行归属与中断恢复 | 同请求多页、双向竞争、重启及过期恢复，发送许可见 3-5 |
+| 3-4b | 占用状态按请求类型定位 | [#41](https://github.com/Conflux-Chain/wallet-bridge/pull/41) 合并为 `9dc8ba4`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45154618967) 通过 |
+| 3-4c | 交易发送前的执行归属与中断恢复 | [#42](https://github.com/Conflux-Chain/wallet-bridge/pull/42) 待评审，已验证同请求多页、双向竞争与重启恢复，发送许可见 3-5 |
 | 3-5 | 交易发送许可与 Session 关闭竞争 | 点击重放、交接响应丢失、取消和关闭的先后顺序 |
 | 3-6 | 钱包结果、活动持久化及恢复 | 拒绝、hash、未确定、迟到回报、提交失败和重启 |
 | 3-7 | Client 侧交易 HTTP 接口及 Swagger | 创建、读取、取消、服务凭据及错误映射 |
@@ -42,3 +42,7 @@ Windows 临时 SQLite 验证了五种旧连接执行状态的升级与失败回�
 ## PR 3-4b 验证
 
 Windows 上的 SQLite／HTTP 测试验证了同 ID 的交易能阻止连接领取与恢复，服务凭据查询省略钱包占用信息。Chrome 的四项占用提示和连接恢复用例通过，包含旧响应格式。默认及 `no_web` 完整 Go 测试、两种 vet 和独立程序构建通过。本机跳过需符号链接权限的用例，真实交易发送待后续验收。[本地复现](design.md#钱包占用提示测试)
+
+## PR 3-4c 验证
+
+Windows 临时 SQLite 验证四组审阅归属与恢复测试，同 ID 的连接和交易并发领取重复 30 次通过。数据库提交失败时没有返回准备调用许可，关闭 Session 失败时待审批交易和审阅占用一同回滚。默认及 `no_web` Go 测试与 vet 通过。本机符号链接权限缺项同上。本次验证在存储层模拟准备调用，页面和真实钱包验证随接入交付。[本地复现](design.md#交易审阅归属测试)
