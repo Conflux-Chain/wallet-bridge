@@ -9,7 +9,7 @@ const (
 
 type APIVersion struct {
 	Major int `json:"major" example:"1"`
-	Minor int `json:"minor" example:"6"`
+	Minor int `json:"minor" example:"7"`
 }
 
 type InfoResponse struct {
@@ -27,12 +27,19 @@ type WalletOperationResponse struct {
 	Phase        string `json:"phase" enums:"ready,calling,interrupted_calling"`
 }
 
+type ActiveWalletRequestResponse struct {
+	Kind  string `json:"kind" enums:"connection,transaction"`
+	ID    string `json:"id"`
+	Phase string `json:"phase" enums:"ready,calling,interrupted_calling"`
+}
+
 type StatusResponse struct {
-	WalletOperation *WalletOperationResponse `json:"walletOperation,omitempty"`
-	State           string                   `json:"state" example:"running"`
-	StartedAt       string                   `json:"startedAt" format:"date-time"`
-	Info            InfoResponse             `json:"info"`
-	Browser         *BrowserGrantResponse    `json:"browser,omitempty"`
+	ActiveWalletRequest *ActiveWalletRequestResponse `json:"activeWalletRequest,omitempty"`
+	WalletOperation     *WalletOperationResponse     `json:"walletOperation,omitempty"`
+	State               string                       `json:"state" example:"running"`
+	StartedAt           string                       `json:"startedAt" format:"date-time"`
+	Info                InfoResponse                 `json:"info"`
+	Browser             *BrowserGrantResponse        `json:"browser,omitempty"`
 }
 
 type StopResponse struct {

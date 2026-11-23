@@ -1,6 +1,6 @@
 # 连接与 Session HTTP 测试
 
-API 1.6 支持 client 侧连接／Session，以及浏览器执行协调、钱包交接与连接决定。浏览器仍需页面调用 Provider，管理 cookie 读取服务状态可获取占用钱包的请求 ID 与阶段，空闲时省略。浏览器复现步骤见[首次连接指南](first-connection.md)。
+API 1.7 支持 client 侧连接／Session，以及浏览器执行协调、钱包交接与连接决定。管理 cookie 读取服务状态可获取占用钱包的请求类型、ID 与阶段，空闲时省略。[首次连接指南](first-connection.md) · [钱包占用状态](iterations/03-single-transaction/design.md#pr-3-4b-按请求类型展示钱包占用)
 
 ## 本地验证
 

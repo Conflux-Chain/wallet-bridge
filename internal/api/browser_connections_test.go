@@ -402,6 +402,65 @@ func browserCoordinationSQL(t *testing.T, dir string) *sql.DB {
 	return db
 }
 
+func TestBrowserWalletRequestStatus(t *testing.T) {
+	f := newConnectionHTTPFixture(t, "")
+	now := time.Now().UTC().Truncate(time.Millisecond)
+	cookie, grant := seedBrowserCookie(t, f, 1, now.Add(-time.Hour))
+	r := f.create(t, connectionHTTPInput(0))
+	_, session := f.seedSession(t, 1, now.Add(-time.Minute))
+	_, err := f.database.CreateTransactionRequest(context.Background(), app.TransactionRequestInput{
+		ID: r.ID, SessionID: session.ID, ClientName: "CLI",
+		Fields: map[string]string{"from": session.Account, "to": session.Account, "chainId": session.ChainID},
+	}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db := browserCoordinationSQL(t, f.dir)
+	_, err = db.Exec(`INSERT INTO wallet_executions (transaction_id, id, browser_grant_id, phase, last_seen_at, call_id)
+VALUES (?, ?, ?, 'interrupted_calling', ?, ?)`, r.ID, fmt.Sprintf("%032x", 700), grant.ID, now.UnixMilli(), fmt.Sprintf("%032x", 701))
+	if err != nil {
+		t.Fatal(err)
+	}
+	status := func(headers map[string]string) StatusResponse {
+		return responseJSON[StatusResponse](t, f.request(t, "GET", "/api/v1/status", "", headers, 200))
+	}
+	txStatus := status(browserHeaders(cookie))
+	want := ActiveWalletRequestResponse{Kind: "transaction", ID: r.ID, Phase: "interrupted_calling"}
+	if txStatus.ActiveWalletRequest == nil || *txStatus.ActiveWalletRequest != want || txStatus.WalletOperation != nil {
+		t.Fatal("transaction was not identified independently of its same-ID connection", txStatus)
+	}
+	client := status(controlHeaders())
+	if client.ActiveWalletRequest != nil || client.WalletOperation != nil {
+		t.Fatal("service status exposed a wallet request")
+	}
+	pageID := fmt.Sprintf("%032x", 500)
+	w := f.execution(t, cookie, r.ID, "claim", pageID, "", 409)
+	if responseJSON[ErrorResponse](t, w).Code != "wallet_busy" {
+		t.Fatal("claim did not report the transaction blocker")
+	}
+	if _, err := db.Exec("UPDATE wallet_executions SET phase='finished' WHERE transaction_id=?", r.ID); err != nil {
+		t.Fatal(err)
+	}
+	idle := status(browserHeaders(cookie))
+	if idle.ActiveWalletRequest != nil || idle.WalletOperation != nil {
+		t.Fatal("idle wallet reported a request")
+	}
+	f.execution(t, cookie, r.ID, "claim", pageID, "", 200)
+	active := status(browserHeaders(cookie))
+	if active.ActiveWalletRequest == nil || *active.ActiveWalletRequest != (ActiveWalletRequestResponse{Kind: "connection", ID: r.ID, Phase: "ready"}) ||
+		active.WalletOperation == nil || *active.WalletOperation != (WalletOperationResponse{ConnectionID: r.ID, Phase: "ready"}) {
+		t.Fatal("connection was not visible in both versions", active)
+	}
+	f.execution(t, cookie, r.ID, "interrupt", pageID, "", 200)
+	if _, err := db.Exec("UPDATE wallet_executions SET phase='calling' WHERE transaction_id=?", r.ID); err != nil {
+		t.Fatal(err)
+	}
+	w = f.execution(t, cookie, r.ID, "recover", fmt.Sprintf("%032x", 501), pageID, 409)
+	if responseJSON[ErrorResponse](t, w).Code != "wallet_busy" {
+		t.Fatal("recovery did not report the transaction blocker")
+	}
+}
+
 func TestBrowserConnectionHTTPStorageFailure(t *testing.T) {
 	for _, action := range []string{"claim", "heartbeat", "interrupt", "recover"} {
 		for _, stage := range []string{"write", "commit"} {

@@ -37,11 +37,11 @@ func (a *ConnectionService) Execution(ctx context.Context, browser BrowserGrant,
 	return a.store.GetConnectionExecution(ctx, id)
 }
 
-func (a *ConnectionService) OccupiedExecution(ctx context.Context, browser BrowserGrant) (ConnectionExecution, error) {
+func (a *ConnectionService) ActiveWalletRequest(ctx context.Context, browser BrowserGrant) (*ActiveWalletRequest, error) {
 	if !connectionID(browser.ID) {
-		return ConnectionExecution{}, ErrInvalidBrowserCredential
+		return nil, ErrInvalidBrowserCredential
 	}
-	return a.store.GetOccupiedExecution(ctx)
+	return a.store.GetActiveWalletRequest(ctx)
 }
 
 func (a *ConnectionService) ClaimExecution(ctx context.Context, browser BrowserGrant, input ConnectionExecutionInput) (ConnectionExecution, error) {

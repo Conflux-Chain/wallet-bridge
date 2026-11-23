@@ -21,8 +21,18 @@ func (s *Store) GetConnectionExecution(ctx context.Context, id string) (app.Conn
 	return scanExecution(s.db.QueryRowContext(ctx, executionSelect+" WHERE connection_id = ?", id))
 }
 
-func (s *Store) GetOccupiedExecution(ctx context.Context) (app.ConnectionExecution, error) {
-	return scanExecution(s.db.QueryRowContext(ctx, executionSelect+" WHERE connection_id IS NOT NULL AND "+executionOccupied))
+func (s *Store) GetActiveWalletRequest(ctx context.Context) (*app.ActiveWalletRequest, error) {
+	var result app.ActiveWalletRequest
+	err := s.db.QueryRowContext(ctx, `SELECT CASE WHEN connection_id IS NULL THEN 'transaction' ELSE 'connection' END,
+COALESCE(connection_id, transaction_id), phase FROM wallet_executions WHERE `+executionOccupied).
+		Scan(&result.Kind, &result.ID, &result.Phase)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 func (s *Store) ClaimConnectionExecution(ctx context.Context, ref app.ConnectionExecutionRef, now time.Time) (app.ConnectionExecution, error) {
@@ -48,10 +58,10 @@ func (s *Store) ClaimConnectionExecution(ctx context.Context, ref app.Connection
 	if !pendingExecutionRequest(request, now) {
 		return commitExecution(tx, app.ConnectionExecution{}, app.ErrConnectionConflict)
 	}
-	if busy, err := occupiedExecution(ctx, tx, ref.ConnectionID); err == nil {
-		return commitExecution(tx, busy, app.ErrConnectionExecutionBusy)
-	} else if !errors.Is(err, app.ErrConnectionExecutionNotFound) {
+	if busy, err := connectionSlotBusy(ctx, tx, ref.ConnectionID); err != nil {
 		return app.ConnectionExecution{}, err
+	} else if busy {
+		return commitExecution(tx, app.ConnectionExecution{}, app.ErrConnectionExecutionBusy)
 	}
 	current = app.ConnectionExecution{ConnectionExecutionRef: ref, Phase: app.ExecutionReady, LastSeenAt: time.UnixMilli(now.UnixMilli()).UTC()}
 	_, err = tx.ExecContext(ctx, `INSERT INTO wallet_executions
@@ -151,10 +161,10 @@ func (s *Store) RecoverConnectionExecution(ctx context.Context, previousID strin
 	if current.Phase != app.ExecutionInterruptedReady && current.Phase != app.ExecutionInterruptedCalling {
 		return commitExecution(tx, current, app.ErrConnectionExecutionConflict)
 	}
-	if busy, err := occupiedExecution(ctx, tx, ref.ConnectionID); err == nil {
-		return commitExecution(tx, busy, app.ErrConnectionExecutionBusy)
-	} else if !errors.Is(err, app.ErrConnectionExecutionNotFound) {
+	if busy, err := connectionSlotBusy(ctx, tx, ref.ConnectionID); err != nil {
 		return app.ConnectionExecution{}, err
+	} else if busy {
+		return commitExecution(tx, app.ConnectionExecution{}, app.ErrConnectionExecutionBusy)
 	}
 	seen := now.UnixMilli()
 	if seen < current.LastSeenAt.UnixMilli() {
@@ -193,8 +203,11 @@ WHERE id = ? AND revoked_at IS NULL AND issued_at <= ? AND expires_at > ?)`, ref
 	return tx, nil
 }
 
-func occupiedExecution(ctx context.Context, tx *sql.Tx, except string) (app.ConnectionExecution, error) {
-	return scanExecution(tx.QueryRowContext(ctx, executionSelect+" WHERE "+executionOccupied+" AND connection_id != ?", except))
+func connectionSlotBusy(ctx context.Context, tx *sql.Tx, connectionID string) (bool, error) {
+	var busy bool
+	// IS NOT includes transaction-owned rows, whose connection_id is NULL.
+	err := tx.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM wallet_executions WHERE "+executionOccupied+" AND connection_id IS NOT ?)", connectionID).Scan(&busy)
+	return busy, err
 }
 
 func pendingExecutionRequest(r app.ConnectionRequest, now time.Time) bool {

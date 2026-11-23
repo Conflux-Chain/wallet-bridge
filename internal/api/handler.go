@@ -43,7 +43,7 @@ func New(config Config) (http.Handler, error) {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 6},
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 7},
 		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation"}, Ready: true,
 	}}, nil
 }
@@ -176,7 +176,7 @@ func (h *handler) getInfo(w http.ResponseWriter, r *http.Request) {
 
 // getStatus reports the running service's state.
 // @Summary Read authenticated service status
-// @Description With an active browser cookie, the optional walletOperation identifies the connection occupying the wallet slot. Reading status does not renew or acquire an execution. Service Bearer responses omit browser-specific data.
+// @Description With an active browser cookie, activeWalletRequest identifies the connection or transaction occupying the wallet. For connections, walletOperation also supplies the API 1.6 representation. Both fields are omitted for an idle wallet and for service Bearer callers. Reading status does not renew or acquire an execution.
 // @Produce json
 // @Security ServiceBearer
 // @Security BrowserCookie
@@ -193,12 +193,16 @@ func (h *handler) getStatus(w http.ResponseWriter, r *http.Request, browser *app
 	if browser != nil {
 		metadata := browserGrantResponse(*browser, time.Now())
 		response.Browser = &metadata
-		occupied, err := h.config.Connections.OccupiedExecution(r.Context(), *browser)
-		if err == nil {
-			response.WalletOperation = &WalletOperationResponse{ConnectionID: occupied.ConnectionID, Phase: string(occupied.Phase)}
-		} else if !errors.Is(err, app.ErrConnectionExecutionNotFound) {
+		occupied, err := h.config.Connections.ActiveWalletRequest(r.Context(), *browser)
+		if err != nil {
 			connectionFailure(w, err)
 			return
+		}
+		if occupied != nil {
+			response.ActiveWalletRequest = &ActiveWalletRequestResponse{Kind: string(occupied.Kind), ID: occupied.ID, Phase: string(occupied.Phase)}
+			if occupied.Kind == app.WalletConnection {
+				response.WalletOperation = &WalletOperationResponse{ConnectionID: occupied.ID, Phase: string(occupied.Phase)}
+			}
 		}
 	}
 	writeJSON(w, http.StatusOK, response)

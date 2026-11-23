@@ -46,14 +46,17 @@ func TestWalletExecutionMigration(t *testing.T) {
 			old.Close()
 			s := openTestStore(t, dir)
 			assertExecution(t, s, want)
-			got, err := s.GetOccupiedExecution(ctx)
+			got, err := s.GetActiveWalletRequest(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
 			switch phase {
 			case app.ExecutionInterruptedReady, app.ExecutionFinished:
-				if !errors.Is(err, app.ErrConnectionExecutionNotFound) {
+				if got != nil {
 					t.Fatal("inactive record occupies the wallet", got, err)
 				}
 			default:
-				if err != nil || got != want {
+				if got == nil || *got != (app.ActiveWalletRequest{Kind: app.WalletConnection, ID: ref.ConnectionID, Phase: phase}) {
 					t.Fatal("migration lost the wallet owner", got, err)
 				}
 			}

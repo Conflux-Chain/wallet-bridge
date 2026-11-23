@@ -22,7 +22,7 @@ var (
 	ErrInvalidConnectionExecution  = errors.New("invalid connection execution")
 	ErrConnectionExecutionNotFound = errors.New("connection execution not found")
 	ErrConnectionExecutionConflict = errors.New("connection execution conflicts with the current owner or phase")
-	ErrConnectionExecutionBusy     = errors.New("another connection execution occupies the wallet slot")
+	ErrConnectionExecutionBusy     = errors.New("another request occupies the wallet slot")
 )
 
 // Execution IDs distinguish operations, not credentials. BrowserGrantID must
@@ -38,6 +38,19 @@ type ConnectionExecution struct {
 	Phase      ConnectionExecutionPhase
 	LastSeenAt time.Time
 	CallID     string
+}
+
+type WalletRequestKind string
+
+const (
+	WalletConnection  WalletRequestKind = "connection"
+	WalletTransaction WalletRequestKind = "transaction"
+)
+
+type ActiveWalletRequest struct {
+	Kind  WalletRequestKind
+	ID    string
+	Phase ConnectionExecutionPhase
 }
 
 type ConnectionCallRef struct {
@@ -60,7 +73,7 @@ type ConnectionMaintenanceCounts struct {
 type ConnectionExecutionStore interface {
 	// Reads do not renew liveness, take ownership, or normalize stale phases.
 	GetConnectionExecution(context.Context, string) (ConnectionExecution, error)
-	GetOccupiedExecution(context.Context) (ConnectionExecution, error)
+	GetActiveWalletRequest(context.Context) (*ActiveWalletRequest, error)
 	ClaimConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionExecution, error)
 	TouchConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionExecution, error)
 	InterruptConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionExecution, error)

@@ -72,3 +72,21 @@ go test -tags no_web ./internal/store -run '^TestWalletExecution' -count=1 -v
 ```
 
 预期迁移、共享占用和请求外键三组测试通过。测试用临时 SQLite 构造五种旧连接状态，并让两个数据库连接竞争同一执行槽。命令退出即自动清理，无需启动服务或打开钱包。
+
+## PR 3-4b 按请求类型展示钱包占用
+
+授权浏览器读取 `GET /api/v1/status` 时，API 1.7 用可选的 `activeWalletRequest {kind, id, phase}` 标识连接或交易。连接占用时另带 1.6 的 `walletOperation`，供已打开的旧页面读取。空闲和服务 Bearer 响应省略两者。查询仅读取共享表。
+
+连接页按类型和 ID 识别自己的请求。交易占用时，管理页与等待页展示交易请求 ID 及阶段，交易详情链接随 3-9 的页面交付。如果占用发生在页面查询之后，领取或恢复连接返回 `409 wallet_busy`，页面重新读取占用状态。
+
+### 钱包占用提示测试
+
+在 Windows 或 macOS 的仓库根目录，按 [README](../../../README.md#开发命令) 安装工具链和前端依赖。浏览器测试需要本机 Chrome 和空闲端口 18765。
+
+```sh
+go test -tags no_web ./internal/api -run '^TestBrowserWalletRequestStatus$' -count=1 -v
+npm --prefix web run bundle
+npm --prefix web run test:e2e:chrome -- wallet-occupancy.spec.ts connection-recovery.spec.ts
+```
+
+Go 测试在临时 SQLite 构造交易占用，经 HTTP 验证状态及领取／恢复冲突。浏览器测试自动访问本机服务，预期 `4 passed`。交易占用由模拟状态响应提供，Chrome 管理页显示交易 ID，同 ID 的连接页等待，解除占用后恢复操作。连接找回使用模拟钱包和实际服务。测试结束后自动停止临时服务并清理数据。

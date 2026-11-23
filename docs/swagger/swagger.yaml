@@ -6,8 +6,24 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 6
+        example: 7
         type: integer
+    type: object
+  api.ActiveWalletRequestResponse:
+    properties:
+      id:
+        type: string
+      kind:
+        enum:
+        - connection
+        - transaction
+        type: string
+      phase:
+        enum:
+        - ready
+        - calling
+        - interrupted_calling
+        type: string
     type: object
   api.BrowserAuthorizeRequest:
     properties:
@@ -270,6 +286,8 @@ definitions:
     type: object
   api.StatusResponse:
     properties:
+      activeWalletRequest:
+        $ref: '#/definitions/api.ActiveWalletRequestResponse'
       browser:
         $ref: '#/definitions/api.BrowserGrantResponse'
       info:
@@ -318,7 +336,7 @@ info:
   description: Local service access, browser authorization, client connection/Session
     lifecycle and browser execution coordination, wallet handoff and connection consent.
   title: Wallet Bridge Local API
-  version: "1.6"
+  version: "1.7"
 paths:
   /browser/authorize:
     post:
@@ -1614,9 +1632,11 @@ paths:
       summary: Close a Session
   /status:
     get:
-      description: With an active browser cookie, the optional walletOperation identifies
-        the connection occupying the wallet slot. Reading status does not renew or
-        acquire an execution. Service Bearer responses omit browser-specific data.
+      description: With an active browser cookie, activeWalletRequest identifies the
+        connection or transaction occupying the wallet. For connections, walletOperation
+        also supplies the API 1.6 representation. Both fields are omitted for an idle
+        wallet and for service Bearer callers. Reading status does not renew or acquire
+        an execution.
       produces:
       - application/json
       responses:

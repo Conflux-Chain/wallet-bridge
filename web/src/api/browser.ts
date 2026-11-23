@@ -1,12 +1,13 @@
 export const bridgeOrigin = 'http://127.0.0.1:18765';
 
 export interface WalletOperation {
-  connectionId: string;
+  kind: 'connection' | 'transaction';
+  id: string;
   phase: 'ready' | 'calling' | 'interrupted_calling';
 }
 
 interface BrowserStatus {
-  walletOperation?: WalletOperation;
+  activeWalletRequest?: WalletOperation;
   startedAt: string;
   info: { version: string };
   browser: { id: string; issuedAt: string; expiresAt: string };
@@ -43,12 +44,17 @@ export async function checkStatus(): Promise<View> {
         !timestamp(value?.browser?.issuedAt) || !timestamp(value?.browser?.expiresAt) || value.browser.state !== 'active') {
       return { kind: 'unavailable' };
     }
-    const operation = value.walletOperation;
-    if (operation !== undefined && (!/^[0-9a-f]{32}$/.test(operation?.connectionId ?? '') ||
-        !['ready', 'calling', 'interrupted_calling'].includes(operation?.phase))) {
+    let operation = value.activeWalletRequest;
+    if (operation === undefined && value.walletOperation !== undefined) {
+      const legacy = value.walletOperation;
+      operation = { kind: 'connection', id: legacy?.connectionId, phase: legacy?.phase };
+    }
+    if (operation !== undefined && (!['connection', 'transaction'].includes(operation?.kind) ||
+        typeof operation?.id !== 'string' || !/^[0-9a-f]{32}$/.test(operation.id) ||
+        !['ready', 'calling', 'interrupted_calling'].includes(operation.phase))) {
       return { kind: 'unavailable' };
     }
-    return { kind: 'authorized', status: value };
+    return { kind: 'authorized', status: { ...value, activeWalletRequest: operation } };
   } catch {
     return { kind: 'unavailable' };
   }
