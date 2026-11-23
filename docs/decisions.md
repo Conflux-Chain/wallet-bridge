@@ -51,6 +51,7 @@
 | D-042 | 用户确认 | 首批交易支持有目标地址的转账和已有合约调用，直接部署新合约留待后续，见[交易输入](iterations/03-single-transaction/spec.md#创建请求) | 2026-11-23，用户选择“先支持转账和调用已有合约” |
 | D-043 | 用户确认 | 首批由钱包选择交易 nonce，client 显式传入时在创建阶段提示不支持，见[交易输入](iterations/03-single-transaction/spec.md#创建请求) | 2026-11-23，用户选择“首批由钱包选择，传入 nonce 时提示不支持” |
 | D-044 | 用户确认 | 省略 value 和 data 时按零和空字节审阅。EIP-1559 费用须成对提供，交易类型由钱包选择，显式 type 报错，见[交易输入](iterations/03-single-transaction/spec.md#创建请求) | 2026-11-23，用户确认 PR 3-1 的三项输入规则 |
+| D-045 | 用户确认 | 交易按请求 ID 幂等创建，新建续期，重试只读。Session 关闭后仍可取回原记录，见[创建规则](iterations/03-single-transaction/spec.md#创建重试与续期) | 2026-11-23，用户确认幂等比较范围和续期规则 |
 
 ## 新增记录时应包含
 

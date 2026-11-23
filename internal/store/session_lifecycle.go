@@ -20,12 +20,23 @@ func (s *Store) updateSessionLifecycle(ctx context.Context, id string, now time.
 	if !validTime(now) {
 		return app.Session{}, app.ErrInvalidSession
 	}
-	now = time.UnixMilli(now.UnixMilli()).UTC()
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return app.Session{}, err
 	}
 	defer tx.Rollback()
+	session, err := updateSessionInTx(ctx, tx, id, now, closeSession)
+	if err != nil {
+		return app.Session{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return app.Session{}, err
+	}
+	return session, nil
+}
+
+func updateSessionInTx(ctx context.Context, tx *sql.Tx, id string, now time.Time, closeSession bool) (app.Session, error) {
+	now = time.UnixMilli(now.UnixMilli()).UTC()
 	session, err := scanSession(tx.QueryRowContext(ctx, sessionSelect+" WHERE id = ?", id))
 	if err != nil {
 		return app.Session{}, err
@@ -53,9 +64,6 @@ func (s *Store) updateSessionLifecycle(ctx context.Context, id string, now time.
 		closed = session.ClosedAt.UnixMilli()
 	}
 	if _, err := tx.ExecContext(ctx, "UPDATE sessions SET last_access_at = ?, closed_at = ? WHERE id = ?", session.LastAccessAt.UnixMilli(), closed, id); err != nil {
-		return app.Session{}, err
-	}
-	if err := tx.Commit(); err != nil {
 		return app.Session{}, err
 	}
 	return session, nil
@@ -86,8 +94,8 @@ WHERE state = 'pending' AND expires_at <= ?`, now.UnixMilli())
 	if err != nil {
 		return app.ConnectionExpiryCounts{}, err
 	}
-	// This iteration has no unfinished requests bound to Sessions. Transaction
-	// support must add that guard here before it can create such requests.
+	// Creating a transaction renews its Session through the request deadline.
+	// Wallet handoff must also protect calls that outlive that deadline.
 	sessions, err := tx.ExecContext(ctx, `UPDATE sessions SET closed_at = last_access_at + ?
 WHERE closed_at IS NULL AND last_access_at <= ?`, app.SessionIdleLifetime.Milliseconds(), now.UnixMilli()-app.SessionIdleLifetime.Milliseconds())
 	if err != nil {

@@ -4,7 +4,7 @@
 
 ## 迭代 3 · 单笔交易
 
-当前步骤为 PR 3-1，按[已确认的输入规则](03-single-transaction/spec.md#创建请求)实现 Go 交易校验。下一步在创建事务中检查 Session 并保存原请求。进度与验收入口见[分步计划](03-single-transaction/plan.md)。
+当前步骤为 PR 3-2，交付交易创建记录、幂等重试与 Session 续期。下一步接入交给钱包前的取消、到期与 Session 关闭。进度与验收入口见[分步计划](03-single-transaction/plan.md)。
 
 ## 上轮交接
 

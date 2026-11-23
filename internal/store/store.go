@@ -84,6 +84,7 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 		connectionSelect + " LIMIT 0",
 		sessionSelect + " LIMIT 0",
 		executionSelect + " LIMIT 0",
+		transactionSelect + " LIMIT 0",
 	} {
 		rows, err := db.QueryContext(ctx, query)
 		if err != nil {
