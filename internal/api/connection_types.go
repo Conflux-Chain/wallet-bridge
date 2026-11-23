@@ -41,6 +41,30 @@ type SessionResponse struct {
 	ClosedAt     string         `json:"closedAt,omitempty" format:"date-time"`
 }
 
+type ConnectionExecutionRequest struct {
+	ID string `json:"id" validate:"required" minlength:"32" maxlength:"32"`
+}
+
+type ConnectionExecutionRecoverRequest struct {
+	ID         string `json:"id" validate:"required" minlength:"32" maxlength:"32"`
+	PreviousID string `json:"previousId" validate:"required" minlength:"32" maxlength:"32"`
+}
+
+type ConnectionExecutionResponse struct {
+	ConnectionID string `json:"connectionId"`
+	ID           string `json:"id"`
+	Phase        string `json:"phase" enums:"ready,calling,interrupted_ready,interrupted_calling,finished"`
+	LastSeenAt   string `json:"lastSeenAt" format:"date-time"`
+	CallID       string `json:"callId,omitempty"`
+}
+
+func executionResponse(execution app.ConnectionExecution) ConnectionExecutionResponse {
+	return ConnectionExecutionResponse{
+		ConnectionID: execution.ConnectionID, ID: execution.ID, Phase: string(execution.Phase),
+		LastSeenAt: timestamp(execution.LastSeenAt), CallID: execution.CallID,
+	}
+}
+
 func connectionResponse(request app.ConnectionRequest) ConnectionResponse {
 	result := ConnectionResponse{
 		ID: request.ID, ClientName: request.ClientName, Intent: request.Intent, ChainID: request.ChainID, ChainName: request.ChainName,

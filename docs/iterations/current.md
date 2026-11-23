@@ -1,6 +1,6 @@
 # 当前迭代与交接
 
-更新时间：2026-11-20。
+更新时间：2026-11-23。
 
 完整安排见[开发计划](../roadmap.md)，开发约定见[迭代工作流](README.md)。
 
@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0～2-3b3 已合并；PR 2-4a client HTTP 接入待评审，PR 入口及证据见 plan。
+- 当前步骤：PR 2-0～2-4a 已合并；PR 2-4b1 浏览器执行协调 HTTP 待评审，PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-评审 client 侧连接／Session HTTP；随后接入浏览器执行 HTTP 和共用 Go client。
+评审浏览器读取与执行协调 HTTP；随后接入交接／最终决定 HTTP，用连接页面提前验收 MetaMask 与 Fluent，再完善多标签页恢复和 CLI。
 
 ## 4. 验证记录
 

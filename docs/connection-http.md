@@ -1,6 +1,6 @@
 # 连接与 Session HTTP 测试
 
-已实现 client 侧创建／查询／取消连接及访问／关闭 Session，API 1.3 公告 `connections.lifecycle`。浏览器执行 HTTP、共用 Go client、CLI 连接命令及连接页面尚未接入；本单元没有真实钱包操作或可用的连接页面链接。
+已实现 client 侧连接／Session HTTP，以及浏览器请求／执行读取、领取／心跳／中断／恢复。当前 API 1.4 公告 `connections.lifecycle` 和 `browser.connections.coordination`。钱包交接／最终决定 HTTP、共用 Go client、CLI 连接命令及连接页面尚未接入，没有真实钱包操作或可用的连接页面链接。
 
 ## 本地验证
 
@@ -29,8 +29,39 @@ go test -tags no_web ./... -count=1
 go vet -tags no_web ./...
 ```
 
+## 浏览器执行协调 HTTP 验证
+
+前置条件及工作目录同上，无需服务、浏览器或钱包：
+
+```sh
+go test -tags no_web ./internal/api -run '^TestBrowserConnectionHTTP' -count=1 -v
+```
+
+预期 9 组测试（含子用例）通过、退出码为 0，验证：
+
+- 六个入口都要求管理 cookie。GET 可以省略 Origin，POST 要求精确 Origin；拒绝过期／撤销 cookie、重复 cookie／Origin、伪造归属字段、错误方法和超限 body。
+- 读取不领取、不续心跳或 Session；领取／恢复重放保留心跳，不返回浏览器授权 ID、cookie 或摘要。
+- 其他页面可读进度，写入须匹配当前主体和执行；中断后显式恢复，旧 ID 不能再操作，新请求不绕过全局执行槽。
+- 心跳失联不能续期复活；连接到期保留原期限。取消／到期／重启不证明钱包调用已结束，未知调用仍占用等待；终态恢复只解除等待，不创建新执行或 Session。
+- 在认证与写事务之间撤销授权，四类写入均被拒绝；更新／插入及提交失败不误报成功、原执行不变，移除测试故障后可重试。
+- 随机端口真实 HTTP 验证两个浏览器竞争同一请求或不同请求，只有一个领取成功。
+
+测试使用自动清理的私有临时 SQLite 与随机端口；命令结束即停止并清理。历史授权／期限由测试数据准备，调用阶段由内部方法模拟；重启场景重开数据库并调用真实恢复核心，未调用钱包或渲染连接页面。
+
+### 在 Chrome 中验证读取
+
+安装 Chrome 和 [README](../README.md#环境准备) 中的工具，在仓库根目录执行以下命令。测试需要本机 18765 端口空闲。
+
+```sh
+npm ci --prefix web
+npm --prefix web run bundle
+npm --prefix web run test:e2e:chrome -- connection-reads.spec.ts
+```
+
+预期为 `1 passed`。测试创建临时服务和独立浏览器上下文，用页面原生 fetch 读取连接与执行，核对授权前的 401、授权后的结果和钱包执行领取。测试结束自动停止临时服务并清理数据。
+
 ## 接口与交付边界
 
-路径、输入、响应及权限由 [handler 注释](../internal/api/connections.go)维护，生成文档见 [Swagger JSON](swagger/swagger.json)／[YAML](swagger/swagger.yaml)；生成步骤见[本地服务指南](local-service.md#接口文档与后端检查)。本单元的范围与取舍见[当轮 design](iterations/02-connection-session/design.md#pr-2-4aclient-http-接入)。
+路径、输入、响应及权限由 [client handler](../internal/api/connections.go) 和[浏览器 handler](../internal/api/browser_connections.go)注释维护，生成文档见 [Swagger JSON](swagger/swagger.json)／[YAML](swagger/swagger.yaml)；生成步骤见[本地服务指南](local-service.md#接口文档与后端检查)。范围与取舍见[当轮 design](iterations/02-connection-session/design.md)。
 
-正式服务仍使用固定 `127.0.0.1:18765`；测试和构建不重启或升级已运行的程序。独立程序的固定端口组合验证在空闲的 CI 环境执行，实际检查及 PR 进度见[当轮 plan](iterations/02-connection-session/plan.md)。
+正式服务仍使用固定 `127.0.0.1:18765`；测试和构建不启动或升级用户服务。独立程序的固定端口组合验证在空闲的 CI 环境执行，实际检查及 PR 进度见[当轮 plan](iterations/02-connection-session/plan.md)。认证期间的存储失败沿用 `authorization_error`，认证后核心操作的存储失败为 `storage_error`；两者都不返回内部细节。

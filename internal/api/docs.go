@@ -1,8 +1,8 @@
 // Package api exposes the local service HTTP interface.
 //
 // @title Wallet Bridge Local API
-// @version 1.3
-// @description Local service access, browser authorization and client connection/Session lifecycle. Browser wallet execution endpoints are delivered separately.
+// @version 1.4
+// @description Local service access, browser authorization, client connection/Session lifecycle and browser execution coordination. Wallet handoff and consent endpoints are delivered separately.
 // @host 127.0.0.1:18765
 // @BasePath /api/v1
 // @schemes http
@@ -13,5 +13,5 @@
 // @securityDefinitions.apikey BrowserCookie
 // @in header
 // @name Cookie
-// @description Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=<secret>; only browser status and logout accept it. Browser clients receive it through Set-Cookie, never through JSON.
+// @description Swagger 2.0 represents this cookie as a header. Use wallet_bridge_browser=<secret>. Browser connection mutations require the exact local Origin. Reads may omit it. Browser clients receive the cookie through Set-Cookie, never through JSON.
 package api
