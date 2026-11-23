@@ -61,13 +61,13 @@ func (s *Store) ClaimConnectionExecution(ctx context.Context, ref app.Connection
 	if busy, err := connectionSlotBusy(ctx, tx, ref.ConnectionID); err != nil {
 		return app.ConnectionExecution{}, err
 	} else if busy {
-		return commitExecution(tx, app.ConnectionExecution{}, app.ErrConnectionExecutionBusy)
+		return commitExecution(tx, app.ConnectionExecution{}, app.ErrWalletBusy)
 	}
 	current = app.ConnectionExecution{ConnectionExecutionRef: ref, Phase: app.ExecutionReady, LastSeenAt: time.UnixMilli(now.UnixMilli()).UTC()}
 	_, err = tx.ExecContext(ctx, `INSERT INTO wallet_executions
 (connection_id, id, browser_grant_id, phase, last_seen_at) VALUES (?, ?, ?, 'ready', ?)`, ref.ConnectionID, ref.ID, ref.BrowserGrantID, now.UnixMilli())
 	if err != nil {
-		return app.ConnectionExecution{}, executionWriteError(err)
+		return app.ConnectionExecution{}, executionWriteError(err, app.ErrConnectionExecutionConflict)
 	}
 	return commitExecution(tx, current, nil)
 }
@@ -164,7 +164,7 @@ func (s *Store) RecoverConnectionExecution(ctx context.Context, previousID strin
 	if busy, err := connectionSlotBusy(ctx, tx, ref.ConnectionID); err != nil {
 		return app.ConnectionExecution{}, err
 	} else if busy {
-		return commitExecution(tx, app.ConnectionExecution{}, app.ErrConnectionExecutionBusy)
+		return commitExecution(tx, app.ConnectionExecution{}, app.ErrWalletBusy)
 	}
 	seen := now.UnixMilli()
 	if seen < current.LastSeenAt.UnixMilli() {
@@ -173,14 +173,18 @@ func (s *Store) RecoverConnectionExecution(ctx context.Context, previousID strin
 	_, err = tx.ExecContext(ctx, `UPDATE wallet_executions
 SET id = ?, browser_grant_id = ?, phase = 'ready', last_seen_at = ?, call_id = NULL WHERE connection_id = ?`, ref.ID, ref.BrowserGrantID, seen, ref.ConnectionID)
 	if err != nil {
-		return app.ConnectionExecution{}, executionWriteError(err)
+		return app.ConnectionExecution{}, executionWriteError(err, app.ErrConnectionExecutionConflict)
 	}
 	current = app.ConnectionExecution{ConnectionExecutionRef: ref, Phase: app.ExecutionReady, LastSeenAt: time.UnixMilli(seen).UTC()}
 	return commitExecution(tx, current, nil)
 }
 
 func (s *Store) beginExecution(ctx context.Context, ref app.ConnectionExecutionRef, now time.Time) (*sql.Tx, error) {
-	if !validID(ref.ConnectionID) || !validID(ref.ID) || !validID(ref.BrowserGrantID) || !validTime(now) {
+	return s.beginWalletExecution(ctx, ref.ConnectionID, ref.ID, ref.BrowserGrantID, now)
+}
+
+func (s *Store) beginWalletExecution(ctx context.Context, requestID, executionID, grantID string, now time.Time) (*sql.Tx, error) {
+	if !validID(requestID) || !validID(executionID) || !validID(grantID) || !validTime(now) {
 		return nil, app.ErrInvalidConnectionExecution
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -189,12 +193,12 @@ func (s *Store) beginExecution(ctx context.Context, ref app.ConnectionExecutionR
 	}
 	var active bool
 	err = tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM browser_grants
-WHERE id = ? AND revoked_at IS NULL AND issued_at <= ? AND expires_at > ?)`, ref.BrowserGrantID, now.UnixMilli(), now.UnixMilli()).Scan(&active)
+WHERE id = ? AND revoked_at IS NULL AND issued_at <= ? AND expires_at > ?)`, grantID, now.UnixMilli(), now.UnixMilli()).Scan(&active)
 	if err == nil && !active {
 		err = app.ErrInvalidBrowserCredential
 	}
 	if err == nil {
-		_, err = maintainExecutions(ctx, tx, now, false)
+		_, err = maintainWalletExecutions(ctx, tx, now, false)
 	}
 	if err != nil {
 		tx.Rollback()
@@ -221,10 +225,10 @@ func commitExecution(tx *sql.Tx, result app.ConnectionExecution, decision error)
 	return result, decision
 }
 
-func executionWriteError(err error) error {
+func executionWriteError(err, conflict error) error {
 	var failure *sqlite.Error
 	if errors.As(err, &failure) && (failure.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE || failure.Code() == sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY) {
-		return app.ErrConnectionExecutionConflict
+		return conflict
 	}
 	return err
 }

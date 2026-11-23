@@ -224,7 +224,7 @@ func TestConnectionExecutionMaintenanceRetainsWalletWait(t *testing.T) {
 					t.Fatal(err)
 				}
 				_, err = s.ClaimConnectionExecution(ctx, next, at)
-				if (calling && !errors.Is(err, app.ErrConnectionExecutionBusy)) || (!calling && err != nil) {
+				if (calling && !errors.Is(err, app.ErrWalletBusy)) || (!calling && err != nil) {
 					t.Fatal("incorrect global slot occupancy", err)
 				}
 			})
@@ -275,7 +275,7 @@ func TestConnectionExecutionConcurrentOwnership(t *testing.T) {
 			for err := range errorsFound {
 				if err == nil {
 					successes++
-				} else if !errors.Is(err, app.ErrConnectionExecutionConflict) && !errors.Is(err, app.ErrConnectionExecutionBusy) {
+				} else if !errors.Is(err, app.ErrConnectionExecutionConflict) && !errors.Is(err, app.ErrWalletBusy) {
 					t.Fatal("race returned storage failure", err)
 				}
 			}

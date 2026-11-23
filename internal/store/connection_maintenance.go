@@ -22,7 +22,7 @@ func (s *Store) MaintainConnectionState(ctx context.Context, now time.Time, rest
 	if err != nil {
 		return app.ConnectionMaintenanceCounts{}, err
 	}
-	executions, err := maintainExecutions(ctx, tx, now, restart)
+	executions, err := maintainWalletExecutions(ctx, tx, now, restart)
 	if err != nil {
 		return app.ConnectionMaintenanceCounts{}, err
 	}

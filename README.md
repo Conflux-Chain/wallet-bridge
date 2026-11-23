@@ -70,7 +70,7 @@ go run ./cmd/wallet-bridge version --json
 
 ### 其他开发方式
 
-- 单笔交易开发验证：[交易输入校验](docs/iterations/03-single-transaction/design.md#本地验证) · [SQLite 创建与幂等重试](docs/iterations/03-single-transaction/design.md#创建与重试测试) · [取消、到期与 Session 关闭](docs/iterations/03-single-transaction/design.md#取消与到期测试) · [共享执行槽迁移](docs/iterations/03-single-transaction/design.md#共享执行槽测试) · [钱包占用提示](docs/iterations/03-single-transaction/design.md#钱包占用提示测试)。
+- 单笔交易开发验证：[交易输入校验](docs/iterations/03-single-transaction/design.md#本地验证) · [SQLite 创建与幂等重试](docs/iterations/03-single-transaction/design.md#创建与重试测试) · [取消、到期与 Session 关闭](docs/iterations/03-single-transaction/design.md#取消与到期测试) · [共享执行槽迁移](docs/iterations/03-single-transaction/design.md#共享执行槽测试) · [钱包占用提示](docs/iterations/03-single-transaction/design.md#钱包占用提示测试) · [交易审阅归属](docs/iterations/03-single-transaction/design.md#交易审阅归属测试)。
 - 三目标构建：`npm --prefix web run bundle:all`（Windows amd64、macOS amd64／arm64）。
 - 无页面的后端开发：`go test -tags no_web ./...`、`go run -tags no_web ./cmd/wallet-bridge version --json`。
 
