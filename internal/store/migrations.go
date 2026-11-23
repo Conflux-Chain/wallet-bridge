@@ -146,14 +146,7 @@ UPDATE transaction_requests SET
     finished_at = min(expires_at, max(transaction_requests.created_at, s.closed_at))
 FROM sessions AS s WHERE session_id = s.id AND s.closed_at IS NOT NULL;
 
-CREATE TRIGGER close_session_transactions AFTER UPDATE OF closed_at ON sessions
-WHEN OLD.closed_at IS NULL AND NEW.closed_at IS NOT NULL BEGIN
-    UPDATE transaction_requests SET
-        state = CASE WHEN expires_at <= NEW.closed_at THEN 'expired' ELSE 'canceled' END,
-        finished_at = min(expires_at, max(created_at, NEW.closed_at))
-    WHERE session_id = NEW.id AND state = 'pending';
-END;
-`, `
+` + closeSessionTransactionsV6, `
 CREATE TABLE wallet_executions (
     id TEXT PRIMARY KEY NOT NULL CHECK (length(id) = 32 AND id NOT GLOB '*[^0-9a-f]*'),
     connection_id TEXT UNIQUE REFERENCES connection_requests (id),
@@ -171,14 +164,44 @@ WHERE phase IN ('ready', 'calling', 'interrupted_calling');
 INSERT INTO wallet_executions (id, connection_id, browser_grant_id, phase, last_seen_at, call_id)
 SELECT id, connection_id, browser_grant_id, phase, last_seen_at, call_id FROM connection_executions;
 DROP TABLE connection_executions;
-`, `
+`, endTransactionReviewV8, `
+DROP TRIGGER close_session_transactions;
+DROP TRIGGER end_transaction_review;
+DROP INDEX transaction_requests_by_deadline;
+CREATE TEMP TABLE prior_decisions AS SELECT id, state, finished_at FROM transaction_requests WHERE state != 'pending';
+ALTER TABLE transaction_requests DROP COLUMN finished_at;
+ALTER TABLE transaction_requests DROP COLUMN state;
+ALTER TABLE transaction_requests ADD COLUMN state TEXT NOT NULL DEFAULT 'pending'
+    CHECK (state IN ('pending', 'awaiting_wallet', 'canceled', 'expired'));
+ALTER TABLE transaction_requests ADD COLUMN finished_at INTEGER
+    CHECK ((state IN ('pending', 'awaiting_wallet') AND finished_at IS NULL) OR
+           (state = 'expired' AND finished_at IS NOT NULL AND finished_at = expires_at) OR
+           (state = 'canceled' AND finished_at IS NOT NULL AND finished_at >= created_at AND finished_at < expires_at));
+ALTER TABLE transaction_requests ADD COLUMN handed_off_at INTEGER
+    CHECK ((state = 'awaiting_wallet' AND handed_off_at IS NOT NULL AND handed_off_at >= created_at AND handed_off_at < expires_at) OR
+           (state != 'awaiting_wallet' AND handed_off_at IS NULL));
+UPDATE transaction_requests SET state = d.state, finished_at = d.finished_at FROM prior_decisions AS d
+WHERE transaction_requests.id = d.id;
+DROP TABLE prior_decisions;
+CREATE INDEX transaction_requests_by_deadline ON transaction_requests (expires_at) WHERE state = 'pending';
+` + closeSessionTransactionsV6 + endTransactionReviewV8}
+
+const closeSessionTransactionsV6 = `
+CREATE TRIGGER close_session_transactions AFTER UPDATE OF closed_at ON sessions
+WHEN OLD.closed_at IS NULL AND NEW.closed_at IS NOT NULL BEGIN
+    UPDATE transaction_requests SET
+        state = CASE WHEN expires_at <= NEW.closed_at THEN 'expired' ELSE 'canceled' END,
+        finished_at = min(expires_at, max(created_at, NEW.closed_at))
+    WHERE session_id = NEW.id AND state = 'pending';
+END;`
+
+const endTransactionReviewV8 = `
 CREATE TRIGGER end_transaction_review AFTER UPDATE OF state ON transaction_requests
 WHEN OLD.state = 'pending' AND NEW.state IN ('canceled', 'expired') BEGIN
     UPDATE wallet_executions SET phase = CASE
         WHEN phase = 'calling' THEN 'interrupted_calling' ELSE 'finished' END
     WHERE transaction_id = NEW.id AND phase IN ('ready', 'interrupted_ready', 'calling');
-END;
-`}
+END;`
 
 func migrate(ctx context.Context, db *sql.DB, steps []string) error {
 	tx, err := db.BeginTx(ctx, nil)

@@ -25,9 +25,10 @@ type TransactionRequestInput struct {
 type TransactionState string
 
 const (
-	TransactionPending  TransactionState = "pending"
-	TransactionCanceled TransactionState = "canceled"
-	TransactionExpired  TransactionState = "expired"
+	TransactionPending        TransactionState = "pending"
+	TransactionAwaitingWallet TransactionState = "awaiting_wallet"
+	TransactionCanceled       TransactionState = "canceled"
+	TransactionExpired        TransactionState = "expired"
 )
 
 // TransactionRequest keeps the original payload and deadline alongside the latest decision.
@@ -39,6 +40,7 @@ type TransactionRequest struct {
 	Transaction Transaction
 	CreatedAt   time.Time
 	ExpiresAt   time.Time
+	HandedOffAt *time.Time
 	State       TransactionState
 	FinishedAt  *time.Time
 }
@@ -77,4 +79,10 @@ type ReviewCommand struct {
 type ReviewResult struct {
 	Review TransactionReview
 	Invoke bool // Granted once for a preparation call.
+}
+
+type TransactionSendInput struct {
+	CallID         string
+	PreviousCallID string // Last preparation acknowledged when the user confirmed.
+	Binding        ConnectionBinding
 }

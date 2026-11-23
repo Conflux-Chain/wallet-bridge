@@ -191,20 +191,25 @@ func (s *Store) beginWalletExecution(ctx context.Context, requestID, executionID
 	if err != nil {
 		return nil, err
 	}
-	var active bool
-	err = tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM browser_grants
-WHERE id = ? AND revoked_at IS NULL AND issued_at <= ? AND expires_at > ?)`, grantID, now.UnixMilli(), now.UnixMilli()).Scan(&active)
-	if err == nil && !active {
-		err = app.ErrInvalidBrowserCredential
-	}
-	if err == nil {
-		_, err = maintainWalletExecutions(ctx, tx, now, false)
-	}
-	if err != nil {
+	if err := checkWalletExecution(ctx, tx, grantID, now); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 	return tx, nil
+}
+
+func checkWalletExecution(ctx context.Context, tx *sql.Tx, grantID string, now time.Time) error {
+	var active bool
+	err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM browser_grants
+WHERE id = ? AND revoked_at IS NULL AND issued_at <= ? AND expires_at > ?)`, grantID, now.UnixMilli(), now.UnixMilli()).Scan(&active)
+	if err != nil {
+		return err
+	}
+	if !active {
+		return app.ErrInvalidBrowserCredential
+	}
+	_, err = maintainWalletExecutions(ctx, tx, now, false)
+	return err
 }
 
 func connectionSlotBusy(ctx context.Context, tx *sql.Tx, connectionID string) (bool, error) {

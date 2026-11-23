@@ -106,3 +106,20 @@ go test -tags no_web ./internal/store -run '^TestTransactionReview' -count=1 -v
 ```
 
 预期四组测试通过，覆盖准备调用只授权一次、切链后保留占用、页面中断与服务重启、同 ID 的两类请求争用，以及提交失败回滚。测试使用临时 SQLite 数据库模拟页面回报，退出后自动清理，无需运行服务或钱包。
+
+## PR 3-5 一次性发送许可
+
+页面在用户点击发送时提供本次调用 ID 和刚核对的钱包、账户、chainId。服务在同一个 SQLite 写事务中检查浏览器授权、当前审阅归属、待审批状态、原期限和 Session 绑定，随后把请求记为 `awaiting_wallet`，记录交接时间，并把执行位置为 `calling`。只有首次成功提交才返回库中冻结的交易供调用。原调用的重试只读回已交接的事实。
+
+取消和关闭 Session 与发放许可共用数据库写锁。先取消或到期会阻止交接；先取得许可则保留原发送记录和钱包占用。等待钱包的请求保护 Session 免于空闲回收。重启会中断执行并保留占用；交接后的结果、手动放行和迟到 hash 由 3-6 处理。
+
+### 一次性发送许可测试
+
+在 Windows 或 macOS 的仓库根目录，使用 [go.mod](../../../go.mod) 指定的 Go 运行：
+
+```sh
+go test -tags no_web ./internal/store -run '^TestTransactionSend' -count=1 -v
+go test -tags no_web ./internal/store -run '^TestTransactionSendConcurrent$' -count=30
+```
+
+第一条命令预期六组测试通过，包含 v8 数据库升级、重启、交接提交失败和审批到期的最后一毫秒。第二条用两个数据库连接分别竞争重试、取消和关闭 Session，预期全部通过。测试在临时 SQLite 中读取发送许可，命令退出时自动清理。无需启动服务或连接钱包。
