@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：PR 2-0～2-4a 已合并；PR 2-4b1 浏览器执行协调 HTTP 待评审，PR 入口及证据见 plan。
+- 当前步骤：PR 2-0～2-4b1 已合并，PR 2-4b2 钱包交接与决定 HTTP 待评审，PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-评审浏览器读取与执行协调 HTTP；随后接入交接／最终决定 HTTP，用连接页面提前验收 MetaMask 与 Fluent，再完善多标签页恢复和 CLI。
+评审钱包交接与决定 HTTP，随后用连接页面提前验收 MetaMask 与 Fluent，再完善多标签页恢复和 CLI。
 
 ## 4. 验证记录
 

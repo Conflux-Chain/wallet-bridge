@@ -107,7 +107,7 @@ func TestBrowserConnectionHTTPObservationAndOwnership(t *testing.T) {
 		t.Fatal("HTTP body supplied ownership", stored, err)
 	}
 	info := responseJSON[InfoResponse](t, f.request(t, "GET", "/api/v1/info", "", nil, 200))
-	if info.APIVersion.Minor != 4 || !strings.Contains(jsonBody(t, info.Capabilities), "browser.connections.coordination") {
+	if info.APIVersion.Minor < 4 || !strings.Contains(jsonBody(t, info.Capabilities), "browser.connections.coordination") {
 		t.Fatal("missing browser coordination capability")
 	}
 }
@@ -170,7 +170,7 @@ func TestBrowserConnectionHTTPPermissions(t *testing.T) {
 	headers := browserHeaders(cookie)
 	headers["Authorization"] = "Bearer wrong"
 	f.request(t, "GET", browserConnectionPath(r.ID), "", headers, 200)
-	for _, suffix := range []string{"/complete", "/reject", "/execution/begin", "/execution/return"} {
+	for _, suffix := range []string{"/complete", "/reject"} {
 		f.request(t, "POST", browserConnectionPath(r.ID)+suffix, "{}", browserHeaders(cookie), 404)
 	}
 }

@@ -59,7 +59,7 @@ func (f connectionHTTPFixture) create(t *testing.T, input ConnectionCreateReques
 	return responseJSON[ConnectionResponse](t, w)
 }
 
-// Prepare historical consent directly in storage; HTTP cannot create a Session.
+// Prepare historical consent directly in storage for deterministic timing.
 func (f connectionHTTPFixture) seedSession(t *testing.T, index int, created time.Time) (app.ConnectionRequest, app.Session) {
 	t.Helper()
 	created = created.UTC().Truncate(time.Millisecond)

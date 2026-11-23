@@ -65,6 +65,42 @@ definitions:
       url:
         type: string
     type: object
+  api.ConnectionBeginCallRequest:
+    properties:
+      callId:
+        type: string
+      id:
+        type: string
+      previousCallId:
+        type: string
+    required:
+    - callId
+    - id
+    type: object
+  api.ConnectionCallPermitResponse:
+    properties:
+      execution:
+        $ref: '#/definitions/api.ConnectionExecutionResponse'
+      invoke:
+        type: boolean
+    type: object
+  api.ConnectionConsentRequest:
+    properties:
+      account:
+        type: string
+      chainId:
+        example: "0x47"
+        type: string
+      id:
+        type: string
+      wallet:
+        $ref: '#/definitions/api.WalletResponse'
+    required:
+    - account
+    - chainId
+    - id
+    - wallet
+    type: object
   api.ConnectionCreateRequest:
     properties:
       chainId:
@@ -154,6 +190,16 @@ definitions:
         - expired
         type: string
     type: object
+  api.ConnectionReturnCallRequest:
+    properties:
+      callId:
+        type: string
+      id:
+        type: string
+    required:
+    - callId
+    - id
+    type: object
   api.ErrorResponse:
     properties:
       code:
@@ -175,6 +221,7 @@ definitions:
         - service.auth.shared
         - connections.lifecycle
         - browser.connections.coordination
+        - browser.connections.decisions
         items:
           type: string
         type: array
@@ -255,10 +302,9 @@ host: 127.0.0.1:18765
 info:
   contact: {}
   description: Local service access, browser authorization, client connection/Session
-    lifecycle and browser execution coordination. Wallet handoff and consent endpoints
-    are delivered separately.
+    lifecycle and browser execution coordination, wallet handoff and connection consent.
   title: Wallet Bridge Local API
-  version: "1.4"
+  version: "1.5"
 paths:
   /browser/authorize:
     post:
@@ -429,6 +475,76 @@ paths:
       security:
       - BrowserCookie: []
       summary: Read the current connection execution
+  /browser/connections/{id}/execution/begin:
+    post:
+      consumes:
+      - application/json
+      description: 'Newly committed handoff grants invoke once. Retry with the same
+        callId and previousCallId after a lost response. Only invoke=true authorizes
+        this page to open the wallet. JSON body limit: 1024 bytes. No query parameters.'
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: 32-character lowercase hexadecimal connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Begin a wallet call
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ConnectionBeginCallRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionCallPermitResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Begin a wallet call
   /browser/connections/{id}/execution/claim:
     post:
       consumes:
@@ -503,6 +619,76 @@ paths:
       security:
       - BrowserCookie: []
       summary: Claim the connection execution
+  /browser/connections/{id}/execution/complete:
+    post:
+      consumes:
+      - application/json
+      description: 'Submit after explicit consent with the actual wallet, account
+        and network. A matching retry returns the committed connection and Session
+        ID. JSON body limit: 8192 bytes. No query parameters.'
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: 32-character lowercase hexadecimal connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Confirm a connection with a wallet binding
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ConnectionConsentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Confirm a connection with a wallet binding
   /browser/connections/{id}/execution/heartbeat:
     post:
       consumes:
@@ -722,6 +908,145 @@ paths:
       security:
       - BrowserCookie: []
       summary: Explicitly continue an interrupted execution
+  /browser/connections/{id}/execution/reject:
+    post:
+      consumes:
+      - application/json
+      description: 'Reject using the current ready execution. A matching replay returns
+        the committed rejection. JSON body limit: 1024 bytes. No query parameters.'
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: 32-character lowercase hexadecimal connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Reject the connection
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ConnectionExecutionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Reject the connection
+  /browser/connections/{id}/execution/return:
+    post:
+      consumes:
+      - application/json
+      description: 'Return the same callId after the wallet promise settles. A return
+        never grants consent or establishes a Session. JSON body limit: 1024 bytes.
+        No query parameters.'
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: 32-character lowercase hexadecimal connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Record that the wallet call ended
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ConnectionReturnCallRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ConnectionExecutionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Record that the wallet call ended
   /browser/logout:
     post:
       consumes:
