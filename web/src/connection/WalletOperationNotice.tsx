@@ -7,7 +7,7 @@ const descriptions = {
 };
 
 const transactionDescriptions = {
-  ready: '这笔交易正在核对钱包、账户和网络。',
+  ready: '这笔交易正在审阅，请等待本次审阅结束。',
   calling: '请等待钱包返回操作结果。',
   interrupted_calling: '原钱包调用已中断。请先检查钱包中是否还有待处理的弹窗。',
 };

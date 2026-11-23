@@ -18,6 +18,7 @@ test('transaction occupancy blocks a same-ID connection until the wallet is free
   await page.getByRole('button', { name: '重新检查', exact: true }).click();
   const notice = page.getByRole('region', { name: '钱包占用情况' });
   await expect(notice.getByRole('heading')).toHaveText('钱包正在处理交易');
+  await expect(notice.getByText(/等待本次审阅结束/)).toBeVisible();
   await expect(notice.getByText(id, { exact: true })).toBeVisible();
 
   phase = 'calling';
