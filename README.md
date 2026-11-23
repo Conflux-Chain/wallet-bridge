@@ -89,7 +89,7 @@ go test -tags no_web ./internal/platform ./internal/credentials -count=1 -v
 
 [连接核心与存储测试](docs/connection-storage.md)提供创建重试、Session 生命周期、执行协调、统一维护及迁移的独立验证步骤；无需启动正式服务或钱包。
 
-[连接与 Session HTTP 测试](docs/connection-http.md)提供 client 生命周期、浏览器执行协调、钱包交接与连接决定的验证步骤，以及 Swagger 入口。
+[连接与 Session HTTP 测试](docs/connection-http.md)提供 HTTP、浏览器执行协调与连接决定的验证步骤，以及 Swagger 入口。[共用 Go 客户端验证](docs/connection-http.md#共用-go-客户端验证)可单独复现创建响应丢失后的重试及 Session 历史查询。
 
 [授权 HTTP 测试](docs/local-service.md#浏览器授权-http-测试)提供接口行为测试、独立程序验证方式及当前交付边界。
 

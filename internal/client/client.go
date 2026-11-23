@@ -71,10 +71,18 @@ var errNotRunning = errors.New("service is not listening")
 var errConnectionChanged = errors.New("the verified connection closed")
 
 type requestOptions struct {
-	browser  bool
-	body     []byte
-	expected int
+	capability string
+	body       []byte
+	expected   int
 }
+
+const (
+	browserCapability    = "browser.authorization"
+	connectionCapability = "connections.lifecycle"
+	defaultResponseLimit = 16 << 10
+	// The service may escape each byte of an 8 KiB input as six JSON bytes.
+	connectionResponseLimit = 8 * api.MaxConnectionBody
+)
 
 // request pins the proof and authenticated request to a single connection.
 // A transport retry cannot dial a replacement endpoint with a Bearer token.
@@ -125,7 +133,7 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 	if err != nil {
 		return nil, empty, &Error{"service_unavailable", "The service did not answer its identity challenge", err}
 	}
-	data, err := readResponse(response, http.StatusOK)
+	data, err := readResponse(response, http.StatusOK, defaultResponseLimit)
 	var info api.InfoResponse
 	if err != nil || json.Unmarshal(data, &info) != nil || !verify(info, challenge, token) {
 		return nil, empty, &Error{"identity_unverified", "The service identity proof is invalid", err}
@@ -133,8 +141,9 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 	if info.APIVersion.Major != 1 || info.APIVersion.Minor < 2 || !hasCapabilities(info.Capabilities) {
 		return nil, empty, &Error{"incompatible_service", "The service API or required capabilities are incompatible; use its matching program to stop it before changing versions", nil}
 	}
-	if options.browser && !slices.Contains(info.Capabilities, "browser.authorization") {
-		return nil, empty, &Error{"incompatible_service", "The service does not support browser authorization; use its matching program to stop it before changing versions", nil}
+	if options.capability != "" && !slices.Contains(info.Capabilities, options.capability) ||
+		options.capability == connectionCapability && info.APIVersion.Minor < 3 {
+		return nil, empty, &Error{"incompatible_service", "The service does not support the requested operation; use its matching program to stop it before changing versions", nil}
 	}
 	if !info.Ready {
 		return nil, empty, &Error{"service_unavailable", "The verified service is not ready", nil}
@@ -151,10 +160,17 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 		}
 		return nil, empty, &Error{"request_failed", "The verified service request failed", err}
 	}
-	data, err = readResponse(response, options.expected)
+	limit := defaultResponseLimit
+	if options.capability == connectionCapability {
+		limit = connectionResponseLimit
+	}
+	data, err = readResponse(response, options.expected, limit)
 	if err != nil {
-		if options.browser {
+		switch options.capability {
+		case browserCapability:
 			return nil, empty, browserResponseError(err)
+		case connectionCapability:
+			return nil, empty, connectionResponseError(err)
 		}
 		return nil, empty, &Error{"request_failed", "The verified service returned an unexpected response", err}
 	}
@@ -162,14 +178,14 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 	return data, info, nil
 }
 
-func readResponse(response *http.Response, expected int) ([]byte, error) {
+func readResponse(response *http.Response, expected, limit int) ([]byte, error) {
 	defer response.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(response.Body, (16<<10)+1))
+	data, err := io.ReadAll(io.LimitReader(response.Body, int64(limit)+1))
 	if err != nil {
 		return nil, err
 	}
-	if len(data) > 16<<10 {
-		return nil, errors.New("response exceeds 16 KiB")
+	if len(data) > limit {
+		return nil, errors.New("response exceeds size limit")
 	}
 	if response.StatusCode != expected {
 		return nil, &responseError{status: response.StatusCode, body: data}

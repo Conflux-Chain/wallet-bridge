@@ -83,7 +83,7 @@ func (c *Client) RevokeBrowser(ctx context.Context, id string, all bool) (api.Br
 }
 
 func (c *Client) browserRequest(ctx context.Context, method, path string, body []byte, expected int) ([]byte, error) {
-	data, _, err := c.request(ctx, method, path, requestOptions{browser: true, body: body, expected: expected})
+	data, _, err := c.request(ctx, method, path, requestOptions{capability: browserCapability, body: body, expected: expected})
 	if ctx.Err() != nil {
 		return nil, &Error{"canceled", "The browser authorization operation was canceled; query state before retrying a change", ctx.Err()}
 	}

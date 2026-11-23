@@ -1,6 +1,6 @@
 # 迭代 2：连接钱包与 Session
 
-状态：2026-11-23 首次连接页面已合并，用户已确认双钱包首次连接通过，当前开发请求找回。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，方案与拆分见 [design](design.md)、[plan](plan.md)。
+用户已确认 MetaMask 和 Fluent 首次连接通过。沿用[需求基线 §5、8～9](../../requirements.md#5-连接钱包与-session)，技术方案见 [design](design.md)，开发与验收进度见 [plan](plan.md)。
 
 ## 目标与边界
 

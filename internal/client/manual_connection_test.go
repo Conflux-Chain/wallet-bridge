@@ -4,9 +4,6 @@ package client
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"testing"
@@ -28,16 +25,9 @@ func TestManualWalletConnection(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 6*time.Minute)
 	defer cancel()
-	var nonce [16]byte
-	if _, err := rand.Read(nonce[:]); err != nil {
-		t.Fatal(err)
-	}
-	id := hex.EncodeToString(nonce[:])
-	input, err := json.Marshal(api.ConnectionCreateRequest{ID: id, ClientName: "Wallet Bridge 验收", Intent: "核对选定的钱包、账户与网络", ChainID: "0x47", ChainName: "Conflux eSpace Testnet"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := client.request(ctx, "POST", "/api/v1/connections", requestOptions{expected: 200, body: input}); err != nil {
+	id := NewConnectionID()
+	input := api.ConnectionCreateRequest{ID: id, ClientName: "Wallet Bridge 验收", Intent: "核对选定的钱包、账户与网络", ChainID: "0x47", ChainName: "Conflux eSpace Testnet"}
+	if _, err := client.CreateConnection(ctx, input); err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println("Open in the authorized Chrome profile:", api.Origin+"/?connection="+id)
@@ -48,12 +38,8 @@ func TestManualWalletConnection(t *testing.T) {
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())
 		case <-tick.C:
-			body, _, err := client.request(ctx, "GET", "/api/v1/connections/"+id, requestOptions{expected: 200})
+			result, err := client.GetConnection(ctx, id)
 			if err != nil {
-				t.Fatal(err)
-			}
-			var result api.ConnectionResponse
-			if err := json.Unmarshal(body, &result); err != nil {
 				t.Fatal(err)
 			}
 			if result.State == "pending" {
@@ -62,12 +48,8 @@ func TestManualWalletConnection(t *testing.T) {
 			if result.State != "succeeded" {
 				t.Fatalf("Connection ended: %s", result.State)
 			}
-			body, _, err = client.request(ctx, "GET", "/api/v1/sessions/"+result.SessionID, requestOptions{expected: 200})
+			session, err := client.GetSession(ctx, result.SessionID)
 			if err != nil {
-				t.Fatal(err)
-			}
-			var session api.SessionResponse
-			if err := json.Unmarshal(body, &session); err != nil {
 				t.Fatal(err)
 			}
 			if session.ConnectionID != id || session.ChainID != "0x47" || session.State != "active" {

@@ -1,6 +1,6 @@
 # 迭代 2 PR 计划
 
-状态：2026-11-23 首次连接页面已合并，请求找回待评审。沿用 [spec](spec.md)、[design](design.md)。
+状态：2026-11-23 请求找回已合并，共用 Go client 待评审。沿用 [spec](spec.md)、[design](design.md)。
 
 ## 分步交付
 
@@ -22,8 +22,8 @@
 | PR 2-4b1：浏览器执行协调 HTTP | 请求／执行读取、领取／心跳／中断／恢复；同步 Swagger | cookie／Origin、主体填入、重放及恢复后旧执行失效 | [#28](https://github.com/Conflux-Chain/wallet-bridge/pull/28) 已合并 |
 | PR 2-4b2：浏览器交接与决定 HTTP | 钱包调用交接／回报、受归属保护的同意／拒绝；同步 Swagger | 丢包不重入、终态竞争与权限、唯一 Session | [#29](https://github.com/Conflux-Chain/wallet-bridge/pull/29) 已合并 |
 | PR 2-6a：首次连接页面 | 用现有 HTTP 创建请求，页面展示调用方／网络，选择钱包及账户，确认后由 client 核对固定绑定 | 模拟页面流程，随后用 MetaMask、Fluent EVM 各完成一次真实连接并记录结果 | [#30](https://github.com/Conflux-Chain/wallet-bridge/pull/30) 已合并，双钱包首次连接人工通过 |
-| PR 2-6b：连接中断与找回 | 已授权页面可定位占用钱包的请求，展示进度并引导手动继续 | 同一 Chrome 配置双标签页：A 等待钱包后关闭，从 B 找回 A，核对迟到结果和实际调用次数 | [#31](https://github.com/Conflux-Chain/wallet-bridge/pull/31) 待评审 |
-| PR 2-4c：共用 Go client | 封装连接／Session HTTP，供后续 CLI／MCP 使用 | 能力检查、ID 重试、错误及机器可读结果 | 待开发 |
+| PR 2-6b：连接中断与找回 | 已授权页面可定位占用钱包的请求，展示进度并引导手动继续 | 同一 Chrome 配置双标签页：A 等待钱包后关闭，从 B 找回 A，核对迟到结果和实际调用次数 | [#31](https://github.com/Conflux-Chain/wallet-bridge/pull/31) 已合并 |
+| PR 2-4c：共用 Go client | 封装连接／Session HTTP，供后续 CLI／MCP 使用 | 能力检查、ID 重试、错误及机器可读结果 | [#32](https://github.com/Conflux-Chain/wallet-bridge/pull/32) 待评审 |
 | PR 2-5：CLI | 连接、请求查询／取消、Session 查询／关闭及 ID 使用 | 实际程序、等待／取消／输出边界、敏感信息保护 | 待开发 |
 | PR 2-7：组合验收 | 三平台组合与 MetaMask／Fluent 连接验收、交接资料 | A-04～07、11～12、16～17；明确模拟、实际环境及用户验收 | 待开发 |
 
@@ -165,4 +165,10 @@ PR 2-0：23 份 Markdown 的 170 个本地链接、53 个标题锚点及 Git 空
 ### PR 2-6b
 
 - 管理首页与等待页可在新标签页打开占用钱包的请求。服务状态复用持久化执行阶段，返回的请求 ID 可定位到原页面。
+- PR #31 已合并为 `5f986b5`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45109421283) 通过。
 - Windows Chrome 用模拟钱包连续三轮跑通两项跨页用例，覆盖正常观察、关闭原页后显式继续、取消后解除等待，以及迟到回报。Go 测试覆盖取消、过期、重启后的定位和释放。[本地复现](../../first-connection.md#跨标签页找回请求)
+
+### PR 2-4c
+
+- Windows 上五组共享 client 测试通过，覆盖创建提交后丢包、同 ID 重试与冲突、长文本、大 chainId、关闭历史、能力检查和错误映射。完整 Go 测试及 vet 在默认和 `no_web` 两种构建下通过。[本地复现](../../connection-http.md#共用-go-客户端验证)
+- 首次连接人工验收工具已切换到共享 client。本次检查了工具编译，真实钱包实测记录见 PR 2-6a。
