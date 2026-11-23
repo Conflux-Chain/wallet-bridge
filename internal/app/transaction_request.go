@@ -21,7 +21,15 @@ type TransactionRequestInput struct {
 	Fields     map[string]string
 }
 
-// TransactionRequest is the immutable record created before approval.
+type TransactionState string
+
+const (
+	TransactionPending  TransactionState = "pending"
+	TransactionCanceled TransactionState = "canceled"
+	TransactionExpired  TransactionState = "expired"
+)
+
+// TransactionRequest keeps the original payload and deadline alongside the latest decision.
 type TransactionRequest struct {
 	ID          string
 	SessionID   string
@@ -30,4 +38,6 @@ type TransactionRequest struct {
 	Transaction Transaction
 	CreatedAt   time.Time
 	ExpiresAt   time.Time
+	State       TransactionState
+	FinishedAt  *time.Time
 }

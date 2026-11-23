@@ -12,20 +12,75 @@ import (
 )
 
 const transactionSelect = `SELECT id, session_id, client_name, intent, from_address, to_address,
-chain_id, value, data, gas, gas_price, max_fee_per_gas, max_priority_fee_per_gas, created_at, expires_at
+chain_id, value, data, gas, gas_price, max_fee_per_gas, max_priority_fee_per_gas, created_at, expires_at, state, finished_at
 FROM transaction_requests`
 
-func (s *Store) GetTransactionRequest(ctx context.Context, id string) (app.TransactionRequest, error) {
-	return scanTransactionRequest(s.db.QueryRowContext(ctx, transactionSelect+" WHERE id = ?", id))
+const expireDueTransactions = `UPDATE transaction_requests SET state = 'expired', finished_at = expires_at
+WHERE state = 'pending' AND expires_at <= ?`
+
+func (s *Store) GetTransactionRequest(ctx context.Context, id string, now time.Time) (app.TransactionRequest, error) {
+	return s.transactionStatus(ctx, id, now, false)
+}
+
+func (s *Store) CancelTransactionRequest(ctx context.Context, id string, now time.Time) (app.TransactionRequest, error) {
+	return s.transactionStatus(ctx, id, now, true)
+}
+
+func (s *Store) transactionStatus(ctx context.Context, id string, now time.Time, cancel bool) (app.TransactionRequest, error) {
+	if !validID(id) || !validTime(now) {
+		return app.TransactionRequest{}, app.ErrInvalidTransaction
+	}
+	if !cancel {
+		// Acquire the write lock only when a poll observes a deadline.
+		req, err := scanTransactionRequest(s.db.QueryRowContext(ctx, transactionSelect+" WHERE id = ?", id))
+		if err != nil || req.State != app.TransactionPending || now.Before(req.ExpiresAt) {
+			return req, err
+		}
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return app.TransactionRequest{}, err
+	}
+	defer tx.Rollback()
+	req, err := transactionStatusInTx(ctx, tx, id, now, cancel)
+	if err != nil {
+		return app.TransactionRequest{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return app.TransactionRequest{}, err
+	}
+	return req, nil
+}
+
+func transactionStatusInTx(ctx context.Context, tx *sql.Tx, id string, now time.Time, cancel bool) (app.TransactionRequest, error) {
+	req, err := scanTransactionRequest(tx.QueryRowContext(ctx, transactionSelect+" WHERE id = ?", id))
+	if err != nil || req.State != app.TransactionPending {
+		return req, err
+	}
+	switch {
+	case !now.Before(req.ExpiresAt):
+		req.State, req.FinishedAt = app.TransactionExpired, &req.ExpiresAt
+	case cancel:
+		finished := time.UnixMilli(max(now.UnixMilli(), req.CreatedAt.UnixMilli())).UTC()
+		req.State, req.FinishedAt = app.TransactionCanceled, &finished
+	default:
+		return req, nil
+	}
+	_, err = tx.ExecContext(ctx, "UPDATE transaction_requests SET state = ?, finished_at = ? WHERE id = ?", req.State, req.FinishedAt.UnixMilli(), id)
+	if err != nil {
+		return app.TransactionRequest{}, err
+	}
+	return req, nil
 }
 
 func scanTransactionRequest(row *sql.Row) (app.TransactionRequest, error) {
 	var req app.TransactionRequest
 	payload := &req.Transaction
 	var created, expires int64
+	var finished sql.NullInt64
 	err := row.Scan(&req.ID, &req.SessionID, &req.ClientName, &req.Intent, &payload.From, &payload.To, &payload.ChainID,
 		&payload.Value, &payload.Data, &payload.Gas, &payload.GasPrice, &payload.MaxFeePerGas, &payload.MaxPriorityFeePerGas,
-		&created, &expires)
+		&created, &expires, &req.State, &finished)
 	if errors.Is(err, sql.ErrNoRows) {
 		return app.TransactionRequest{}, app.ErrTransactionRequestNotFound
 	}
@@ -33,6 +88,10 @@ func scanTransactionRequest(row *sql.Row) (app.TransactionRequest, error) {
 		return app.TransactionRequest{}, err
 	}
 	req.CreatedAt, req.ExpiresAt = time.UnixMilli(created).UTC(), time.UnixMilli(expires).UTC()
+	if finished.Valid {
+		at := time.UnixMilli(finished.Int64).UTC()
+		req.FinishedAt = &at
+	}
 	return req, nil
 }
 
@@ -46,8 +105,11 @@ func (s *Store) CreateTransactionRequest(ctx context.Context, input app.Transact
 	}
 	defer tx.Rollback()
 
-	original, err := scanTransactionRequest(tx.QueryRowContext(ctx, transactionSelect+" WHERE id = ?", input.ID))
+	original, err := transactionStatusInTx(ctx, tx, input.ID, now, false)
 	if err == nil {
+		if err := tx.Commit(); err != nil {
+			return app.TransactionRequest{}, err
+		}
 		if !sameTransactionRequest(original, input) {
 			return original, app.ErrTransactionRequestConflict
 		}
@@ -77,7 +139,7 @@ func (s *Store) CreateTransactionRequest(ctx context.Context, input app.Transact
 	created := time.UnixMilli(now.UnixMilli()).UTC()
 	req := app.TransactionRequest{
 		ID: input.ID, SessionID: session.ID, ClientName: input.ClientName, Intent: input.Intent,
-		Transaction: payload, CreatedAt: created, ExpiresAt: created.Add(app.TransactionRequestLifetime),
+		Transaction: payload, CreatedAt: created, ExpiresAt: created.Add(app.TransactionRequestLifetime), State: app.TransactionPending,
 	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO transaction_requests
 (id, session_id, client_name, intent, from_address, to_address, chain_id, value, data, gas, gas_price,

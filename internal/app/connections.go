@@ -80,8 +80,9 @@ type ConnectionCompletion struct {
 }
 
 type ConnectionExpiryCounts struct {
-	ConnectionRequests int64
-	Sessions           int64
+	ConnectionRequests  int64
+	TransactionRequests int64
+	Sessions            int64
 }
 
 // Resource IDs locate records; they do not authorize access. The application
