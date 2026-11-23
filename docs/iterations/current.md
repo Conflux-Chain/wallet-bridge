@@ -11,11 +11,11 @@
 ## 2. 当前任务
 
 - 当前文档：[spec](02-connection-session/spec.md)、[design](02-connection-session/design.md)、[plan](02-connection-session/plan.md)。
-- 当前步骤：连接中断与找回已合并，PR 2-4c 共用 Go client 待评审。PR 入口及证据见 plan。
+- 当前步骤：共用 Go client 已合并，PR 2-5a「CLI 管理已有连接和 Session」待评审。PR 入口及证据见 plan。
 
 ## 3. 下一步
 
-共用 Go client 评审后，细化 CLI 的等待、退出和打开请求链接行为。
+PR 2-5b 将接入 CLI 发起连接，细化打开链接、异步返回与等待结果的选项，并验证 Ctrl+C 保留原请求。
 
 ## 4. 验证记录
 

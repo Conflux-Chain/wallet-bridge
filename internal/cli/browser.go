@@ -22,7 +22,7 @@ func runUI(args []string, dependencies Dependencies, stdout, stderr io.Writer) i
 	flags.SetOutput(io.Discard)
 	dir := flags.String("data-dir", "", "Use an absolute private data directory")
 	printURL := flags.Bool("print-url", false, "Print the one-use authorization URL instead of opening it")
-	if code, done := parseBrowserFlags(flags, args, uiUsage, stdout, stderr); done {
+	if code, done := parseFlags(flags, args, uiUsage, stdout, stderr); done {
 		return code
 	}
 	if flags.NArg() != 0 || (*dir != "" && !filepath.IsAbs(*dir)) {
@@ -79,7 +79,7 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	if action == "revoke" && len(remaining) != 0 && !strings.HasPrefix(remaining[0], "-") {
 		id, remaining = remaining[0], remaining[1:]
 	}
-	if code, done := parseBrowserFlags(flags, remaining, browserUsage, stdout, stderr); done {
+	if code, done := parseFlags(flags, remaining, browserUsage, stdout, stderr); done {
 		return code
 	}
 	if action == "revoke" && id == "" && flags.NArg() == 1 {
@@ -88,8 +88,8 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 		fmt.Fprintln(stderr, browserUsage)
 		return 2
 	}
-	if (*dir != "" && !filepath.IsAbs(*dir)) || (action == "list" && (limit < 1 || limit > 50 || (after != "" && !grantID(after)))) ||
-		(action == "revoke" && ((id == "" && !all) || (id != "" && (all || !grantID(id))))) {
+	if (*dir != "" && !filepath.IsAbs(*dir)) || (action == "list" && (limit < 1 || limit > 50 || (after != "" && !validResourceID(after)))) ||
+		(action == "revoke" && ((id == "" && !all) || (id != "" && (all || !validResourceID(id))))) {
 		fmt.Fprintln(stderr, browserUsage)
 		return 2
 	}
@@ -131,7 +131,7 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	return browserOutputResult(err, *jsonOutput, stderr)
 }
 
-func parseBrowserFlags(flags *flag.FlagSet, args []string, help string, stdout, stderr io.Writer) (int, bool) {
+func parseFlags(flags *flag.FlagSet, args []string, help string, stdout, stderr io.Writer) (int, bool) {
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			fmt.Fprintln(stdout, help)
@@ -144,7 +144,7 @@ func parseBrowserFlags(flags *flag.FlagSet, args []string, help string, stdout, 
 	return 0, false
 }
 
-func grantID(id string) bool {
+func validResourceID(id string) bool {
 	value, err := hex.DecodeString(id)
 	return err == nil && len(value) == 16 && hex.EncodeToString(value) == id
 }
@@ -157,9 +157,13 @@ func browserOutputResult(err error, jsonOutput bool, stderr io.Writer) int {
 }
 
 func browserError(stderr io.Writer, jsonOutput bool, err error) int {
+	return commandError(stderr, jsonOutput, err, "Browser authorization operation failed")
+}
+
+func commandError(stderr io.Writer, jsonOutput bool, err error, fallback string) int {
 	var failure *client.Error
 	if !errors.As(err, &failure) {
-		failure = &client.Error{Code: "request_failed", Message: "Browser authorization operation failed"}
+		failure = &client.Error{Code: "request_failed", Message: fallback}
 	}
 	if jsonOutput {
 		json.NewEncoder(stderr).Encode(failure)

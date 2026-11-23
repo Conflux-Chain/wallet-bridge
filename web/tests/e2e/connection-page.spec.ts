@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
-import { authorize, connectionClient as client } from './bridge';
+import { authorize, cli, connectionClient as client } from './bridge';
 
 const first = '0x' + '1'.repeat(40);
 const second = '0x' + '2'.repeat(40);
@@ -71,8 +71,24 @@ test('wallet refusal can be retried before selecting and confirming the second a
   await account.selectOption(second);
   await consent.click();
   await expect(page.getByRole('heading', {name:'已同意连接'})).toBeVisible();
-  const result = await client('connections/' + original.id);
-  expect(await client('sessions/' + result.sessionId)).toMatchObject({ connectionId: original.id, account: second, chainId:'0x47', wallet: { name:'Simulated Wallet' } });
+  const result = JSON.parse(await cli(['connection', 'get', original.id, '--json']));
+  expect(result).toMatchObject({ id: original.id, state: 'succeeded' });
+  const active = JSON.parse(await cli(['session', 'get', result.sessionId, '--json']));
+  expect(active).toMatchObject({ state: 'active', connectionId: original.id, account: second, chainId:'0x47', wallet: { name:'Simulated Wallet' } });
+  const closed = JSON.parse(await cli(['session', 'close', result.sessionId, '--json']));
+  expect(closed).toMatchObject({ ...active, state: 'closed', closedAt: expect.any(String) });
+  expect(JSON.parse(await cli(['session', 'get', result.sessionId, '--json']))).toEqual(closed);
+  expect(JSON.parse(await cli(['connection', 'get', original.id, '--json']))).toEqual(result);
+});
+
+test('CLI recovers the original request after a service stop and explicitly cancels it', async () => {
+  const id = randomBytes(16).toString('hex');
+  const original = await client('connections', { id, clientName: 'CLI test', chainId: '71' });
+  expect(JSON.parse(await cli(['service', 'stop', '--json'])).state).toBe('stopped');
+  expect(JSON.parse(await cli(['connection', 'get', id, '--json']))).toEqual(original);
+  const canceled = JSON.parse(await cli(['connection', 'cancel', id, '--json']));
+  expect(canceled).toMatchObject({ ...original, state: 'canceled', finishedAt: expect.any(String) });
+  expect(JSON.parse(await cli(['connection', 'cancel', id, '--json']))).toEqual(canceled);
 });
 
 test('explicit rejection ends the pending client request', async ({page}) => {

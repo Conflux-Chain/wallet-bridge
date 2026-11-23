@@ -1,6 +1,6 @@
 # 迭代 2 技术设计草案
 
-状态：2026-11-23，PR 2-1～2-4b2 已合并，首次连接页面已合并，当前接入占用请求找回。本文沿用[既定架构](../../architecture.md)，不增加模块层级；待定产品行为见 [spec](spec.md)。
+本文沿用[既定架构](../../architecture.md)。产品行为见 [spec](spec.md)，实现及验收进度见 [plan](plan.md)。
 
 ## 模块边界
 
@@ -241,6 +241,12 @@ EIP-6963 的 UUID 只区分当前页面中的 Provider 会话；`rdns` 用于跨
 CLI 与 MCP 可在提交前调用 `client.NewConnectionID`，为一次逻辑连接保留同一份创建参数。`CreateConnection` 每次提交一次，响应中断时调用方可以按原 ID 查询或原样重试（D-035）。等待、重试次数及退出行为由各入口决定。
 
 `GetConnection`、`CancelConnection`、`GetSession` 与 `CloseSession` 复用 PR 2-4a 的 HTTP 类型和状态。每次调用通过同一条 TCP 连接验证 API 1.3+ 与 `connections.lifecycle` 后发送服务凭据。返回前核对资源 ID、状态及关联字段，HTTP 失败提供稳定错误码。
+
+### PR 2-5a：CLI 管理已有连接和 Session
+
+`connection get|cancel <id>` 与 `session get|close <id>` 支持 `--data-dir` 和 `--json`。校验参数后复用服务就绪检查和共享客户端。每个命令只操作指定资源。连接查询返回的 Session ID 可用于单独读取绑定。
+
+成功读取或变更返回 0，包括已关闭的历史记录。JSON 模式向 stdout 写一条 HTTP 结果，操作失败向 stderr 写稳定的错误对象并返回 1。参数错误沿用 CLI 约定，显示用法并返回 2。创建连接、打开链接和等待结果在 PR 2-5b 交付。
 
 ## 规范依据
 
