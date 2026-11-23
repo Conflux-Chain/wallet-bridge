@@ -4,7 +4,7 @@
 
 ## 迭代 3 · 单笔交易
 
-当前步骤为 PR 3-0，评审单笔交易的[需求](03-single-transaction/spec.md)、[设计草案](03-single-transaction/design.md)与[分步计划](03-single-transaction/plan.md)。首个实现 PR 从交易输入和校验开始。各组产品问题在对应实现前确认。
+当前步骤为 PR 3-1，按[已确认的输入规则](03-single-transaction/spec.md#创建请求)实现 Go 交易校验。下一步在创建事务中检查 Session 并保存原请求。进度与验收入口见[分步计划](03-single-transaction/plan.md)。
 
 ## 上轮交接
 

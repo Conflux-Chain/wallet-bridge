@@ -70,6 +70,7 @@ go run ./cmd/wallet-bridge version --json
 
 ### 其他开发方式
 
+- [单笔交易输入测试](docs/iterations/03-single-transaction/design.md#本地验证)可在 Go 层验证转账、合约调用、费用组合和输入错误。
 - 三目标构建：`npm --prefix web run bundle:all`（Windows amd64、macOS amd64／arm64）。
 - 无页面的后端开发：`go test -tags no_web ./...`、`go run -tags no_web ./cmd/wallet-bridge version --json`。
 

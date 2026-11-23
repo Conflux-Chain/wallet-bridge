@@ -52,7 +52,7 @@ func (a *ConnectionService) Create(ctx context.Context, input ConnectionInput) (
 	if err := ctx.Err(); err != nil {
 		return ConnectionRequest{}, err
 	}
-	chain, ok := connectionChainID(input.ChainID)
+	chain, ok := canonicalHexQuantity(input.ChainID)
 	if !connectionID(input.ID) || strings.TrimSpace(input.ClientName) == "" || !ok {
 		return ConnectionRequest{}, ErrInvalidConnectionRequest
 	}
@@ -175,7 +175,7 @@ func (a *ConnectionService) Maintain(ctx context.Context) (ConnectionMaintenance
 }
 
 func normalizeConnectionBinding(binding ConnectionBinding) (ConnectionBinding, error) {
-	chain, ok := connectionChainID(binding.ChainID)
+	chain, ok := canonicalHexQuantity(binding.ChainID)
 	account := strings.ToLower(binding.Account)
 	decoded, err := hex.DecodeString(strings.TrimPrefix(account, "0x"))
 	if !ok || !strings.HasPrefix(account, "0x") || len(decoded) != 20 || err != nil ||
@@ -193,7 +193,7 @@ func connectionID(value string) bool {
 	return err == nil && len(decoded) == 16 && hex.EncodeToString(decoded) == value
 }
 
-func connectionChainID(value string) (string, bool) {
+func canonicalHexQuantity(value string) (string, bool) {
 	if len(value) < 3 || !strings.HasPrefix(value, "0x") {
 		return "", false
 	}
