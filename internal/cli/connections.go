@@ -18,12 +18,16 @@ import (
 
 const connectionUsage = "Usage: wallet-bridge connection get|cancel <request-id> [--data-dir <absolute path>] [--json]"
 const sessionUsage = "Usage: wallet-bridge session get|close <session-id> [--data-dir <absolute path>] [--json]"
+const transactionUsage = "Usage: wallet-bridge transaction get|cancel <request-id> [--data-dir <absolute path>] [--json]"
 
 func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	group := args[0]
 	usage, change := connectionUsage, "cancel"
-	if group == "session" {
+	switch group {
+	case "session":
 		usage, change = sessionUsage, "close"
+	case "transaction":
+		usage = transactionUsage
 	}
 	if len(args) == 1 || (len(args) == 2 && (args[1] == "--help" || args[1] == "-h")) {
 		fmt.Fprintln(stdout, usage)
@@ -54,7 +58,7 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 		return 2
 	}
 	if deps.NewClient == nil {
-		return commandError(stderr, *asJSON, nil, "Connection client is unavailable")
+		return commandError(stderr, *asJSON, nil, "Service client is unavailable")
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -67,7 +71,8 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 	}
 	id := ids[0]
 	var writeErr error
-	if group == "connection" {
+	switch group {
+	case "connection":
 		operation := c.GetConnection
 		if action == "cancel" {
 			operation = c.CancelConnection
@@ -77,7 +82,7 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 			return commandError(stderr, *asJSON, err, "Connection request operation failed")
 		}
 		writeErr = writeConnection(stdout, *asJSON, result)
-	} else {
+	case "session":
 		operation := c.GetSession
 		if action == "close" {
 			operation = c.CloseSession
@@ -87,11 +92,44 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 			return commandError(stderr, *asJSON, err, "Session operation failed")
 		}
 		writeErr = writeSession(stdout, *asJSON, result)
+	case "transaction":
+		operation := c.GetTransaction
+		if action == "cancel" {
+			operation = c.CancelTransaction
+		}
+		result, err := operation(ctx, id)
+		if err != nil {
+			return commandError(stderr, *asJSON, err, "Transaction request operation failed")
+		}
+		writeErr = writeTransaction(stdout, *asJSON, result)
 	}
 	if writeErr != nil {
 		return commandError(stderr, *asJSON, &client.Error{Code: "output_error", Message: "Cannot write the operation result"}, "")
 	}
 	return 0
+}
+
+func writeTransaction(out io.Writer, asJSON bool, result api.TransactionResponse) error {
+	if asJSON {
+		return json.NewEncoder(out).Encode(result)
+	}
+	tx := result.Transaction
+	_, err := fmt.Fprintf(out, "Transaction %s (%s)\nSession: %s\nClient: %q\nIntent: %q\nChain: %s\nFrom: %s\nTo: %s\nValue (smallest units, hex): %s\n",
+		result.ID, result.State, result.SessionID, result.ClientName, result.Intent, tx.ChainID, tx.From, tx.To, tx.Value)
+	if err != nil {
+		return err
+	}
+	switch result.State {
+	case "pending":
+		_, err = fmt.Fprintln(out, "Approval expires at:", result.ExpiresAt)
+	case "awaiting_wallet":
+		_, err = fmt.Fprintln(out, "The wallet is processing this transaction. Check this request again for its result.")
+	case "uncertain":
+		_, err = fmt.Fprintln(out, "Broadcast status is uncertain. Check this request again for a late transaction hash.")
+	case "sent":
+		_, err = fmt.Fprintln(out, "Transaction hash:", result.TxHash)
+	}
+	return err
 }
 
 func writeConnection(out io.Writer, asJSON bool, result api.ConnectionResponse) error {

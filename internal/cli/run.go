@@ -25,7 +25,7 @@ type Dependencies struct {
 }
 
 const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status|stop [--data-dir <absolute path>] [--json]"
-const usage = "Usage: wallet-bridge version [--json]\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage
+const usage = "Usage: wallet-bridge version [--json]\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
 
 func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
 	info := dependencies.BuildInfo
@@ -45,7 +45,7 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 	if args[0] == "connect" {
 		return runConnect(args[1:], dependencies, stdout, stderr)
 	}
-	if args[0] == "connection" || args[0] == "session" {
+	if args[0] == "connection" || args[0] == "session" || args[0] == "transaction" {
 		return runResource(args, dependencies, stdout, stderr)
 	}
 	if args[0] != "version" {

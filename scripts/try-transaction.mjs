@@ -82,6 +82,8 @@ try {
   started = true;
   const withWallet = process.argv.slice(2).includes('--wallet');
   const url = await previewURL(withWallet, stop.signal);
+  console.log('交易请求 ID:', url.searchParams.get('transaction'));
+  console.log('临时数据目录:', directory);
   console.log(withWallet ? '在刚完成连接的浏览器配置中打开交易链接。' : '在 Chrome 无痕窗口打开以下一次性链接。刷新或重开时使用地址栏中保留的普通链接。');
   if (withWallet) console.log('在钱包中最终确认会广播测试网交易并消耗测试币支付 gas。仅体验弹窗时，请在钱包内拒绝。');
   console.log(url.href);

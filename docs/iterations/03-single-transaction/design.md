@@ -277,3 +277,7 @@ go test -tags no_web ./internal/client -run '^TestTransactionClient' -count=1 -v
 ```
 
 预期四组测试通过。测试自行启动临时 HTTP 服务并连接 SQLite，模拟创建响应丢失、钱包交接及迟到 hash，同时检查旧服务和异常响应。测试退出时自动停止服务、清理数据，无需启动浏览器或准备测试币。
+
+## PR 3-12a CLI 管理已有交易
+
+`transaction get|cancel <request-id>` 复用已有资源命令的参数解析和服务启动流程。人读输出标明请求状态、固定网络和已有 hash，`--json` 将共享 client 的完整交易记录写到 stdout。取消和查询都显示服务实际保存的状态。
