@@ -54,8 +54,14 @@ func TestBrowserReviewHTTPPreparation(t *testing.T) {
 		t.Fatal("retry received a second permission", replay)
 	}
 	observe("calling", "")
+	// A rejected network switch ends the preparation call. The client keeps
+	// waiting on the same transaction and the page can request another switch.
 	post(first, app.ReturnPreparationCall, owner, "", call, 200)
 	observe("ready", "")
+	pending := responseJSON[TransactionResponse](t, f.request(t, "GET", transactionsPath+"/"+req.ID, "", controlHeaders(), 200))
+	if pending.ID != req.ID || pending.State != "pending" || pending.ExpiresAt != timestamp(req.ExpiresAt) {
+		t.Fatal("returning preparation changed the pending request or deadline", pending)
+	}
 	connection := f.create(t, connectionHTTPInput(3))
 	blocked := f.execution(t, second, connection.ID, "claim", next, "", 409)
 	if responseJSON[ErrorResponse](t, blocked).Code != "wallet_busy" {
