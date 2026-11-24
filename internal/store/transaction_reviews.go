@@ -59,6 +59,11 @@ func (s *Store) ApplyTransactionReview(ctx context.Context, ref app.TransactionR
 		if decision != nil && !errors.Is(decision, app.ErrWalletBusy) {
 			return app.ReviewResult{}, decision
 		}
+		if decision == nil && req.HandedOffAt != nil && result.Review.Phase == app.ExecutionInterruptedCalling {
+			if err := recordInterruptedSend(ctx, tx, now); err != nil {
+				return app.ReviewResult{}, err
+			}
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return app.ReviewResult{}, err

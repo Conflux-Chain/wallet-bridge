@@ -61,7 +61,7 @@ func TestTransactionSendReplayAndRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := s.CancelTransactionRequest(ctx, req.ID, later)
-	if err != nil || got.State != app.TransactionAwaitingWallet || got.FinishedAt != nil || got.HandedOffAt == nil || !got.HandedOffAt.Equal(now) {
+	if err != nil || got.State != app.TransactionUncertain || got.FinishedAt == nil || !got.FinishedAt.Equal(later) || got.HandedOffAt == nil || !got.HandedOffAt.Equal(now) {
 		t.Fatal("close/cancel after handoff", got, err)
 	}
 	if payload, err := grantAt(s, ref, input, later); err != nil || payload != nil {
