@@ -4,7 +4,7 @@
 
 ## 迭代 3 · 单笔交易
 
-交易页已接入账户授权、切链和中断恢复。当前步骤 3-10d 接入一次性发送及结果补交。下一步 3-11 为共享 Go client 增加交易操作。[分步计划](03-single-transaction/plan.md) · [体验交易审阅页](../transaction-review.md)
+交易审阅页的一次性发送及结果补交已合并。当前步骤 3-11 接入共享 Go client 的交易操作，下一步 3-12 交付 CLI 命令。[分步计划](03-single-transaction/plan.md) · [体验交易审阅页](../transaction-review.md)
 
 ## 上轮交接
 
