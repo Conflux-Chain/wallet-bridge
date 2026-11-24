@@ -45,20 +45,24 @@ func (h *handler) routeBrowserConnections(w http.ResponseWriter, r *http.Request
 	if action == nil {
 		return false
 	}
+	h.serveBrowserResource(w, r, verb, parts[0], action)
+	return true
+}
+
+func (h *handler) serveBrowserResource(w http.ResponseWriter, r *http.Request, verb, id string, action func(http.ResponseWriter, *http.Request, app.BrowserGrant)) {
 	if !method(w, r, verb) {
-		return true
+		return
 	}
 	browser, ok := h.authenticateBrowser(w, r)
 	if !ok {
-		return true
+		return
 	}
-	if !validResourceID(parts[0]) {
+	if !validResourceID(id) {
 		failure(w, http.StatusBadRequest, "bad_request", "Resource ID must be 32 lowercase hexadecimal characters")
-		return true
+		return
 	}
-	r.SetPathValue("id", parts[0])
+	r.SetPathValue("id", id)
 	action(w, r, browser)
-	return true
 }
 
 func (h *handler) authenticateBrowser(w http.ResponseWriter, r *http.Request) (app.BrowserGrant, bool) {

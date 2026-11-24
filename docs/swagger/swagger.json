@@ -7,7 +7,7 @@
         "description": "Local service access, browser authorization, client connection/Session and transaction lifecycle, browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.8"
+        "version": "1.9"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -1164,6 +1164,79 @@
                 }
             }
         },
+        "/browser/transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Returns the frozen transaction, its latest recorded state and the wallet selected for its Session. The original approval deadline applies. Reading does not claim the wallet or renew the Session or execution. Requires the management cookie. Accepts no query parameters or request body.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Read a transaction for browser review",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Must match the local service if supplied",
+                        "name": "Origin",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal transaction request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.BrowserTransactionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/connections": {
             "post": {
                 "security": [
@@ -2192,7 +2265,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 8
+                    "example": 9
                 }
             }
         },
@@ -2299,6 +2372,60 @@
                 },
                 "url": {
                     "type": "string"
+                }
+            }
+        },
+        "api.BrowserTransactionResponse": {
+            "type": "object",
+            "properties": {
+                "clientName": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "finishedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "handedOffAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "intent": {
+                    "type": "string"
+                },
+                "sessionId": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "awaiting_wallet",
+                        "sent",
+                        "rejected",
+                        "uncertain",
+                        "canceled",
+                        "expired"
+                    ]
+                },
+                "transaction": {
+                    "$ref": "#/definitions/api.TransactionPayload"
+                },
+                "txHash": {
+                    "type": "string"
+                },
+                "wallet": {
+                    "$ref": "#/definitions/api.WalletResponse"
                 }
             }
         },
@@ -2530,7 +2657,8 @@
                         "browser.connections.coordination",
                         "browser.connections.decisions",
                         "browser.wallet-operation",
-                        "transactions.lifecycle"
+                        "transactions.lifecycle",
+                        "browser.transactions.read"
                     ]
                 },
                 "challenge": {

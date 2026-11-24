@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 8
+        example: 9
         type: integer
     type: object
   api.ActiveWalletRequestResponse:
@@ -80,6 +80,45 @@ definitions:
         type: string
       url:
         type: string
+    type: object
+  api.BrowserTransactionResponse:
+    properties:
+      clientName:
+        type: string
+      createdAt:
+        format: date-time
+        type: string
+      expiresAt:
+        format: date-time
+        type: string
+      finishedAt:
+        format: date-time
+        type: string
+      handedOffAt:
+        format: date-time
+        type: string
+      id:
+        type: string
+      intent:
+        type: string
+      sessionId:
+        type: string
+      state:
+        enum:
+        - pending
+        - awaiting_wallet
+        - sent
+        - rejected
+        - uncertain
+        - canceled
+        - expired
+        type: string
+      transaction:
+        $ref: '#/definitions/api.TransactionPayload'
+      txHash:
+        type: string
+      wallet:
+        $ref: '#/definitions/api.WalletResponse'
     type: object
   api.ConnectionBeginCallRequest:
     properties:
@@ -240,6 +279,7 @@ definitions:
         - browser.connections.decisions
         - browser.wallet-operation
         - transactions.lifecycle
+        - browser.transactions.read
         items:
           type: string
         type: array
@@ -423,7 +463,7 @@ info:
     and transaction lifecycle, browser execution coordination, wallet handoff and
     connection consent.
   title: Wallet Bridge Local API
-  version: "1.8"
+  version: "1.9"
 paths:
   /browser/authorize:
     post:
@@ -1222,6 +1262,56 @@ paths:
       security:
       - BrowserCookie: []
       summary: Log out the current browser
+  /browser/transactions/{id}:
+    get:
+      description: Returns the frozen transaction, its latest recorded state and the
+        wallet selected for its Session. The original approval deadline applies. Reading
+        does not claim the wallet or renew the Session or execution. Requires the
+        management cookie. Accepts no query parameters or request body.
+      parameters:
+      - description: Must match the local service if supplied
+        in: header
+        name: Origin
+        type: string
+      - description: 32-character lowercase hexadecimal transaction request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.BrowserTransactionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Read a transaction for browser review
   /connections:
     post:
       consumes:
