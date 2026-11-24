@@ -28,7 +28,7 @@ func reviewFixture(t *testing.T, s *Store) (app.TransactionReviewRef, app.Connec
 
 func applyReview(t *testing.T, s *Store, ref app.TransactionReviewRef, cmd app.ReviewCommand, now time.Time, wantErr error) app.ReviewResult {
 	t.Helper()
-	result, err := s.ApplyTransactionReview(context.Background(), ref, cmd, now)
+	result, err := s.applyTransactionReview(context.Background(), ref, cmd, func() time.Time { return now })
 	if !errors.Is(err, wantErr) || err != nil && result != (app.ReviewResult{}) {
 		t.Fatalf("%s: result %+v, error %v, want %v", cmd.Action, result, err, wantErr)
 	}
@@ -146,7 +146,7 @@ func TestTransactionReviewConcurrentClaim(t *testing.T) {
 	results := make(chan error, 2)
 	go func() {
 		<-start
-		_, err := first.ApplyTransactionReview(ctx, ref, app.ReviewCommand{Action: app.ClaimReview}, now)
+		_, err := first.applyTransactionReview(ctx, ref, app.ReviewCommand{Action: app.ClaimReview}, func() time.Time { return now })
 		results <- err
 	}()
 	go func() {
@@ -161,6 +161,35 @@ func TestTransactionReviewConcurrentClaim(t *testing.T) {
 	}
 }
 
+func TestTransactionReviewDeadlineUnderWriteLock(t *testing.T) {
+	ctx := t.Context()
+	dir := filepath.Join(t.TempDir(), "data")
+	first, second := openTestStore(t, dir), openTestStore(t, dir)
+	ref, _, _, now := reviewFixture(t, first)
+	applyReview(t, first, ref, app.ReviewCommand{Action: app.ClaimReview}, now, nil)
+	if _, err := second.db.ExecContext(ctx, "PRAGMA busy_timeout=0"); err != nil {
+		t.Fatal(err)
+	}
+	deadline := now.Add(app.TransactionRequestLifetime)
+	begin := app.ReviewCommand{Action: app.BeginPreparationCall, CallID: strings.Repeat("c", 32)}
+	result, err := first.applyTransactionReview(ctx, ref, begin, func() time.Time {
+		// If the clock were sampled before the lock, this second writer could begin.
+		probe, err := second.db.BeginTx(ctx, nil)
+		if err == nil {
+			probe.Rollback()
+			t.Fatal("approval deadline sampled before acquiring the SQLite write lock")
+		}
+		return deadline
+	})
+	if !errors.Is(err, app.ErrTransactionReviewConflict) || result.Invoke {
+		t.Fatal("preparation permitted at deadline", result, err)
+	}
+	req, err := first.GetTransactionRequest(ctx, ref.TransactionID, now)
+	if err != nil || req.State != app.TransactionExpired || req.FinishedAt == nil || !req.FinishedAt.Equal(deadline) {
+		t.Fatal("original expiry was not committed", req, err)
+	}
+}
+
 func TestTransactionReviewRollback(t *testing.T) {
 	ctx := context.Background()
 	s := openTestStore(t, filepath.Join(t.TempDir(), "data"))
@@ -172,7 +201,7 @@ CREATE TRIGGER fail_preparation AFTER UPDATE ON wallet_executions BEGIN INSERT I
 		t.Fatal(err)
 	}
 	begin := app.ReviewCommand{Action: app.BeginPreparationCall, CallID: strings.Repeat("d", 32)}
-	if result, err := s.ApplyTransactionReview(ctx, ref, begin, now); err == nil || result != (app.ReviewResult{}) {
+	if result, err := s.applyTransactionReview(ctx, ref, begin, func() time.Time { return now }); err == nil || result != (app.ReviewResult{}) {
 		t.Fatal("failed commit granted permission", result, err)
 	}
 	got, err := s.GetTransactionReview(ctx, ref.TransactionID)

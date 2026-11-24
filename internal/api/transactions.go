@@ -16,6 +16,8 @@ type TransactionRequests interface {
 	GetTransactionRequest(context.Context, string, time.Time) (app.TransactionRequest, error)
 	CancelTransactionRequest(context.Context, string, time.Time) (app.TransactionRequest, error)
 	GetSession(context.Context, string) (app.Session, error)
+	ObserveTransactionReview(context.Context, string) (app.TransactionReviewStatus, error)
+	ApplyTransactionReview(context.Context, app.TransactionReviewRef, app.ReviewCommand) (app.ReviewResult, error)
 }
 
 // @Summary Create or retry a transaction request
@@ -108,6 +110,12 @@ func transactionFailure(w http.ResponseWriter, err error) {
 		failure(w, http.StatusConflict, "session_closed", "A new transaction requires an active Session")
 	case errors.Is(err, app.ErrTransactionRequestConflict):
 		failure(w, http.StatusConflict, "transaction_conflict", "The request ID already identifies different content")
+	case errors.Is(err, app.ErrTransactionReviewConflict):
+		failure(w, http.StatusConflict, "execution_conflict", "Read the current transaction and review phase")
+	case errors.Is(err, app.ErrInvalidBrowserCredential):
+		authorizationFailure(w, err)
+	case errors.Is(err, app.ErrWalletBusy):
+		failure(w, http.StatusConflict, "wallet_busy", "Another request occupies the wallet")
 	default:
 		failure(w, http.StatusInternalServerError, "storage_error", "Cannot complete the transaction request")
 	}

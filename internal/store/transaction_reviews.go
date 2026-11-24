@@ -16,6 +16,18 @@ func (s *Store) GetTransactionReview(ctx context.Context, id string) (*app.Trans
 	return scanReview(s.db.QueryRowContext(ctx, reviewSelect, id))
 }
 
+func (s *Store) ObserveTransactionReview(ctx context.Context, id string) (app.TransactionReviewStatus, error) {
+	var status app.TransactionReviewStatus
+	err := s.db.QueryRowContext(ctx, `SELECT coalesce(w.phase, 'unclaimed'),
+CASE WHEN r.handed_off_at IS NULL AND w.phase IN ('interrupted_ready', 'interrupted_calling') THEN w.id ELSE '' END
+FROM transaction_requests r LEFT JOIN wallet_executions w ON w.transaction_id = r.id
+WHERE r.id = ?`, id).Scan(&status.Phase, &status.RecoverFromID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return app.TransactionReviewStatus{}, app.ErrTransactionRequestNotFound
+	}
+	return status, err
+}
+
 func scanReview(row *sql.Row) (*app.TransactionReview, error) {
 	var review app.TransactionReview
 	var seen int64
@@ -32,15 +44,27 @@ func scanReview(row *sql.Row) (*app.TransactionReview, error) {
 
 // ApplyTransactionReview coordinates preparation only. Invoke is acknowledged
 // after commit and is never granted on replay or for a transaction send.
-func (s *Store) ApplyTransactionReview(ctx context.Context, ref app.TransactionReviewRef, cmd app.ReviewCommand, now time.Time) (app.ReviewResult, error) {
-	if !validID(ref.TransactionID) || !validID(ref.ID) || !validID(ref.BrowserGrantID) || !validTime(now) || !validReviewCommand(ref, cmd) {
+func (s *Store) ApplyTransactionReview(ctx context.Context, ref app.TransactionReviewRef, cmd app.ReviewCommand) (app.ReviewResult, error) {
+	return s.applyTransactionReview(ctx, ref, cmd, time.Now)
+}
+
+func (s *Store) applyTransactionReview(ctx context.Context, ref app.TransactionReviewRef, cmd app.ReviewCommand, clock func() time.Time) (app.ReviewResult, error) {
+	if !validID(ref.TransactionID) || !validID(ref.ID) || !validID(ref.BrowserGrantID) || !validReviewCommand(ref, cmd) {
 		return app.ReviewResult{}, app.ErrInvalidTransaction
 	}
-	tx, err := s.beginWalletExecution(ctx, ref.TransactionID, ref.ID, ref.BrowserGrantID, now)
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return app.ReviewResult{}, err
 	}
 	defer tx.Rollback()
+	// The approval or browser grant can expire while waiting for the write lock.
+	now := clock()
+	if !validTime(now) {
+		return app.ReviewResult{}, app.ErrInvalidTransaction
+	}
+	if err := checkWalletExecution(ctx, tx, ref.BrowserGrantID, now); err != nil {
+		return app.ReviewResult{}, err
+	}
 	req, err := transactionStatusInTx(ctx, tx, ref.TransactionID, now, false)
 	if err != nil {
 		return app.ReviewResult{}, err

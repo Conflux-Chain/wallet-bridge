@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 9
+        example: 10
         type: integer
     type: object
   api.ActiveWalletRequestResponse:
@@ -280,6 +280,7 @@ definitions:
         - browser.wallet-operation
         - transactions.lifecycle
         - browser.transactions.read
+        - browser.transactions.coordination
         items:
           type: string
         type: array
@@ -433,6 +434,54 @@ definitions:
       txHash:
         type: string
     type: object
+  api.TransactionReviewCommand:
+    properties:
+      action:
+        enum:
+        - claim
+        - heartbeat
+        - interrupt
+        - recover
+        - begin_preparation
+        - return_preparation
+        type: string
+      callId:
+        type: string
+      id:
+        type: string
+      previousId:
+        type: string
+    required:
+    - action
+    - id
+    type: object
+  api.TransactionReviewCommandResponse:
+    properties:
+      invoke:
+        type: boolean
+      phase:
+        enum:
+        - ready
+        - calling
+        - interrupted_ready
+        - interrupted_calling
+        - finished
+        type: string
+    type: object
+  api.TransactionReviewStatusResponse:
+    properties:
+      phase:
+        enum:
+        - unclaimed
+        - ready
+        - calling
+        - interrupted_ready
+        - interrupted_calling
+        - finished
+        type: string
+      recoverFromId:
+        type: string
+    type: object
   api.WalletOperationResponse:
     properties:
       connectionId:
@@ -463,7 +512,7 @@ info:
     and transaction lifecycle, browser execution coordination, wallet handoff and
     connection consent.
   title: Wallet Bridge Local API
-  version: "1.9"
+  version: "1.10"
 paths:
   /browser/authorize:
     post:
@@ -1312,6 +1361,123 @@ paths:
       security:
       - BrowserCookie: []
       summary: Read a transaction for browser review
+  /browser/transactions/{id}/execution:
+    get:
+      description: Reports the recorded phase without claiming or renewing the execution.
+        An interrupted preparation includes the ID needed for manual recovery. A page
+        opening the transaction for the first time sees unclaimed.
+      parameters:
+      - description: Transaction request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.TransactionReviewStatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Observe transaction review progress
+    post:
+      consumes:
+      - application/json
+      description: Use a page-generated execution id. Claim, heartbeat and interrupt
+        require only action and id. Recover takes a new id and the observed recoverFromId
+        as previousId. Begin preparation takes a fresh callId and the preceding call
+        ID as previousId, omitted for the first call. Return preparation uses the
+        original callId. Reuse IDs on retry. Invoke a wallet preparation only on invoke=true.
+        After a send handoff only heartbeat and interrupt are available here.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: Transaction request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Review action and identifiers
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.TransactionReviewCommand'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.TransactionReviewCommandResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Coordinate a review or a wallet preparation call
   /connections:
     post:
       consumes:

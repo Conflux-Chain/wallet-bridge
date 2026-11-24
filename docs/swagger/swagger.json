@@ -7,7 +7,7 @@
         "description": "Local service access, browser authorization, client connection/Session and transaction lifecycle, browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.9"
+        "version": "1.10"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -1237,6 +1237,175 @@
                 }
             }
         },
+        "/browser/transactions/{id}/execution": {
+            "get": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Reports the recorded phase without claiming or renewing the execution. An interrupted preparation includes the ID needed for manual recovery. A page opening the transaction for the first time sees unclaimed.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Observe transaction review progress",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.TransactionReviewStatusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Use a page-generated execution id. Claim, heartbeat and interrupt require only action and id. Recover takes a new id and the observed recoverFromId as previousId. Begin preparation takes a fresh callId and the preceding call ID as previousId, omitted for the first call. Return preparation uses the original callId. Reuse IDs on retry. Invoke a wallet preparation only on invoke=true. After a send handoff only heartbeat and interrupt are available here.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Coordinate a review or a wallet preparation call",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exact local service origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Transaction request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Review action and identifiers",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.TransactionReviewCommand"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.TransactionReviewCommandResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/connections": {
             "post": {
                 "security": [
@@ -2265,7 +2434,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 9
+                    "example": 10
                 }
             }
         },
@@ -2658,7 +2827,8 @@
                         "browser.connections.decisions",
                         "browser.wallet-operation",
                         "transactions.lifecycle",
-                        "browser.transactions.read"
+                        "browser.transactions.read",
+                        "browser.transactions.coordination"
                     ]
                 },
                 "challenge": {
@@ -2869,6 +3039,72 @@
                     "$ref": "#/definitions/api.TransactionPayload"
                 },
                 "txHash": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.TransactionReviewCommand": {
+            "type": "object",
+            "required": [
+                "action",
+                "id"
+            ],
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "claim",
+                        "heartbeat",
+                        "interrupt",
+                        "recover",
+                        "begin_preparation",
+                        "return_preparation"
+                    ]
+                },
+                "callId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "previousId": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.TransactionReviewCommandResponse": {
+            "type": "object",
+            "properties": {
+                "invoke": {
+                    "type": "boolean"
+                },
+                "phase": {
+                    "type": "string",
+                    "enum": [
+                        "ready",
+                        "calling",
+                        "interrupted_ready",
+                        "interrupted_calling",
+                        "finished"
+                    ]
+                }
+            }
+        },
+        "api.TransactionReviewStatusResponse": {
+            "type": "object",
+            "properties": {
+                "phase": {
+                    "type": "string",
+                    "enum": [
+                        "unclaimed",
+                        "ready",
+                        "calling",
+                        "interrupted_ready",
+                        "interrupted_calling",
+                        "finished"
+                    ]
+                },
+                "recoverFromId": {
                     "type": "string"
                 }
             }
