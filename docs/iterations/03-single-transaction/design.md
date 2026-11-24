@@ -261,3 +261,19 @@ go test -tags no_web ./internal/api -run '^TestTransactionDecisionConcurrent$' -
 用户点击发送后，原页领取执行位，重读固定钱包的账户与网络，申请一次性许可。取得许可后再次核对绑定，仅将许可中的冻结交易交给钱包。许可响应丢失时复用原 ID 查询，重放响应按结果未确定处理。
 
 钱包返回后，原标签页在 sessionStorage 暂存请求对应的执行 ID、调用 ID 及 hash 或错误码。服务接收后立即清除。重新授权、刷新或重试只补交原结果。发送弹窗仍在时须保留原标签页以接收回报；其他已授权页面可在发送中断后手动放行。
+
+## PR 3-11 共享 Go client
+
+CLI 与 MCP 可在创建前生成请求 ID，保留原参数。共享 client 每次提交一次。响应丢失后，调用方可按原 ID 查询或原样重试。创建、查询和取消均通过已验证的本机连接调用 API 1.8 的 `transactions.lifecycle`。
+
+三个方法返回相同的交易快照。取消时返回已生效的状态，包括已交接的发送。查询会读取最新结果，因此同一请求可以先返回「结果未确定」，之后返回 hash 和固定的 chainId。
+
+### Go client 交易测试
+
+在 Windows 或 macOS 的仓库根目录，使用 [go.mod](../../../go.mod) 指定的 Go 运行：
+
+```sh
+go test -tags no_web ./internal/client -run '^TestTransactionClient' -count=1 -v
+```
+
+预期四组测试通过。测试自行启动临时 HTTP 服务并连接 SQLite，模拟创建响应丢失、钱包交接及迟到 hash，同时检查旧服务和异常响应。测试退出时自动停止服务、清理数据，无需启动浏览器或准备测试币。

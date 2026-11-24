@@ -76,12 +76,22 @@ type requestOptions struct {
 	expected   int
 }
 
+// NewRequestID identifies one logical request, including all of its retries.
+func NewRequestID() string {
+	var id [16]byte
+	rand.Read(id[:])
+	return hex.EncodeToString(id[:])
+}
+
 const (
-	browserCapability    = "browser.authorization"
-	connectionCapability = "connections.lifecycle"
-	defaultResponseLimit = 16 << 10
+	browserCapability     = "browser.authorization"
+	connectionCapability  = "connections.lifecycle"
+	transactionCapability = "transactions.lifecycle"
+	defaultResponseLimit  = 16 << 10
 	// The service may escape each byte of an 8 KiB input as six JSON bytes.
 	connectionResponseLimit = 8 * api.MaxConnectionBody
+	// Caller text can expand sixfold when encoded in a response, plus its envelope.
+	transactionResponseLimit = 6*api.MaxTransactionBody + defaultResponseLimit
 )
 
 // request pins the proof and authenticated request to a single connection.
@@ -142,7 +152,8 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 		return nil, empty, &Error{"incompatible_service", "The service API or required capabilities are incompatible; use its matching program to stop it before changing versions", nil}
 	}
 	if options.capability != "" && !slices.Contains(info.Capabilities, options.capability) ||
-		options.capability == connectionCapability && info.APIVersion.Minor < 3 {
+		options.capability == connectionCapability && info.APIVersion.Minor < 3 ||
+		options.capability == transactionCapability && info.APIVersion.Minor < 8 {
 		return nil, empty, &Error{"incompatible_service", "The service does not support the requested operation; use its matching program to stop it before changing versions", nil}
 	}
 	if !info.Ready {
@@ -161,16 +172,19 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 		return nil, empty, &Error{"request_failed", "The verified service request failed", err}
 	}
 	limit := defaultResponseLimit
-	if options.capability == connectionCapability {
+	switch options.capability {
+	case connectionCapability:
 		limit = connectionResponseLimit
+	case transactionCapability:
+		limit = transactionResponseLimit
 	}
 	data, err = readResponse(response, options.expected, limit)
 	if err != nil {
 		switch options.capability {
 		case browserCapability:
 			return nil, empty, browserResponseError(err)
-		case connectionCapability:
-			return nil, empty, connectionResponseError(err)
+		case connectionCapability, transactionCapability:
+			return nil, empty, lifecycleResponseError(err, options.capability)
 		}
 		return nil, empty, &Error{"request_failed", "The verified service returned an unexpected response", err}
 	}

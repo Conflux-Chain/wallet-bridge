@@ -2,8 +2,6 @@ package client
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json/v2"
 	"errors"
 	"net/http"
@@ -13,12 +11,7 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 )
 
-// NewConnectionID identifies one logical request, including all of its retries.
-func NewConnectionID() string {
-	var id [16]byte
-	rand.Read(id[:])
-	return hex.EncodeToString(id[:])
-}
+func NewConnectionID() string { return NewRequestID() }
 
 const connectionsPath = "/api/v1/connections"
 const sessionsPath = "/api/v1/sessions/"
@@ -58,11 +51,11 @@ func (c *Client) CloseSession(ctx context.Context, id string) (api.SessionRespon
 	return result, err
 }
 
-func (c *Client) lifecycleRequest(ctx context.Context, id, method, path string, body []byte) ([]byte, error) {
+func (c *Client) lifecycleRequest(ctx context.Context, capability, id, method, path string, body []byte) ([]byte, error) {
 	if !validHex(id, 16) {
 		return nil, &Error{"bad_request", "Use a 32-character lowercase hexadecimal resource ID", nil}
 	}
-	data, _, err := c.request(ctx, method, path, requestOptions{capability: connectionCapability, body: body, expected: http.StatusOK})
+	data, _, err := c.request(ctx, method, path, requestOptions{capability: capability, body: body, expected: http.StatusOK})
 	if err != nil && ctx.Err() != nil {
 		return nil, &Error{"canceled", "The operation was interrupted; query the original resource ID to check its state", ctx.Err()}
 	}
@@ -75,7 +68,7 @@ func (c *Client) lifecycleRequest(ctx context.Context, id, method, path string, 
 var canonicalChainID = regexp.MustCompile(`^0x(0|[1-9a-f][0-9a-f]*)$`)
 
 func (c *Client) connection(ctx context.Context, id, method, path string, body []byte) (api.ConnectionResponse, error) {
-	data, err := c.lifecycleRequest(ctx, id, method, path, body)
+	data, err := c.lifecycleRequest(ctx, connectionCapability, id, method, path, body)
 	if err != nil {
 		return api.ConnectionResponse{}, err
 	}
@@ -100,7 +93,7 @@ func (c *Client) connection(ctx context.Context, id, method, path string, body [
 }
 
 func (c *Client) session(ctx context.Context, id, method, path string) (api.SessionResponse, error) {
-	data, err := c.lifecycleRequest(ctx, id, method, path, nil)
+	data, err := c.lifecycleRequest(ctx, connectionCapability, id, method, path, nil)
 	if err != nil {
 		return api.SessionResponse{}, err
 	}
@@ -124,7 +117,7 @@ func invalidLifecycleResponse() error {
 }
 
 // Expose recognized status/code pairs with local messages safe for CLI or MCP.
-func connectionResponseError(err error) error {
+func lifecycleResponseError(err error, capability string) error {
 	var response *responseError
 	var failure api.ErrorResponse
 	if errors.As(err, &response) && json.Unmarshal(response.body, &failure) == nil {
@@ -133,17 +126,25 @@ func connectionResponseError(err error) error {
 			message string
 		}
 		mapped := map[string]mappedError{
-			"bad_request":            {400, "Invalid connection or Session parameters"},
 			"unauthenticated":        {401, "The local service credential was rejected"},
 			"invalid_host":           {403, "The service rejected the request host"},
 			"invalid_origin":         {403, "The service rejected the request origin"},
-			"connection_not_found":   {404, "The connection request does not exist"},
 			"session_not_found":      {404, "The Session does not exist"},
 			"method_not_allowed":     {405, "The service rejected the HTTP method"},
-			"connection_conflict":    {409, "The input or outcome conflicts with the original request; query its ID"},
-			"request_too_large":      {413, "The connection request exceeds the service size limit"},
 			"unsupported_media_type": {415, "The service rejected the request media type"},
 			"storage_error":          {500, "The service could not complete the storage operation"},
+		}
+		if capability == transactionCapability {
+			mapped["bad_request"] = mappedError{400, transactionParameterMessage(failure.Message)}
+			mapped["transaction_not_found"] = mappedError{404, "The transaction request does not exist"}
+			mapped["transaction_conflict"] = mappedError{409, "The request ID already identifies different transaction content"}
+			mapped["session_closed"] = mappedError{409, "A new transaction requires an active Session"}
+			mapped["request_too_large"] = mappedError{413, "The transaction request exceeds the 1 MiB limit"}
+		} else {
+			mapped["bad_request"] = mappedError{400, "Invalid connection or Session parameters"}
+			mapped["connection_not_found"] = mappedError{404, "The connection request does not exist"}
+			mapped["connection_conflict"] = mappedError{409, "The input or outcome conflicts with the original request; query its ID"}
+			mapped["request_too_large"] = mappedError{413, "The connection request exceeds the service size limit"}
 		}
 		if entry, ok := mapped[failure.Code]; ok && entry.status == response.status {
 			return &Error{failure.Code, entry.message, err}

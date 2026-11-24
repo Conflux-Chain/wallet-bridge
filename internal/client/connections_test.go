@@ -19,7 +19,7 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/store"
 )
 
-func connectionClientFixture(t *testing.T, wrap func(http.Handler) http.Handler) (*Client, *app.ConnectionService) {
+func connectionClientFixture(t *testing.T, wrap func(http.Handler) http.Handler) (*Client, *app.ConnectionService, *store.Store) {
 	t.Helper()
 	c := newTestClient(t)
 	if err := credentials.Ensure(c.dir); err != nil {
@@ -51,12 +51,12 @@ func connectionClientFixture(t *testing.T, wrap func(http.Handler) http.Handler)
 		handler = wrap(handler)
 	}
 	useServer(t, c, handler)
-	return c, core
+	return c, core, db
 }
 
 func TestConnectionClientRetryAfterCommit(t *testing.T) {
 	var attempts atomic.Int32
-	c, _ := connectionClientFixture(t, func(next http.Handler) http.Handler {
+	c, _, _ := connectionClientFixture(t, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == connectionsPath && attempts.Add(1) == 1 {
 				recorded := httptest.NewRecorder()
@@ -97,7 +97,7 @@ func TestConnectionClientRetryAfterCommit(t *testing.T) {
 
 func TestConnectionClientSessionHistory(t *testing.T) {
 	ctx := t.Context()
-	c, core := connectionClientFixture(t, nil)
+	c, core, _ := connectionClientFixture(t, nil)
 	input := api.ConnectionCreateRequest{ID: NewConnectionID(), ClientName: "Fluent test", ChainID: "71"}
 	if _, err := c.CreateConnection(ctx, input); err != nil {
 		t.Fatal(err)

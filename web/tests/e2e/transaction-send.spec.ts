@@ -112,6 +112,8 @@ for (const [outcome, state] of [[{ code: 4001 }, '用户已拒绝'], [{ code: 49
 }
 
 test('another profile releases the interrupted popup and the reauthorized original tab submits its late hash', async ({ page, browser, context }) => {
+  // Revocation can wait a full 30-second service maintenance cycle before the other profile can release the popup.
+  test.setTimeout(65_000);
   const id = await open(page);
   const original = (await (await page.request.get(origin + '/api/v1/status')).json()).browser.id;
   await sendButton(page).click();
