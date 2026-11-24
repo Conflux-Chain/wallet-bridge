@@ -61,13 +61,26 @@ npm --prefix web run try:transaction -- --wallet
 5. 在五分钟内核对实际交易和费用，点击「在钱包中确认并发送」。只体验流程时，在钱包弹窗内拒绝，预期原交易显示「用户已拒绝」。若选择在钱包内最终确认，钱包会广播测试网交易，账户需有测试 CFX 支付 gas。钱包返回后，原页显示「已发送」和可复制的 hash，可用该 hash 查询测试网回执。
 6. 等待钱包时保留原标签页。若浏览器授权失效，在同一配置的新标签页重新授权，再回到原页点击「重新检查」。已返回的结果可从原标签页补交。结束后回到终端按 Enter 停止并清理临时服务，每次体验重新创建示例。
 
+### 验证测试网回执
+
+MetaMask 和 Fluent（EVM 模式）各运行一次上面的 `--wallet` 示例。验收发送时可从步骤 2 直接到步骤 5。使用有少量测试 CFX 的账户，在钱包确认目标网络为 71、收发地址均为本人的测试账户、金额为 0，以及钱包显示的 gas 费用。
+
+看到「已发送」后，先保留示例终端。在另一个终端进入仓库根目录，替换请求 ID 和目录，取得 CLI 保存的 `txHash`。核对它与页面相同，再独立查询回执。
+
+```sh
+go run ./cmd/wallet-bridge transaction get "<请求ID>" --data-dir "<临时数据目录>" --json
+node scripts/check-testnet-receipt.mjs "<txHash>"
+```
+
+脚本向 Conflux eSpace Testnet 公共 RPC 查询一次。核对 `chainId=0x47`、`transactionHash`、收发地址和区块号。`status=0x1` 表示链上执行成功，`0x0` 表示已打包但执行失败。暂时没有回执时稍后用同一个 hash 再查。记录钱包名称、版本、操作系统、Chrome 版本和 hash，回到示例终端按 Enter 清理，再换另一个钱包。[本轮验收记录](iterations/03-single-transaction/acceptance.md)
+
 ## 浏览器回归
 
 同样在仓库根目录运行，端口 18765 需空闲。
 
 ```sh
 npm --prefix web run bundle
-npm --prefix web run test:e2e:chrome -- transaction-review.spec.ts transaction-wallet.spec.ts transaction-send.spec.ts wallet-occupancy.spec.ts
+npm --prefix web run test:e2e:chrome -- transaction-flow.spec.ts transaction-review.spec.ts transaction-wallet.spec.ts transaction-send.spec.ts wallet-occupancy.spec.ts
 ```
 
 测试启动独立程序，使用合成 Session、交易和模拟钱包，覆盖参数展示、钱包选择、切链重试、重复点击、许可与回报响应丢失、授权撤销和迟到 hash。测试退出时自动停止服务并清理数据。[当轮验收进度](iterations/03-single-transaction/plan.md)
