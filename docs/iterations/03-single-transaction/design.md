@@ -189,3 +189,29 @@ go test -tags no_web ./internal/api -run '^TestBrowserTransactionHTTP' -count=1 
 ```
 
 预期 Observation、Deadline 和 Access 三组测试均显示 `PASS`，分别覆盖重复打开与关闭后的历史、原审批期限、管理 Cookie 和同源访问。退出时自动清理测试数据。
+
+## PR 3-8b 浏览器审阅协调
+
+管理页在 `/api/v1/browser/transactions/{id}/execution` 用 GET 观察进度，用 POST 执行操作。GET 返回阶段，尚未领取为 `unclaimed`。仅在发送前已中断时返回 `recoverFromId`，供用户手动继续。页面自行保留当前执行及钱包调用 ID。
+
+POST 要求管理 Cookie 及本机 Origin，请求体含 `action` 和页面生成的执行 `id`。各操作复用 3-4c 的 SQLite 事务。
+
+| action | 其他字段及含义 |
+|---|---|
+| `claim`、`heartbeat`、`interrupt` | 领取、续执行心跳或中断本页 |
+| `recover` | 用新执行 ID 和 `previousId = recoverFromId` 确认继续。存在未结束的弹窗时，先由用户处理 |
+| `begin_preparation` | 新的 `callId`，第二次及后续调用另带上一次的 `previousId`。仅本次响应含 `invoke: true` 时调用钱包授权或切链 |
+| `return_preparation` | 用原 `callId` 确认弹窗已结束，之后原页面可继续核对交易 |
+
+提交发生通信错误时使用原 ID 和内容重试。执行已变更返回 `409 execution_conflict`，其他请求占用钱包返回 `409 wallet_busy`。发送许可、交接后的结果及手动放行见 3-8c。
+
+### 浏览器交易审阅协调测试
+
+在 Windows 或 macOS 的仓库根目录使用 [go.mod](../../../go.mod) 指定的 Go 执行以下命令。测试直接访问 HTTP handler 和临时 SQLite，无需启动服务或安装钱包。
+
+```sh
+go test -tags no_web ./internal/api -run '^TestBrowserReviewHTTP' -count=1 -v
+go test -tags no_web ./internal/store -run '^(TestTransactionReviewDeadlineUnderWriteLock|TestTransactionReviewConcurrentClaim)$' -count=30
+```
+
+第一条预期三组测试通过，覆盖多页面、准备调用重试、中断恢复、授权撤销和发送后的观察。第二条验证连接与交易只有一方领取成功，以及服务取得数据库写锁后按实际时间检查期限。退出时自动清理测试数据。

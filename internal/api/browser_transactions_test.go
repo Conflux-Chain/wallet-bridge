@@ -45,7 +45,7 @@ func TestBrowserTransactionHTTPObservation(t *testing.T) {
 		t.Fatal("reading claimed the wallet", review, err)
 	}
 	ref := app.TransactionReviewRef{TransactionID: req.ID, ID: strings.Repeat("a", 32), BrowserGrantID: grant.ID}
-	claim, err := f.database.ApplyTransactionReview(t.Context(), ref, app.ReviewCommand{Action: app.ClaimReview}, at)
+	claim, err := f.database.ApplyTransactionReview(t.Context(), ref, app.ReviewCommand{Action: app.ClaimReview})
 	if err != nil {
 		t.Fatal(err)
 	}

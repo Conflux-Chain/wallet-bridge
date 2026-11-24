@@ -86,6 +86,12 @@ type ReviewResult struct {
 	Invoke bool // Granted once for a preparation call.
 }
 
+// TransactionReviewStatus is the progress visible to another management page.
+type TransactionReviewStatus struct {
+	Phase         string
+	RecoverFromID string
+}
+
 type TransactionSendInput struct {
 	CallID         string
 	PreviousCallID string // Last preparation acknowledged when the user confirmed.

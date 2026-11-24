@@ -144,7 +144,7 @@ func TestTransactionHTTPWalletResult(t *testing.T) {
 	created := responseJSON[TransactionResponse](t, f.request(t, "POST", transactionsPath, jsonBody(t, input), controlHeaders(), 200))
 	_, grant := f.exchange(t, f.ticket(t))
 	ref := app.TransactionReviewRef{TransactionID: created.ID, ID: strings.Repeat("e", 32), BrowserGrantID: grant.ID}
-	if _, err := f.database.ApplyTransactionReview(t.Context(), ref, app.ReviewCommand{Action: app.ClaimReview}, time.Now()); err != nil {
+	if _, err := f.database.ApplyTransactionReview(t.Context(), ref, app.ReviewCommand{Action: app.ClaimReview}); err != nil {
 		t.Fatal(err)
 	}
 	send := app.TransactionSendInput{CallID: strings.Repeat("a", 32), Binding: app.ConnectionBinding{Wallet: s.Wallet, Account: s.Account, ChainID: s.ChainID}}

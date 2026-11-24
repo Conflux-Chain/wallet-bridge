@@ -2,10 +2,36 @@ package api
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 )
+
+func (h *handler) routeBrowserTransactions(w http.ResponseWriter, r *http.Request) bool {
+	path, found := strings.CutPrefix(r.URL.Path, "/api/v1/browser/transactions/")
+	if !found {
+		return false
+	}
+	id, resource, nested := strings.Cut(path, "/")
+	switch {
+	case !nested:
+		h.serveBrowserResource(w, r, http.MethodGet, id, h.getBrowserTransaction)
+	case resource == "execution":
+		switch r.Method {
+		case http.MethodGet:
+			h.serveBrowserResource(w, r, http.MethodGet, id, h.observeTransactionReview)
+		case http.MethodPost:
+			h.serveBrowserResource(w, r, http.MethodPost, id, h.changeTransactionReview)
+		default:
+			w.Header().Set("Allow", "GET, POST")
+			failure(w, http.StatusMethodNotAllowed, "method_not_allowed", "Unsupported HTTP method")
+		}
+	default:
+		return false
+	}
+	return true
+}
 
 type BrowserTransactionResponse struct {
 	TransactionResponse
