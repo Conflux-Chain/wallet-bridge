@@ -53,6 +53,15 @@ type ActiveWalletRequest struct {
 	Phase ConnectionExecutionPhase
 }
 
+type PendingWalletRequest struct {
+	Kind       WalletRequestKind
+	ID         string
+	ClientName string
+	ChainID    string
+	CreatedAt  time.Time
+	ExpiresAt  time.Time
+}
+
 type ConnectionCallRef struct {
 	ConnectionExecutionRef
 	CallID string
@@ -74,6 +83,7 @@ type ConnectionExecutionStore interface {
 	// Reads do not renew liveness, take ownership, or normalize stale phases.
 	GetConnectionExecution(context.Context, string) (ConnectionExecution, error)
 	GetActiveWalletRequest(context.Context) (*ActiveWalletRequest, error)
+	ListPendingWalletRequests(context.Context, time.Time) ([]PendingWalletRequest, error)
 	ClaimConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionExecution, error)
 	TouchConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionExecution, error)
 	InterruptConnectionExecution(context.Context, ConnectionExecutionRef, time.Time) (ConnectionExecution, error)

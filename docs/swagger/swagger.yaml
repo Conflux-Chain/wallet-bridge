@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 11
+        example: 12
         type: integer
     type: object
   api.ActiveWalletRequestResponse:
@@ -282,6 +282,7 @@ definitions:
         - browser.transactions.read
         - browser.transactions.coordination
         - browser.transactions.decisions
+        - browser.pending-requests
         items:
           type: string
         type: array
@@ -297,6 +298,33 @@ definitions:
         type: boolean
       version:
         example: dev
+        type: string
+    type: object
+  api.PendingRequestListResponse:
+    properties:
+      requests:
+        items:
+          $ref: '#/definitions/api.PendingRequestResponse'
+        type: array
+    type: object
+  api.PendingRequestResponse:
+    properties:
+      chainId:
+        type: string
+      clientName:
+        type: string
+      createdAt:
+        format: date-time
+        type: string
+      expiresAt:
+        format: date-time
+        type: string
+      id:
+        type: string
+      kind:
+        enum:
+        - connection
+        - transaction
         type: string
     type: object
   api.SessionResponse:
@@ -556,7 +584,7 @@ info:
     and transaction lifecycle, browser execution coordination, wallet handoff and
     connection consent.
   title: Wallet Bridge Local API
-  version: "1.11"
+  version: "1.12"
 paths:
   /browser/authorize:
     post:
@@ -1355,6 +1383,46 @@ paths:
       security:
       - BrowserCookie: []
       summary: Log out the current browser
+  /browser/pending-requests:
+    get:
+      description: Returns unexpired requests oldest first, then by kind and ID for
+        ties. Reading the list does not claim the wallet or renew any deadline. Requires
+        the management cookie. Accepts no query parameters or body.
+      parameters:
+      - description: Must match the local service if supplied
+        in: header
+        name: Origin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PendingRequestListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: List pending connection and transaction approvals
   /browser/transactions/{id}:
     get:
       description: Returns the frozen transaction, its latest recorded state and the

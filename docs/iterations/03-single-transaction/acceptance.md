@@ -1,6 +1,6 @@
 # 迭代 3 · 单笔交易验收记录
 
-2026-11-24。独立 CLI 已通过 Chrome 和模拟钱包走通连接、页面选定账户、零金额自转、取得 hash、关闭 Session 和再次查询。MetaMask、Fluent EVM 的本轮测试网发送与回执待人工验收。[组合用例](../../../web/tests/e2e/transaction-flow.spec.ts) · [本地复现](../../transaction-review.md#浏览器回归)
+2026-11-24。独立 CLI 已通过 Chrome 和模拟钱包走通连接、页面选定账户、零金额自转、取得 hash、关闭 Session 和再次查询。本轮真实钱包广播与回执按用户要求跳过。[组合用例](../../../web/tests/e2e/transaction-flow.spec.ts) · [本地复现](../../transaction-review.md#浏览器回归)
 
 | 验收项 | 已验证的行为 | 证据 |
 |---|---|---|
@@ -16,9 +16,9 @@
 
 ## 真实钱包与链上结果
 
-| 钱包 | 当前证据 | 待补 |
+| 钱包 | 当前证据 | 本轮真实广播与回执 |
 |---|---|---|
-| MetaMask | [首次连接已人工确认](../02-connection-session/acceptance.md) | 本次发送的环境、钱包版本、hash、成功回执 |
-| Fluent EVM | [首次连接已人工确认](../02-connection-session/acceptance.md) | 本次发送的环境、钱包版本、hash、成功回执 |
+| MetaMask | [首次连接已人工确认](../02-connection-session/acceptance.md) | 已跳过，未验证 |
+| Fluent EVM | [首次连接已人工确认](../02-connection-session/acceptance.md) | 已跳过，未验证 |
 
 回执脚本已在 `chainId=0x47` 使用一笔既有公开交易读到 `status=0x1` 和区块 `0x1009119e`，未知 hash 返回无回执。两项真实钱包验收使用各自在本轮发送的 hash 核对。[测试步骤](../../transaction-review.md#验证测试网回执)

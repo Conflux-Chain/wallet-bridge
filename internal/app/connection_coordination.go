@@ -44,6 +44,13 @@ func (a *ConnectionService) ActiveWalletRequest(ctx context.Context, browser Bro
 	return a.store.GetActiveWalletRequest(ctx)
 }
 
+func (a *ConnectionService) PendingWalletRequests(ctx context.Context, browser BrowserGrant) ([]PendingWalletRequest, error) {
+	if !connectionID(browser.ID) {
+		return nil, ErrInvalidBrowserCredential
+	}
+	return a.store.ListPendingWalletRequests(ctx, a.now())
+}
+
 func (a *ConnectionService) ClaimExecution(ctx context.Context, browser BrowserGrant, input ConnectionExecutionInput) (ConnectionExecution, error) {
 	ref, err := executionRef(browser, input)
 	if err != nil {

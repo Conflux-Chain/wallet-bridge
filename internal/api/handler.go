@@ -44,8 +44,8 @@ func New(config Config) (http.Handler, error) {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 11},
-		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation", "transactions.lifecycle", "browser.transactions.read", "browser.transactions.coordination", "browser.transactions.decisions"}, Ready: true,
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 12},
+		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation", "transactions.lifecycle", "browser.transactions.read", "browser.transactions.coordination", "browser.transactions.decisions", "browser.pending-requests"}, Ready: true,
 	}}, nil
 }
 
@@ -91,6 +91,12 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/api/v1/control/browser-grants/revoke":
 		if method(w, r, http.MethodPost) && h.authorize(w, r) {
 			h.revokeBrowserGrants(w, r)
+		}
+	case "/api/v1/browser/pending-requests":
+		if method(w, r, http.MethodGet) {
+			if grant, ok := h.authenticateBrowser(w, r); ok {
+				h.listPendingRequests(w, r, grant)
+			}
 		}
 	case "/api/v1/browser/authorize":
 		if method(w, r, http.MethodPost) && sameOrigin(w, r) {
