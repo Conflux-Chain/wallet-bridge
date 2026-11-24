@@ -21,8 +21,12 @@ export async function observeReview(transaction: string): Promise<ReviewProgress
 }
 
 export async function changeReview(transaction: string, command: Command): Promise<ReviewProgress & { invoke: boolean }> {
+  return postReviewCommand(path(transaction), command);
+}
+
+export async function postReviewCommand<T>(endpoint: string, body: object): Promise<T> {
   async function submit() {
-    const response = await browserRequest(path(transaction), command);
+    const response = await browserRequest(endpoint, body);
     if (!response.ok) {
       if (response.status >= 500) throw new Error('服务暂时不可用。');
       throw new ReviewCommandError((await response.json()).code);

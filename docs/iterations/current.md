@@ -4,7 +4,7 @@
 
 ## 迭代 3 · 单笔交易
 
-交易页已能核对固定钱包、账户与网络。当前步骤 3-10c 接入审阅领取、恢复、账户授权与切链。下一步 3-10d 接入发送许可及钱包回报。[分步计划](03-single-transaction/plan.md) · [体验交易审阅页](../transaction-review.md)
+交易页已接入账户授权、切链和中断恢复。当前步骤 3-10d 接入一次性发送及结果补交。下一步 3-11 为共享 Go client 增加交易操作。[分步计划](03-single-transaction/plan.md) · [体验交易审阅页](../transaction-review.md)
 
 ## 上轮交接
 

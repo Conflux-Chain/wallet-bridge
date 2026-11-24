@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { newID } from '../api/connections';
-import { changeReview, interruptReview, observeReview, ReviewCommandError, type ReviewProgress } from '../api/transaction-execution';
+import { changeReview, interruptReview, observeReview, postReviewCommand, ReviewCommandError, type ReviewProgress } from '../api/transaction-execution';
+import type { TransactionReview } from '../api/transactions';
+import { retainReport } from './WalletReport';
 
 interface Owner { id: string; lastCall?: string }
-interface Operation { recovery: boolean }
+type Operation = { kind: 'prepare' | 'recover' | 'send' };
 
 export function useReviewExecution(transaction: string, watch: 'pending' | 'terminal' | undefined) {
   const owner = useRef<Owner | undefined>(undefined);
@@ -59,9 +61,9 @@ export function useReviewExecution(transaction: string, watch: 'pending' | 'term
     return () => { active = false; window.clearTimeout(timer); };
   }, [transaction, watch, revision]);
 
-  async function run(work: (operation: Operation) => Promise<string>, recovery = false) {
-    if (!live.current || (working.current && (!recovery || working.current.recovery))) return;
-    const operation = { recovery };
+  async function run(work: (operation: Operation) => Promise<string>, kind: Operation['kind'] = 'prepare') {
+    if (!live.current || (working.current && (kind !== 'recover' || working.current.kind === 'recover'))) return;
+    const operation = { kind };
     working.current = operation;
     setBusy(true);
     setMessage('');
@@ -126,9 +128,49 @@ export function useReviewExecution(transaction: string, watch: 'pending' | 'term
       const lease = await acquire(operation, previous);
       if (lease) setRecoveredId(lease.id);
       return lease ? '已恢复审阅，请重新核对钱包。' : '已解除原钱包操作的占用。';
-    }, true);
+    }, 'recover');
   }
-  return { progress, owned: !!owner.current, busy, recovering: !!working.current?.recovery, recoveredId, available, message, prepare, recover };
+
+  function acknowledge() {
+    return run(async () => {
+      await postReviewCommand('browser/transactions/' + transaction + '/acknowledge', {});
+      return '已解除原发送弹窗的占用。';
+    }, 'recover');
+  }
+
+  function send(review: TransactionReview, checkWallet: () => Promise<boolean>,
+    invoke: (payload: TransactionReview['transaction']) => Promise<unknown>) {
+    if (!available) return;
+    return run(async operation => {
+      const lease = await acquire(operation);
+      if (!lease) throw new Error('Review unavailable');
+      const ownsReview = () => live.current && working.current === operation && owner.current === lease;
+      if (!await checkWallet() || !ownsReview()) return '钱包状态已改变，请重新核对后发送。';
+      const callId = newID();
+      const { from: account, chainId } = review.transaction;
+      const permit = await postReviewCommand<{ invoke: boolean; transaction?: TransactionReview['transaction'] }>(
+        'browser/transactions/' + transaction + '/send',
+        { id: lease.id, previousCallId: lease.lastCall, callId, wallet: review.wallet, account, chainId });
+      let result: { txHash: string } | { errorCode: number } = { errorCode: 0 };
+      if (permit.invoke === true && permit.transaction && ownsReview()) {
+        const phase = await observeReview(transaction).catch(() => undefined);
+        if (phase?.phase === 'calling' && await checkWallet() && ownsReview()) {
+          try {
+            const hash = await invoke(permit.transaction);
+            if (typeof hash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(hash)) result = { txHash: hash };
+          } catch (error) {
+            const code = (error as { code?: number } | null)?.code;
+            if (typeof code === 'number' && Number.isSafeInteger(code)) result = { errorCode: code };
+          }
+        }
+      }
+      retainReport(transaction, lease.id, callId, result);
+      if (owner.current === lease) owner.current = undefined;
+      return '';
+    }, 'send');
+  }
+  return { progress, owned: !!owner.current, busy, recovering: working.current?.kind === 'recover',
+    sending: working.current?.kind === 'send', recoveredId, available, message, prepare, recover, send, acknowledge };
 }
 
 export type ReviewExecution = ReturnType<typeof useReviewExecution>;

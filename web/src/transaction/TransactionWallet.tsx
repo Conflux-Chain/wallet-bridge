@@ -11,7 +11,7 @@ function matchingWallets(discovery: WalletDiscovery, binding: TransactionReview[
   return wallets.filter(wallet => wallet.info && wallet.info.name === binding.name && wallet.info.rdns === binding.rdns);
 }
 
-export function TransactionWallet({ review, execution }: { review: TransactionReview; execution?: ReviewExecution }) {
+export function TransactionWallet({ review, execution, canSend }: { review: TransactionReview; execution?: ReviewExecution; canSend: boolean }) {
   const [discovery] = useState(() => new WalletDiscovery(window));
   useSyncExternalStore(discovery.subscribe, discovery.getSnapshot);
   useEffect(() => {
@@ -22,7 +22,7 @@ export function TransactionWallet({ review, execution }: { review: TransactionRe
   return <section className="wallet-check" aria-labelledby="wallet-check">
     <h2 id="wallet-check">钱包状态核对</h2>
     {matches.length === 1
-      ? <WalletReadings key={matches[0].id} wallet={matches[0]} review={review} discovery={discovery} execution={execution} />
+      ? <WalletReadings key={matches[0].id} wallet={matches[0]} review={review} discovery={discovery} execution={execution} canSend={canSend} />
       : <>
         <p>{matches.length > 1 ? '多个钱包使用相同的名称和 rdns。请在只启用目标钱包的浏览器配置中重新打开原交易。'
           : '未发现 Session 固定的钱包。请检查浏览器配置和扩展是否已启用。'}</p>
@@ -35,10 +35,11 @@ function networkLabel(chain: string) {
   return [networks.get(chain)?.name, chain].filter(Boolean).join(' · ');
 }
 
-function WalletReadings({ wallet, review, discovery, execution }: {
-  wallet: DiscoveredWallet; review: TransactionReview; discovery: WalletDiscovery; execution?: ReviewExecution;
+function WalletReadings({ wallet, review, discovery, execution, canSend }: {
+  wallet: DiscoveredWallet; review: TransactionReview; discovery: WalletDiscovery; execution?: ReviewExecution; canSend: boolean;
 }) {
   const mounted = useRef(false);
+  const generation = useRef(0);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [confirmed, setConfirmed] = useState(!!wallet.info);
   const [attempt, setAttempt] = useState(0);
@@ -56,6 +57,7 @@ function WalletReadings({ wallet, review, discovery, execution }: {
     };
     async function refresh() {
       if (!active) return;
+      generation.current++;
       const version = ++revision;
       setReading(undefined);
       setMessage('正在读取钱包状态…');
@@ -69,6 +71,7 @@ function WalletReadings({ wallet, review, discovery, execution }: {
     }
     function disconnect() {
       if (!active) return;
+      generation.current++;
       ++revision;
       setReading(undefined);
       setMessage('钱包已断开，请恢复连接后重新核对。');
@@ -110,11 +113,27 @@ function WalletReadings({ wallet, review, discovery, execution }: {
     <button type="button" className="secondary" onClick={check}>使用当前注入钱包</button>
   </>;
   const tx = review.transaction;
+  function isFixedWallet() {
+    discovery.refresh();
+    const matches = matchingWallets(discovery, review.wallet);
+    return mounted.current && matches.length === 1 && matches[0] === wallet;
+  }
+  async function checkForSend() {
+    if (!isFixedWallet()) return false;
+    const version = generation.current;
+    try {
+      const next = await walletState(wallet.provider);
+      if (!isFixedWallet() || version !== generation.current) return false;
+      setReading(next);
+      return next.accounts.includes(tx.from.toLowerCase()) && next.chain === tx.chainId;
+    } catch {
+      if (mounted.current) { setReading(undefined); setMessage('无法读取钱包状态，请重新核对。'); }
+      return false;
+    }
+  }
   function prepare(method: 'eth_requestAccounts' | 'wallet_switchEthereumChain') {
     void execution?.prepare(async () => {
-      discovery.refresh();
-      const matches = matchingWallets(discovery, review.wallet);
-      if (!mounted.current || matches.length !== 1 || matches[0] !== wallet) return '钱包已改变，请重新核对。';
+      if (!isFixedWallet()) return '钱包已改变，请重新核对。';
       try {
         await wallet.provider.request(method === 'eth_requestAccounts' ? { method } : { method, params: [{ chainId: tx.chainId }] });
         return '钱包操作已返回，请核对当前账户和网络。';
@@ -142,5 +161,9 @@ function WalletReadings({ wallet, review, discovery, execution }: {
       {reading.chain !== tx.chainId && <button type="button" disabled={!execution.available} onClick={() => prepare('wallet_switchEthereumChain')}>切换到 {networkLabel(tx.chainId)}</button>}
     </div>}
     <button type="button" className="secondary" onClick={check}>重新核对钱包</button>
+    {canSend && <button type="button" disabled={!execution?.available || reading?.chain !== tx.chainId ||
+      !reading.accounts.includes(tx.from.toLowerCase())}
+      onClick={() => void execution?.send(review, checkForSend,
+        payload => wallet.provider.request({ method: 'eth_sendTransaction', params: [payload] }))}>在钱包中确认并发送</button>}
   </>;
 }

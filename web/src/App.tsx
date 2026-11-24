@@ -79,7 +79,7 @@ export function App({ initial }: { initial: Promise<View> }) {
     if (!view.status.info.capabilities.includes('browser.transactions.read')) {
       return <main><h1>当前服务不支持交易审阅</h1><p>请使用支持交易读取的 Wallet Bridge 服务打开原链接。</p></main>;
     }
-    return <TransactionPage key={id} id={id} canReject={view.status.info.capabilities.includes('browser.transactions.decisions')}
+    return <TransactionPage key={id} id={id} grant={view.status.browser.id} canReject={view.status.info.capabilities.includes('browser.transactions.decisions')}
       canCoordinate={view.status.info.capabilities.includes('browser.transactions.coordination')} operation={view.status.activeWalletRequest} />;
   }
   if (authorized && connection !== null) {
@@ -100,6 +100,7 @@ export function App({ initial }: { initial: Promise<View> }) {
         </div>
         <p className="description">{description}</p>
         {showCommand && <pre className="command"><code>wallet-bridge ui</code></pre>}
+        {showCommand && transactions.length === 1 && <p>请保留原交易标签页，在同一浏览器配置的新标签页完成授权，再回到此处点击「重新检查」。</p>}
         {view.kind === 'authorized' && (
           <dl>
             <div><dt>本地服务</dt><dd><span className="running">运行中</span></dd></div>
