@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { readTransaction, TransactionReadError, type TransactionReview } from '../api/transactions';
+import { readTransaction, rejectTransaction, TransactionReadError, type TransactionReview } from '../api/transactions';
 import { networks } from '../wallet/networks';
 import './review.css';
 
@@ -82,11 +82,14 @@ function ReviewDetails({ review }: { review: TransactionReview }) {
   </>;
 }
 
-export function TransactionPage({ id }: { id: string }) {
+export function TransactionPage({ id, canReject }: { id: string; canReject: boolean }) {
   const [review, setReview] = useState<TransactionReview>();
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectUnconfirmed, setRejectUnconfirmed] = useState(false);
   useEffect(() => {
+    if (rejecting) return;
     let live = true;
     let timer: number | undefined;
     async function refresh() {
@@ -104,11 +107,33 @@ export function TransactionPage({ id }: { id: string }) {
     }
     void refresh();
     return () => { live = false; window.clearTimeout(timer); };
-  }, [id, attempt]);
+  }, [id, attempt, rejecting]);
+
+  async function reject() {
+    if (!canReject || rejecting || review?.state !== 'pending') return;
+    setRejecting(true);
+    setRejectUnconfirmed(false);
+    try {
+      await rejectTransaction(id);
+    } catch {
+      setRejectUnconfirmed(true);
+    } finally {
+      // A lost response or a competing handoff requires a fresh read before another decision.
+      setReview(undefined);
+      setAttempt(n => n + 1);
+      setRejecting(false);
+    }
+  }
   return <main className="transaction-page">
     <header><a className="review-brand" href="/"><span className="brand-mark" aria-hidden="true">W</span>Wallet Bridge</a>
-      <div className="review-title"><h1>交易审阅</h1><button type="button" className="secondary" onClick={() => setAttempt(n => n + 1)}>刷新状态</button></div>
+      <div className="review-title"><h1>交易审阅</h1><div className="actions">
+        <button type="button" className="secondary" disabled={rejecting} onClick={() => setAttempt(n => n + 1)}>刷新状态</button>
+        {canReject && review?.state === 'pending' &&
+          <button type="button" className="secondary" disabled={rejecting} onClick={reject}>{rejecting ? '正在提交拒绝决定…' : '拒绝这笔交易'}</button>}
+      </div></div>
     </header>
-    {error ? <p role="alert">{error}</p> : review ? <ReviewDetails review={review} /> : <p role="status">正在读取交易…</p>}
+    {rejectUnconfirmed && review?.state === 'pending' && <p role="status">请求仍待审批，可以再次拒绝。</p>}
+    {error ? <p role="alert">{error}</p> : review ? <ReviewDetails review={review} /> :
+      <p role="status">{rejectUnconfirmed ? '正在核对拒绝结果…' : '正在读取交易…'}</p>}
   </main>;
 }

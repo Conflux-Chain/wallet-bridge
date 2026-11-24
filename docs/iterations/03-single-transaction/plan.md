@@ -1,6 +1,6 @@
 # 迭代 3 PR 计划
 
-当前步骤为 PR 3-9，交付只读交易审阅页及本地体验入口。[需求](spec.md) · [设计](design.md)
+当前步骤为 PR 3-10a，在交易审阅页拒绝待审批请求。[需求](spec.md) · [设计](design.md)
 
 | 步骤 | 单一交付 | 主要检查 |
 |---|---|---|
@@ -18,8 +18,11 @@
 | 3-8a | 浏览器读取交易及固定钱包，更新 Swagger | [#47](https://github.com/Conflux-Chain/wallet-bridge/pull/47) 合并为 `1905dcc`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45319487050) 通过 |
 | 3-8b | 浏览器审阅归属与准备调用接口 | [#48](https://github.com/Conflux-Chain/wallet-bridge/pull/48) 合并为 `1f4d735`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45321790744) 通过 |
 | 3-8c | 浏览器发送决定及结果接口 | [#49](https://github.com/Conflux-Chain/wallet-bridge/pull/49) 合并为 `b2a02ce`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45323830297) 通过 |
-| 3-9 | 只读交易审阅页面 | [#50](https://github.com/Conflux-Chain/wallet-bridge/pull/50) 待评审，覆盖原始参数、金额精度、费用来源、复制和原链接重开 |
-| 3-10 | 页面核对固定钱包与发起发送 | 账户／网络修复、多页面、拒绝、丢包与模拟钱包调用次数 |
+| 3-9 | 只读交易审阅页面 | [#50](https://github.com/Conflux-Chain/wallet-bridge/pull/50) 合并为 `32a14fe`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45335710178) 通过 |
+| 3-10a | 在审阅页拒绝待审批交易 | [#51](https://github.com/Conflux-Chain/wallet-bridge/pull/51) 待评审 |
+| 3-10b | 识别 Session 固定钱包，核对实时账户与网络 | 重新打开页面、候选歧义、钱包事件 |
+| 3-10c | 领取审阅并修复钱包授权与网络 | 多标签页、执行恢复、切链拒绝和占用 |
+| 3-10d | 发起发送并回报结果 | 一次性许可、钱包调用次数、丢包、重新授权和手动放行 |
 | 3-11 | 共享 Go client 的交易操作 | ID 重试、能力检查、可查询的发送结果 |
 | 3-12 | CLI 创建、等待及按 ID 管理 | 独立程序与模拟钱包贯通，阻塞／异步、错误和退出码 |
 | 3-13 | 组合验收与指南 | A-07～16、三平台 CI、MetaMask／Fluent EVM 测试网及 client 查链分别留证 |
@@ -81,3 +84,7 @@ Windows 上四组 HTTP 决定测试通过。两个 SQLite 连接同时拒绝和�
 ## PR 3-9 验证
 
 Windows amd64 构建通过。本机 Chrome 的六项交易审阅与占用测试通过，全量浏览器回归 24 项通过。用合成交易验证了金额精度、未知网络、费用来源、复制时传入的完整内容、撤销授权，以及原页显示迟到的 hash。重新授权用例等待页面确认授权后再跳转，本机重复 8 次通过。体验命令实测可打开示例、展开 data、在新标签页查看、显示五分钟到期状态并清理临时服务。真实钱包发送随 3-10 接入。[人工验证指南](../../transaction-review.md)
+
+## PR 3-10a 验证
+
+Windows amd64 构建及本机 Chrome 全部 27 项端到端测试通过。拒绝排队交易时，发起方查到拒绝结果，另一笔交易继续占用钱包。拒绝响应丢失时页面按原 ID 查询，发送许可先提交时显示「等待钱包」。用体验命令启动的合成交易也已实测拒绝、刷新与清理。[人工验证指南](../../transaction-review.md)

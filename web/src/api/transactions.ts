@@ -17,6 +17,11 @@ export interface TransactionReview {
 
 export class TransactionReadError extends Error {}
 
+export async function rejectTransaction(id: string) {
+  const response = await browserRequest('browser/transactions/' + id + '/reject', {});
+  if (!response.ok) throw new Error('拒绝结果尚未确认');
+}
+
 export async function readTransaction(id: string): Promise<TransactionReview> {
   const response = await browserRequest('browser/transactions/' + id);
   if (response.status === 401) throw new TransactionReadError('浏览器授权已失效。请运行 wallet-bridge ui 重新授权，再打开原链接。');

@@ -129,3 +129,72 @@ test('ordinary link requires authorization and revoked access clears details', a
   await page.goto('/?transaction=' + id);
   await expect(page.getByRole('alert')).toHaveText(/找不到这笔交易/);
 });
+
+test('reject a queued transaction and recover its lost response while another holds the wallet', async ({ page }) => {
+  const first = await createReview(page, '0x47', {});
+  const { sessionId, transaction } = await connectionClient('transactions/' + first);
+  const queued = newID();
+  await connectionClient('transactions', { id: queued, sessionId, transaction, clientName: 'Queued CLI' });
+  const execution = newID();
+  const claim = await page.request.post(origin + '/api/v1/browser/transactions/' + first + '/execution', {
+    headers: { Origin: origin }, data: { action: 'claim', id: execution },
+  });
+  expect(claim.status()).toBe(200);
+  try {
+    await page.goto('/?transaction=' + queued);
+    const writes: string[] = [];
+    page.on('request', request => { if (request.method() === 'POST') writes.push(new URL(request.url()).pathname); });
+    await page.route('**/transactions/' + queued + '/reject', async route => {
+      const response = await route.fetch();
+      expect(response.status()).toBe(200);
+      await route.abort('failed');
+    });
+    await page.getByRole('button', { name: '拒绝这笔交易' }).click();
+    const state = page.getByRole('region', { name: '请求与金额' }).getByRole('status');
+    await expect(state).toHaveText('用户已拒绝');
+    await expect(page.getByRole('button', { name: '拒绝这笔交易' })).toHaveCount(0);
+    expect((await connectionClient('transactions/' + queued)).state).toBe('rejected');
+    const status = await page.request.get(origin + '/api/v1/status');
+    expect((await status.json()).activeWalletRequest).toMatchObject({ kind: 'transaction', id: first, phase: 'ready' });
+    await page.reload();
+    await expect(state).toHaveText('用户已拒绝');
+    expect(writes).toEqual(['/api/v1/browser/transactions/' + queued + '/reject']);
+  } finally {
+    await connectionClient('transactions/' + first + '/cancel', {});
+  }
+});
+
+test('a rejection blocked before delivery can be retried explicitly', async ({ page }) => {
+  const id = await createReview(page, '0x47', {});
+  await page.goto('/?transaction=' + id);
+  const reject = page.getByRole('button', { name: '拒绝这笔交易' });
+  await page.route('**/transactions/' + id + '/reject', route => route.abort(), { times: 1 });
+  await reject.click();
+  await expect(page.getByText('请求仍待审批，可以再次拒绝。')).toBeVisible();
+  expect((await connectionClient('transactions/' + id)).state).toBe('pending');
+  await reject.click();
+  await expect(page.getByRole('region', { name: '请求与金额' }).getByRole('status')).toHaveText('用户已拒绝');
+});
+
+test('a wallet handoff that wins against page rejection remains visible', async ({ page }) => {
+  const id = await createReview(page, '0x47', {});
+  await page.goto('/?transaction=' + id);
+  const path = origin + '/api/v1/browser/transactions/' + id;
+  const execution = newID(), callId = newID();
+  const post = (action: string, data: object) => page.request.post(path + action, { headers: { Origin: origin }, data });
+  await page.route(path + '/reject', async route => {
+    expect((await post('/execution', { action: 'claim', id: execution })).status()).toBe(200);
+    const permit = await post('/send', { id: execution, callId, account, chainId: '0x47',
+      wallet: { kind: 'eip6963', name: '测试钱包', rdns: 'test.wallet' } });
+    expect((await permit.json()).invoke).toBe(true);
+    await route.continue();
+  });
+  try {
+    await page.getByRole('button', { name: '拒绝这笔交易' }).click();
+    await expect(page.getByRole('status')).toHaveText('等待钱包');
+    await expect(page.getByRole('button', { name: '拒绝这笔交易' })).toHaveCount(0);
+    expect((await connectionClient('transactions/' + id)).state).toBe('awaiting_wallet');
+  } finally {
+    await post('/result', { id: execution, callId, errorCode: 4001 });
+  }
+});
