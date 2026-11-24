@@ -79,7 +79,7 @@ export function App({ initial }: { initial: Promise<View> }) {
     if (!view.status.info.capabilities.includes('browser.transactions.read')) {
       return <main><h1>当前服务不支持交易审阅</h1><p>请使用支持交易读取的 Wallet Bridge 服务打开原链接。</p></main>;
     }
-    return <TransactionPage key={id} id={id} />;
+    return <TransactionPage key={id} id={id} canReject={view.status.info.capabilities.includes('browser.transactions.decisions')} />;
   }
   if (authorized && connection !== null) {
     return /^[0-9a-f]{32}$/.test(connection) ? <ConnectionPage key={connection} id={connection} operation={view.status.activeWalletRequest} refreshStatus={() => perform(checkStatus)} />
