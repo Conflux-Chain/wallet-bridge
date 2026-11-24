@@ -1,6 +1,6 @@
 # 迭代 3 PR 计划
 
-当前步骤为 PR 3-13，汇总自动化证据并验证真实钱包发送。[需求](spec.md) · [设计](design.md) · [本轮验收记录](acceptance.md)
+本轮 PR 均已合并，真实钱包广播与回执核对按用户要求跳过。[需求](spec.md) · [设计](design.md) · [本轮验收记录](acceptance.md)
 
 | 步骤 | 单一交付 | 主要检查 |
 |---|---|---|
@@ -26,7 +26,7 @@
 | 3-11 | 共享 Go client 的交易操作 | [#55](https://github.com/Conflux-Chain/wallet-bridge/pull/55) 合并为 `95add04`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45351058959) 通过 |
 | 3-12a | CLI 按 ID 查询和取消已有交易 | [#56](https://github.com/Conflux-Chain/wallet-bridge/pull/56) 合并为 `d8cf92d`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45354875045) 通过 |
 | 3-12b | CLI 创建交易并等待或异步返回 | [#57](https://github.com/Conflux-Chain/wallet-bridge/pull/57) 合并为 `44535e4`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45367343653) 通过 |
-| 3-13 | 组合验收与指南 | [本步 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Ftransaction-acceptance) 待评审。真实钱包待验项见[验收记录](acceptance.md#真实钱包与链上结果) |
+| 3-13 | 组合验收与指南 | [#58](https://github.com/Conflux-Chain/wallet-bridge/pull/58) 合并为 `41dcf71`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45369960556) 通过 |
 
 首个实现 PR 只交付交易输入。真实钱包发送按用户授权执行，逐 PR 在 README 已链接的指南补充可复现步骤。完整交易队列和日志清理按[路线图](../../roadmap.md)在迭代 4 细化。
 

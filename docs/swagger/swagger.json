@@ -7,7 +7,7 @@
         "description": "Local service access, browser authorization, client connection/Session and transaction lifecycle, browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.11"
+        "version": "1.12"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -1151,6 +1151,66 @@
                     },
                     "415": {
                         "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/browser/pending-requests": {
+            "get": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Returns unexpired requests oldest first, then by kind and ID for ties. Reading the list does not claim the wallet or renew any deadline. Requires the management cookie. Accepts no query parameters or body.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "List pending connection and transaction approvals",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Must match the local service if supplied",
+                        "name": "Origin",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.PendingRequestListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -2820,7 +2880,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 11
+                    "example": 12
                 }
             }
         },
@@ -3215,7 +3275,8 @@
                         "transactions.lifecycle",
                         "browser.transactions.read",
                         "browser.transactions.coordination",
-                        "browser.transactions.decisions"
+                        "browser.transactions.decisions",
+                        "browser.pending-requests"
                     ]
                 },
                 "challenge": {
@@ -3235,6 +3296,46 @@
                 "version": {
                     "type": "string",
                     "example": "dev"
+                }
+            }
+        },
+        "api.PendingRequestListResponse": {
+            "type": "object",
+            "properties": {
+                "requests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.PendingRequestResponse"
+                    }
+                }
+            }
+        },
+        "api.PendingRequestResponse": {
+            "type": "object",
+            "properties": {
+                "chainId": {
+                    "type": "string"
+                },
+                "clientName": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "connection",
+                        "transaction"
+                    ]
                 }
             }
         },
