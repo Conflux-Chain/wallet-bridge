@@ -12,7 +12,7 @@
 | 3-4b | 占用状态按请求类型定位 | [#41](https://github.com/Conflux-Chain/wallet-bridge/pull/41) 合并为 `9dc8ba4`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45154618967) 通过 |
 | 3-4c | 交易发送前的执行归属与中断恢复 | [#42](https://github.com/Conflux-Chain/wallet-bridge/pull/42) 合并为 `ccd052c`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45157567046) 通过 |
 | 3-5 | 交易发送许可与 Session 关闭竞争 | [#43](https://github.com/Conflux-Chain/wallet-bridge/pull/43) 合并为 `5c1db8f`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45161624223) 通过 |
-| 3-6a | 钱包回报及活动记录 | 开发中，验证拒绝、hash、未确定、迟到回报及事务回滚 |
+| 3-6a | 钱包回报及活动记录 | [#44](https://github.com/Conflux-Chain/wallet-bridge/pull/44) 待评审，覆盖拒绝、hash、未确定、迟到回报及事务回滚 |
 | 3-6b | 交接后中断与手动放行 | 重启／页面中断时记录未确定，保留钱包占用，用户放行后仍可接收原调用回报 |
 | 3-7 | Client 侧交易 HTTP 接口及 Swagger | 创建、读取、取消、服务凭据及错误映射 |
 | 3-8 | 浏览器侧交易 HTTP 接口及 Swagger | 授权页面读取、执行归属、交接及结果回传 |
