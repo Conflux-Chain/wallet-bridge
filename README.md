@@ -40,7 +40,7 @@ npm ci --prefix web
 
 ### 页面预览
 
-在仓库根目录运行 `npm --prefix web run try:transaction` 可查看示例交易。使用已安装的 MetaMask 或 Fluent 核对账户与网络时，在命令末尾加上 `-- --wallet`。操作步骤见[交易审阅页指南](docs/transaction-review.md)。
+在仓库根目录运行 `npm --prefix web run try:transaction` 可查看示例交易，并用 CLI 按请求 ID 查询或取消。使用 MetaMask 或 Fluent 核对账户与网络时，在命令末尾加上 `-- --wallet`。[CLI 操作步骤](docs/transaction-review.md#用-cli-查询和取消示例交易) · [钱包操作步骤](docs/transaction-review.md#核对插件钱包并体验发送)
 
 ```sh
 npm --prefix web run dev

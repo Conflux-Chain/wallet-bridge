@@ -17,6 +17,7 @@ func TestResourceArgumentsBeforeServiceStartup(t *testing.T) {
 		{"connection", "cancel"}, {"connection", "get", id, "extra"}, {"connection", "get", "", id},
 		{"connection", "close", id}, {"session", "cancel", id}, {"session", "close", strings.ToUpper(id)},
 		{"session", "get", id, "--data-dir", "relative"}, {"session", "get", id, "--unknown=private"},
+		{"transaction", "cancel"}, {"transaction", "get", strings.ToUpper(id)}, {"transaction", "close", id},
 	} {
 		var out, diag bytes.Buffer
 		c := Run(args, Dependencies{}, &out, &diag)
@@ -37,6 +38,7 @@ func TestResourceCommandErrors(t *testing.T) {
 	for _, args := range [][]string{
 		{"connection", "get", id, "--json", "--data-dir", dir},
 		{"session", "get", "--json", "--data-dir", dir, id},
+		{"transaction", "cancel", id, "--json", "--data-dir", dir},
 	} {
 		var out, diag bytes.Buffer
 		var failure client.Error
@@ -56,7 +58,10 @@ func TestResourceTextQuotesDisplayNames(t *testing.T) {
 	if err := writeSession(&out, false, api.SessionResponse{Wallet: api.WalletResponse{Name: "wallet\rname"}}); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`"name\nline"`, `"\x1b[2J"`, `"wallet\rname"`, "Session: session-id"} {
+	if err := writeTransaction(&out, false, api.TransactionResponse{ClientName: "agent\nname", Intent: "call\rcontract"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"name\nline"`, `"\x1b[2J"`, `"wallet\rname"`, "Session: session-id", `"agent\nname"`, `"call\rcontract"`} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("missing %q in output", want)
 		}

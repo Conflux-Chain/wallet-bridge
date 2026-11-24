@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { authorize, connectionClient, origin } from './bridge';
+import { authorize, cli, connectionClient, origin } from './bridge';
 import { account, createReview, newID, to } from './transaction-fixture';
 
 const data = '0x00' + 'f0'.repeat(512);
@@ -48,6 +48,17 @@ test('review exact amount, addresses, fees and full data', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('CLI recovers a stopped service and cancels a pending transaction by ID', async ({ page }) => {
+  const id = await createReview(page, '0x47', { value: '21' });
+  const original = await connectionClient('transactions/' + id);
+  await cli(['service', 'stop', '--json']);
+  expect(JSON.parse(await cli(['transaction', 'get', id, '--json']))).toEqual(original);
+  await cli(['service', 'stop', '--json']);
+  const canceled = JSON.parse(await cli(['transaction', 'cancel', id, '--json']));
+  expect(canceled).toMatchObject({ ...original, state: 'canceled', finishedAt: expect.any(String) });
+  expect(JSON.parse(await cli(['transaction', 'cancel', id, '--json']))).toEqual(canceled);
+});
+
 test('an uncertain transaction updates to its late hash on the original page', async ({ page }) => {
   const id = await createReview(page, '0x47', {});
   const path = origin + '/api/v1/browser/transactions/' + id;
@@ -62,13 +73,16 @@ test('an uncertain transaction updates to its late hash on the original page', a
   const permit = await report('/send', { id: execution, callId, account, chainId: '0x47',
     wallet: { kind: 'eip6963', name: '测试钱包', rdns: 'test.wallet' } });
   expect(permit.invoke).toBe(true);
+  expect(JSON.parse(await cli(['transaction', 'cancel', id, '--json']))).toMatchObject({ id, state: 'awaiting_wallet' });
   await report('/result', { id: execution, callId, errorCode: 4900 });
   await page.goto('/?transaction=' + id);
   await expect(page.getByRole('status')).toHaveText('结果未确定');
+  expect(await cli(['transaction', 'get', id])).toContain('Broadcast status is uncertain');
   const txHash = '0x' + '08'.repeat(32);
   await report('/result', { id: execution, callId, txHash });
   await expect(page.getByRole('status')).toHaveText('已发送');
   await expect(page.getByText(txHash, { exact: true })).toBeVisible();
+  expect(JSON.parse(await cli(['transaction', 'get', id, '--json']))).toMatchObject({ id, state: 'sent', txHash, transaction: { chainId: '0x47' } });
 });
 
 test('unknown chain, omitted intent and wallet-estimated fees', async ({ page }) => {

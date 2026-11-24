@@ -13,6 +13,18 @@ npm --prefix web run try:transaction
 4. 在五分钟内点击「拒绝这笔交易」。页面显示「用户已拒绝」，刷新仍可查看该结果。如需单独体验到期，重新运行示例并等待五分钟。
 5. 结束体验时回到终端按 **Enter**，看到「测试服务已停止，临时数据已清理」后关闭无痕窗口。
 
+## 用 CLI 查询和取消示例交易
+
+在仓库根目录运行上面的 `npm --prefix web run try:transaction`，保留该终端。另开一个终端，进入同一仓库，将以下两个占位符替换为示例终端打印的交易请求 ID 和临时数据目录。此流程只需合成交易，无需打开浏览器。
+
+```sh
+go run ./cmd/wallet-bridge transaction get "<请求ID>" --data-dir "<临时数据目录>" --json
+go run ./cmd/wallet-bridge transaction cancel "<请求ID>" --data-dir "<临时数据目录>" --json
+go run ./cmd/wallet-bridge transaction get "<请求ID>" --data-dir "<临时数据目录>"
+```
+
+在五分钟内执行，首次查询应返回 `pending`，取消后应看到同一 ID 和 `canceled`。已到期的请求显示 `expired`。钱包已接手时，取消命令显示当前状态，后续可按原 ID 查询 hash。结束后回到示例终端按 **Enter** 停止并清理临时服务。
+
 ## 核对插件钱包并体验发送
 
 在装有 MetaMask 或 Fluent EVM 的 Chrome 测试配置中操作。先按上文安装依赖并释放端口，然后在仓库根目录运行以下命令。
