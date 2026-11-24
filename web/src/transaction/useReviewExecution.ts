@@ -138,7 +138,7 @@ export function useReviewExecution(transaction: string, watch: 'pending' | 'term
     }, 'recover');
   }
 
-  function send(review: TransactionReview, checkWallet: () => Promise<boolean>,
+  function send(review: TransactionReview, checkWallet: () => Promise<(() => boolean) | undefined>,
     invoke: (payload: TransactionReview['transaction']) => Promise<unknown>) {
     if (!available) return;
     return run(async operation => {
@@ -153,8 +153,9 @@ export function useReviewExecution(transaction: string, watch: 'pending' | 'term
         { id: lease.id, previousCallId: lease.lastCall, callId, wallet: review.wallet, account, chainId });
       let result: { txHash: string } | { errorCode: number } = { errorCode: 0 };
       if (permit.invoke === true && permit.transaction && ownsReview()) {
-        const phase = await observeReview(transaction).catch(() => undefined);
-        if (phase?.phase === 'calling' && await checkWallet() && ownsReview()) {
+        const stillCurrent = await checkWallet();
+        const confirmed = stillCurrent && await changeReview(transaction, { action: 'heartbeat', id: lease.id }).catch(() => undefined);
+        if (confirmed?.phase === 'calling' && stillCurrent?.() && ownsReview()) {
           try {
             const hash = await invoke(permit.transaction);
             if (typeof hash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(hash)) result = { txHash: hash };

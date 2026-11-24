@@ -73,6 +73,33 @@ test('lost send permission is retried with original IDs and never invokes the wa
   expect(await countSends(page)).toBe(0);
 });
 
+test('a second matching provider announced during the final heartbeat blocks the send', async ({ page }) => {
+  const id = await open(page);
+  await page.route('**/' + id + '/execution', async route => {
+    if (route.request().method() === 'POST' && route.request().postDataJSON().action === 'heartbeat') {
+      await page.evaluate(() => window.reviewWallet.duplicate());
+    }
+    await route.continue();
+  });
+  await sendButton(page).click();
+  await expect(page.getByText('结果未确定', { exact: true })).toBeVisible();
+  expect(await countSends(page)).toBe(0);
+});
+
+test('refreshing the original tab delivers a saved hash after a service outage', async ({ page }) => {
+  const id = await open(page);
+  const endpoint = '**/' + id + '/result';
+  await page.route(endpoint, route => route.abort());
+  await sendButton(page).click();
+  await expect.poll(() => countSends(page)).toBe(1);
+  await page.evaluate(hash => window.reviewWallet.finishSend({ hash }), txHash);
+  await expect(page.getByRole('button', { name: '补交钱包结果' })).toBeVisible();
+  await page.unroute(endpoint);
+  await page.reload();
+  await expect(page.getByText(txHash, { exact: true })).toBeVisible();
+  expect(await countSends(page)).toBe(0);
+});
+
 for (const [outcome, state] of [[{ code: 4001 }, '用户已拒绝'], [{ code: 4900 }, '结果未确定'], [{ hash: '0x01' }, '结果未确定']] as const) {
   test('wallet outcome ' + JSON.stringify(outcome) + ' is recorded on the original request', async ({ page }) => {
     await open(page);

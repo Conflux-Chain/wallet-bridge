@@ -119,16 +119,16 @@ function WalletReadings({ wallet, review, discovery, execution, canSend }: {
     return mounted.current && matches.length === 1 && matches[0] === wallet;
   }
   async function checkForSend() {
-    if (!isFixedWallet()) return false;
+    if (!isFixedWallet()) return;
     const version = generation.current;
     try {
       const next = await walletState(wallet.provider);
-      if (!isFixedWallet() || version !== generation.current) return false;
+      const stillCurrent = () => isFixedWallet() && version === generation.current;
+      if (!stillCurrent()) return;
       setReading(next);
-      return next.accounts.includes(tx.from.toLowerCase()) && next.chain === tx.chainId;
+      if (next.accounts.includes(tx.from.toLowerCase()) && next.chain === tx.chainId) return stillCurrent;
     } catch {
       if (mounted.current) { setReading(undefined); setMessage('无法读取钱包状态，请重新核对。'); }
-      return false;
     }
   }
   function prepare(method: 'eth_requestAccounts' | 'wallet_switchEthereumChain') {
@@ -160,10 +160,10 @@ function WalletReadings({ wallet, review, discovery, execution, canSend }: {
       {reading.accounts.length === 0 && <button type="button" disabled={!execution.available} onClick={() => prepare('eth_requestAccounts')}>授权访问账户</button>}
       {reading.chain !== tx.chainId && <button type="button" disabled={!execution.available} onClick={() => prepare('wallet_switchEthereumChain')}>切换到 {networkLabel(tx.chainId)}</button>}
     </div>}
-    <button type="button" className="secondary" onClick={check}>重新核对钱包</button>
+    <div className="actions"><button type="button" className="secondary" onClick={check}>重新核对钱包</button>
     {canSend && <button type="button" disabled={!execution?.available || reading?.chain !== tx.chainId ||
       !reading.accounts.includes(tx.from.toLowerCase())}
       onClick={() => void execution?.send(review, checkForSend,
-        payload => wallet.provider.request({ method: 'eth_sendTransaction', params: [payload] }))}>在钱包中确认并发送</button>}
+        payload => wallet.provider.request({ method: 'eth_sendTransaction', params: [payload] }))}>在钱包中确认并发送</button>}</div>
   </>;
 }

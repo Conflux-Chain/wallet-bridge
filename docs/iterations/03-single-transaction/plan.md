@@ -99,4 +99,4 @@ Windows amd64 构建通过，本机 Chrome 的 33 项端到端及 9 项钱包发
 
 ## PR 3-10d 验证
 
-Windows amd64 构建和本机 Chrome 的 9 项钱包发现测试通过。新增发送回归使用模拟 Provider，验证钱包调用次数、迟到 hash 与原标签页重新授权。MetaMask／Fluent 的真实测试网广播和回执待人工验收。[本地复现](../../transaction-review.md)
+Windows amd64 构建、本机 Chrome 的 42 项端到端和 9 项钱包发现测试通过。模拟钱包实测重复点击仅发送一次，许可丢失或绑定变化时发送零次。钱包拒绝、断连及无效 hash 均显示对应状态。原页刷新或重新授权后能补交已返回的 hash，另一配置手动放行后仍可收到迟到结果。MetaMask／Fluent 的真实测试网广播和回执待人工验收。[本地复现](../../transaction-review.md)
