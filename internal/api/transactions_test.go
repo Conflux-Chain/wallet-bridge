@@ -158,14 +158,14 @@ func TestTransactionHTTPWalletResult(t *testing.T) {
 	}
 	f.request(t, "POST", "/api/v1/sessions/"+s.ID+"/close", "", controlHeaders(), 200)
 	call := app.TransactionSendRef{TransactionReviewRef: ref, CallID: send.CallID}
-	if _, err := f.database.RecordTransactionError(t.Context(), call, 4900, time.Now()); err != nil {
+	if _, err := f.database.RecordTransactionError(t.Context(), call, 4900); err != nil {
 		t.Fatal(err)
 	}
 	if got := responseJSON[TransactionResponse](t, f.request(t, "GET", path, "", controlHeaders(), 200)); got.State != "uncertain" || got.TxHash != "" {
 		t.Fatal("unknown broadcast", got)
 	}
 	hash := "0x" + strings.Repeat("ab", 32)
-	if _, err := f.database.RecordTransactionHash(t.Context(), call, hash, time.Now()); err != nil {
+	if _, err := f.database.RecordTransactionHash(t.Context(), call, hash); err != nil {
 		t.Fatal(err)
 	}
 	if got := responseJSON[TransactionResponse](t, f.request(t, "GET", path, "", controlHeaders(), 200)); got.State != "sent" || got.TxHash != hash || got.FinishedAt == "" {
