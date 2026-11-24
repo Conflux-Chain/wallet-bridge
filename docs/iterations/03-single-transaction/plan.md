@@ -1,6 +1,6 @@
 # 迭代 3 PR 计划
 
-当前步骤为 PR 3-12b，从 CLI 逐字段创建交易并等待或异步返回。[需求](spec.md) · [设计](design.md)
+当前步骤为 PR 3-13，汇总自动化证据并验证真实钱包发送。[需求](spec.md) · [设计](design.md) · [本轮验收记录](acceptance.md)
 
 | 步骤 | 单一交付 | 主要检查 |
 |---|---|---|
@@ -25,8 +25,8 @@
 | 3-10d | 发起发送并回报结果 | [#54](https://github.com/Conflux-Chain/wallet-bridge/pull/54) 合并为 `d29adb0`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45347739647) 通过 |
 | 3-11 | 共享 Go client 的交易操作 | [#55](https://github.com/Conflux-Chain/wallet-bridge/pull/55) 合并为 `95add04`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45351058959) 通过 |
 | 3-12a | CLI 按 ID 查询和取消已有交易 | [#56](https://github.com/Conflux-Chain/wallet-bridge/pull/56) 合并为 `d8cf92d`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45354875045) 通过 |
-| 3-12b | CLI 创建交易并等待或异步返回 | 待评审。[本步 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Ftransaction-cli-send) |
-| 3-13 | 组合验收与指南 | A-07～16、三平台 CI、MetaMask／Fluent EVM 测试网及 client 查链分别留证 |
+| 3-12b | CLI 创建交易并等待或异步返回 | [#57](https://github.com/Conflux-Chain/wallet-bridge/pull/57) 合并为 `44535e4`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45367343653) 通过 |
+| 3-13 | 组合验收与指南 | [本步 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Ftransaction-acceptance) 待评审。真实钱包待验项见[验收记录](acceptance.md#真实钱包与链上结果) |
 
 首个实现 PR 只交付交易输入。真实钱包发送按用户授权执行，逐 PR 在 README 已链接的指南补充可复现步骤。完整交易队列和日志清理按[路线图](../../roadmap.md)在迭代 4 细化。
 
@@ -113,3 +113,7 @@ Windows 上四组共享 client 测试通过。SQLite 提交后断开响应，按
 ## PR 3-12b 验证
 
 Windows amd64 已验证独立程序构建、交易参数、同 ID 重试、单次打开浏览器、等待中断、终态输出和退出码。固定端口保留给本机体验服务；三平台 CI 的浏览器测试运行独立 CLI，用模拟钱包检查返回 hash，并验证退出 3 后能从原请求取得迟到 hash。真实钱包广播与链上回执留待 3-13。[本地复现](../../transaction-review.md#用-cli-发起交易)
+
+## PR 3-13 验证
+
+Windows amd64、Chrome 157.0.8103.79、Go 1.27.4、Node 24.19.0。本机构建及 44 项 Chrome 端到端用例通过。新增用例使用 CLI 返回的 Session 发起交易，关闭 Session 后仍可读回相同 hash。交易相关 Go 包通过 `no_web` 测试。A-07～16 的分项证据、RPC 检查和两款钱包待验项见[本轮验收记录](acceptance.md)。
