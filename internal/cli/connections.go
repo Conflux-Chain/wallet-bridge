@@ -18,7 +18,7 @@ import (
 
 const connectionUsage = "Usage: wallet-bridge connection get|cancel <request-id> [--data-dir <absolute path>] [--json]"
 const sessionUsage = "Usage: wallet-bridge session get|close <session-id> [--data-dir <absolute path>] [--json]"
-const transactionUsage = "Usage: wallet-bridge transaction get|cancel <request-id> [--data-dir <absolute path>] [--json]"
+const transactionUsage = "Usage: wallet-bridge transaction get|cancel <request-id> [--data-dir <absolute path>] [--json]\n" + sendUsage
 
 func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	group := args[0]

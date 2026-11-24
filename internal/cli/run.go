@@ -45,6 +45,9 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 	if args[0] == "connect" {
 		return runConnect(args[1:], dependencies, stdout, stderr)
 	}
+	if args[0] == "transaction" && len(args) > 1 && args[1] == "send" {
+		return runSend(args[2:], dependencies, stdout, stderr)
+	}
 	if args[0] == "connection" || args[0] == "session" || args[0] == "transaction" {
 		return runResource(args, dependencies, stdout, stderr)
 	}

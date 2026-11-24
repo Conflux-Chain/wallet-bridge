@@ -174,17 +174,21 @@ func writeConnectResult(out io.Writer, asJSON bool, result connectResult) error 
 }
 
 func connectError(ctx context.Context, stderr io.Writer, asJSON bool, id string, err error) int {
+	return requestCommandError(ctx, stderr, asJSON, "connection", id, err)
+}
+
+func requestCommandError(ctx context.Context, stderr io.Writer, asJSON bool, kind, id string, err error) int {
 	code := 1
 	var failure *client.Error
 	if ctx.Err() != nil {
 		code = 130
-		failure = &client.Error{Code: "interrupted", Message: "The local connection command was interrupted"}
+		failure = &client.Error{Code: "interrupted", Message: "The local " + kind + " command was interrupted"}
 	} else if !errors.As(err, &failure) {
-		failure = &client.Error{Code: "request_failed", Message: "Connection operation failed"}
+		failure = &client.Error{Code: "request_failed", Message: "Request operation failed"}
 	}
 	url := ""
 	if id != "" {
-		url = api.Origin + "/?connection=" + id
+		url = api.Origin + "/?" + kind + "=" + id
 	}
 	if asJSON {
 		json.NewEncoder(stderr).Encode(struct {
@@ -195,7 +199,7 @@ func connectError(ctx context.Context, stderr io.Writer, asJSON bool, id string,
 	} else {
 		fmt.Fprintln(stderr, failure)
 		if id != "" {
-			fmt.Fprintf(stderr, "Check: wallet-bridge connection get %s (use the same data directory)\nOpen: %s\n", id, url)
+			fmt.Fprintf(stderr, "Check: wallet-bridge %s get %s (use the same data directory)\nOpen: %s\n", kind, id, url)
 		}
 	}
 	return code

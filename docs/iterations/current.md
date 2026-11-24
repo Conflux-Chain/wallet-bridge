@@ -4,7 +4,7 @@
 
 ## 迭代 3 · 单笔交易
 
-共享 Go client 的交易操作已合并。当前步骤 3-12a 交付 CLI 查询与取消，下一步 3-12b 接入交易创建与等待。[分步计划](03-single-transaction/plan.md) · [体验交易审阅页](../transaction-review.md)
+CLI 查询与取消已合并。当前步骤 3-12b 接入逐字段发起交易、等待钱包结果及异步返回，下一步 3-13 开展组合验收。[分步计划](03-single-transaction/plan.md) · [体验交易审阅页](../transaction-review.md)
 
 ## 上轮交接
 

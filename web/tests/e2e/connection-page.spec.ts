@@ -1,7 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { execFile } from 'node:child_process';
-import { createInterface } from 'node:readline';
-import { authorize, cli, connectionClient as client } from './bridge';
+import { authorize, cli, connectionClient as client, waitingCLI } from './bridge';
 
 const first = '0x' + '1'.repeat(40);
 const second = '0x' + '2'.repeat(40);
@@ -9,23 +7,9 @@ const second = '0x' + '2'.repeat(40);
 const connectArgs = ['connect', '--chain-id', '71', '--client-name', 'Test client', '--intent', 'Review the test account', '--no-open', '--json'];
 
 async function waitingConnect() {
-  const child = execFile(process.env.WALLET_BRIDGE_TEST_EXECUTABLE!,
-    [...connectArgs, '--data-dir', process.env.WALLET_BRIDGE_TEST_DATA!],
-    { windowsHide: true, timeout: 25_000 });
-  const done = new Promise<{code: number | null; stdout: string}>((resolve, reject) => {
-    let stdout = '';
-    child.stdout!.setEncoding('utf8').on('data', chunk => { stdout += chunk; });
-    child.once('error', reject);
-    child.once('close', code => resolve({code, stdout}));
-  });
-  const lines = createInterface({input: child.stderr!});
-  for await (const line of lines) {
-    const receipt = JSON.parse(line);
-    expect(receipt).toMatchObject({state: 'pending', url: expect.stringContaining('?connection=' + receipt.id)});
-    return {receipt, done};
-  }
-  await done;
-  throw new Error('CLI exited before printing its pending request');
+  const { receipt, done } = await waitingCLI(connectArgs);
+  expect(receipt).toMatchObject({state: 'pending', url: expect.stringContaining('?connection=' + receipt.id)});
+  return { receipt, done };
 }
 
 async function review(page: Page, receipt: { id: string; url: string }, supportsSwitch = true) {

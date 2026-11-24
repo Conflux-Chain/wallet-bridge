@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import type { Page } from '@playwright/test';
@@ -33,6 +34,24 @@ export async function connectionClient(path: string, body?: object) {
   });
   if (response.status !== 200) throw new Error('Test client received HTTP ' + response.status);
   return response.json();
+}
+
+// Waiting commands print a receipt to stderr before the browser can complete the request.
+export async function waitingCLI(args: string[]) {
+  const child = execFile(process.env.WALLET_BRIDGE_TEST_EXECUTABLE!,
+    [...args, '--data-dir', process.env.WALLET_BRIDGE_TEST_DATA!], { windowsHide: true, timeout: 25_000 });
+  const done = new Promise<{code: number | null; stdout: string}>((resolve, reject) => {
+    let stdout = '';
+    child.stdout!.setEncoding('utf8').on('data', chunk => { stdout += chunk; });
+    child.once('error', reject);
+    child.once('close', code => resolve({code, stdout}));
+  });
+  const lines = createInterface({input: child.stderr!});
+  for await (const line of lines) {
+    return { receipt: JSON.parse(line), done };
+  }
+  await done;
+  throw new Error('CLI exited before printing its pending request');
 }
 
 export async function link() { return cli(['ui', '--print-url']); }

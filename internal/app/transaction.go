@@ -26,6 +26,22 @@ var ErrInvalidTransaction = errors.New("invalid transaction")
 // NormalizeTransaction checks the payload against a stored Session binding.
 // The caller checks Session liveness when it commits the request.
 func NormalizeTransaction(fields map[string]string, session Session) (Transaction, error) {
+	tx, err := ParseTransaction(fields)
+	if err != nil {
+		return Transaction{}, err
+	}
+	if !strings.EqualFold(tx.From, session.Account) {
+		return Transaction{}, fmt.Errorf("%w: from differs from the Session account", ErrInvalidTransaction)
+	}
+	if tx.ChainID != session.ChainID {
+		return Transaction{}, fmt.Errorf("%w: chainId is required and must match the Session network", ErrInvalidTransaction)
+	}
+	tx.From = session.Account
+	return tx, nil
+}
+
+// ParseTransaction validates and normalizes the caller's fields before Session binding.
+func ParseTransaction(fields map[string]string) (Transaction, error) {
 	tx := Transaction{From: fields["from"], To: fields["to"], Value: "0x0", Data: "0x"}
 	if tx.To == "" {
 		return Transaction{}, fmt.Errorf("%w: to is required (contract deployment is unsupported)", ErrInvalidTransaction)
@@ -35,11 +51,6 @@ func NormalizeTransaction(fields map[string]string, session Session) (Transactio
 			return Transaction{}, fmt.Errorf("%w: %s must be a 20-byte hex address", ErrInvalidTransaction, address.name)
 		}
 	}
-	if !strings.EqualFold(tx.From, session.Account) {
-		return Transaction{}, fmt.Errorf("%w: from differs from the Session account", ErrInvalidTransaction)
-	}
-	tx.From = session.Account
-
 	quantities := map[string]*string{
 		"chainId": &tx.ChainID, "value": &tx.Value, "gas": &tx.Gas, "gasPrice": &tx.GasPrice,
 		"maxFeePerGas": &tx.MaxFeePerGas, "maxPriorityFeePerGas": &tx.MaxPriorityFeePerGas,
@@ -65,8 +76,8 @@ func NormalizeTransaction(fields map[string]string, session Session) (Transactio
 			*target = value
 		}
 	}
-	if tx.ChainID == "" || tx.ChainID != session.ChainID {
-		return Transaction{}, fmt.Errorf("%w: chainId is required and must match the Session network", ErrInvalidTransaction)
+	if tx.ChainID == "" {
+		return Transaction{}, fmt.Errorf("%w: chainId is required", ErrInvalidTransaction)
 	}
 	if (tx.MaxFeePerGas == "") != (tx.MaxPriorityFeePerGas == "") {
 		return Transaction{}, fmt.Errorf("%w: maxFeePerGas and maxPriorityFeePerGas must be supplied together", ErrInvalidTransaction)

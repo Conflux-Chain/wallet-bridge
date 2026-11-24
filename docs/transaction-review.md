@@ -13,6 +13,27 @@ npm --prefix web run try:transaction
 4. 在五分钟内点击「拒绝这笔交易」。页面显示「用户已拒绝」，刷新仍可查看该结果。如需单独体验到期，重新运行示例并等待五分钟。
 5. 结束体验时回到终端按 **Enter**，看到「测试服务已停止，临时数据已清理」后关闭无痕窗口。
 
+## 用 CLI 发起交易
+
+运行上面的 `try:transaction` 会通过 `transaction send --no-open --no-wait --json` 创建一笔示例。要验证默认等待行为，在终端保留示例服务，先完成无痕窗口授权。另开终端进入仓库根目录，把下例中的 Session ID 和临时目录换成示例终端打印的值，在五分钟内执行。Windows PowerShell 使用以下命令。macOS Intel 或 Apple Silicon 将程序路径换成 `./dist/wallet-bridge-darwin-amd64` 或 `./dist/wallet-bridge-darwin-arm64`。
+
+```powershell
+./dist/wallet-bridge-windows-amd64.exe transaction send --session-id "<Session ID>" --chain-id 71 --from 0xabababababababababababababababababababab --to 0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd --value 13 --client-name "Example CLI" --intent "核对 13 个最小单位" --data-dir "<临时数据目录>" --no-open --json
+```
+
+把新命令打印的 `url` 放入刚授权的无痕窗口，核对来源、意图和金额，点击「拒绝这笔交易」。终端应输出同一请求 ID、`state: rejected` 并退出 1。加上 `--no-wait` 可立即取得 ID 和链接，退出 0。省略 `--no-open` 时默认打开浏览器。体验结束回到示例终端按 Enter 清理。
+
+金额和费用接受十进制或 `0x` 十六进制最小单位。合约调用用 `--data` 传完整字节，gas 上限用 `--gas`。费用可由钱包估算，或传 `--gas-price`，或成对传 `--max-fee-per-gas` 和 `--max-priority-fee-per-gas`。
+
+| 等待发送的结果 | 退出码 | 后续操作 |
+|---|---|---|
+| `sent` | 0 | 用返回的网络和 `txHash` 查询链上回执 |
+| `rejected`、`canceled`、`expired` | 1 | 查看输出的请求状态 |
+| `uncertain` | 3 | 运行 `checkCommand` 或按原 ID 查询迟到的 hash |
+| Ctrl+C | 130 | 本地等待结束，可继续查询或显式取消原请求 |
+
+`--json` 等待模式把初始 ID 和 URL 写入 stderr，最终交易记录写入 stdout。参数用法错误退出 2，服务访问失败退出 1。
+
 ## 用 CLI 查询和取消示例交易
 
 在仓库根目录运行上面的 `npm --prefix web run try:transaction`，保留该终端。另开一个终端，进入同一仓库，将以下两个占位符替换为示例终端打印的交易请求 ID 和临时数据目录。此流程只需合成交易，无需打开浏览器。
