@@ -150,13 +150,14 @@ test('reject a queued transaction and recover its lost response while another ho
       await route.abort('failed');
     });
     await page.getByRole('button', { name: '拒绝这笔交易' }).click();
-    await expect(page.getByRole('status')).toHaveText('用户已拒绝');
+    const state = page.getByRole('region', { name: '请求与金额' }).getByRole('status');
+    await expect(state).toHaveText('用户已拒绝');
     await expect(page.getByRole('button', { name: '拒绝这笔交易' })).toHaveCount(0);
     expect((await connectionClient('transactions/' + queued)).state).toBe('rejected');
     const status = await page.request.get(origin + '/api/v1/status');
     expect((await status.json()).activeWalletRequest).toMatchObject({ kind: 'transaction', id: first, phase: 'ready' });
     await page.reload();
-    await expect(page.getByRole('status')).toHaveText('用户已拒绝');
+    await expect(state).toHaveText('用户已拒绝');
     expect(writes).toEqual(['/api/v1/browser/transactions/' + queued + '/reject']);
   } finally {
     await connectionClient('transactions/' + first + '/cancel', {});
@@ -172,7 +173,7 @@ test('a rejection blocked before delivery can be retried explicitly', async ({ p
   await expect(page.getByText('请求仍待审批，可以再次拒绝。')).toBeVisible();
   expect((await connectionClient('transactions/' + id)).state).toBe('pending');
   await reject.click();
-  await expect(page.getByRole('status')).toHaveText('用户已拒绝');
+  await expect(page.getByRole('region', { name: '请求与金额' }).getByRole('status')).toHaveText('用户已拒绝');
 });
 
 test('a wallet handoff that wins against page rejection remains visible', async ({ page }) => {

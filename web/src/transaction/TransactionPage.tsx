@@ -132,8 +132,8 @@ export function TransactionPage({ id, canReject }: { id: string; canReject: bool
           <button type="button" className="secondary" disabled={rejecting} onClick={reject}>{rejecting ? '正在提交拒绝决定…' : '拒绝这笔交易'}</button>}
       </div></div>
     </header>
-    {rejectUnconfirmed && (!review || review.state === 'pending') &&
-      <p role="status">{review ? '请求仍待审批，可以再次拒绝。' : '拒绝结果尚未确认，请核对原请求状态。'}</p>}
-    {error ? <p role="alert">{error}</p> : review ? <ReviewDetails review={review} /> : <p role="status">正在读取交易…</p>}
+    {rejectUnconfirmed && review?.state === 'pending' && <p role="status">请求仍待审批，可以再次拒绝。</p>}
+    {error ? <p role="alert">{error}</p> : review ? <ReviewDetails review={review} /> :
+      <p role="status">{rejectUnconfirmed ? '正在核对拒绝结果…' : '正在读取交易…'}</p>}
   </main>;
 }
