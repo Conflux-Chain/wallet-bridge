@@ -184,7 +184,22 @@ UPDATE transaction_requests SET state = d.state, finished_at = d.finished_at FRO
 WHERE transaction_requests.id = d.id;
 DROP TABLE prior_decisions;
 CREATE INDEX transaction_requests_by_deadline ON transaction_requests (expires_at) WHERE state = 'pending';
-` + closeSessionTransactionsV6 + endTransactionReviewV8}
+` + closeSessionTransactionsV6 + endTransactionReviewV8, `
+CREATE TABLE transaction_results (
+    transaction_id TEXT PRIMARY KEY NOT NULL REFERENCES transaction_requests (id),
+    outcome TEXT NOT NULL CHECK (outcome IN ('sent', 'rejected', 'uncertain')),
+    tx_hash TEXT NOT NULL,
+    reported_at INTEGER NOT NULL CHECK (reported_at >= 0),
+    CHECK ((outcome = 'sent' AND length(tx_hash) = 66 AND substr(tx_hash, 1, 2) = '0x' AND
+            substr(tx_hash, 3) NOT GLOB '*[^0-9a-f]*') OR (outcome != 'sent' AND tx_hash = ''))
+);
+CREATE VIEW transaction_status AS
+SELECT r.id, r.session_id, r.client_name, r.intent, r.from_address, r.to_address, r.chain_id, r.value, r.data,
+       r.gas, r.gas_price, r.max_fee_per_gas, r.max_priority_fee_per_gas, r.created_at, r.expires_at,
+       coalesce(o.outcome, r.state) AS state, coalesce(o.reported_at, r.finished_at) AS finished_at,
+       r.handed_off_at, coalesce(o.tx_hash, '') AS tx_hash
+FROM transaction_requests r LEFT JOIN transaction_results o ON o.transaction_id = r.id;
+`}
 
 const closeSessionTransactionsV6 = `
 CREATE TRIGGER close_session_transactions AFTER UPDATE OF closed_at ON sessions
