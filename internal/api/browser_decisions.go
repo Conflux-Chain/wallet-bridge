@@ -29,6 +29,14 @@ type ConnectionCallPermitResponse struct {
 	Invoke    bool                        `json:"invoke"`
 }
 
+func (input ConnectionConsentRequest) binding() (app.ConnectionBinding, bool) {
+	chain, ok := httpChainID(input.ChainID)
+	return app.ConnectionBinding{
+		Wallet:  app.WalletDescriptor{Kind: app.WalletKind(input.Wallet.Kind), Name: input.Wallet.Name, RDNS: input.Wallet.RDNS},
+		Account: input.Account, ChainID: chain,
+	}, ok
+}
+
 // @Summary Begin a wallet call
 // @Description Newly committed handoff grants invoke once. Retry with the same callId and previousCallId after a lost response. Only invoke=true authorizes this page to open the wallet. JSON body limit: 1024 bytes. No query parameters.
 // @Accept json
@@ -91,16 +99,12 @@ func (h *handler) completeBrowserConnection(w http.ResponseWriter, r *http.Reque
 	if !decodeBodyLimit(w, r, &input, false, MaxConnectionBody) {
 		return
 	}
-	chain, ok := httpChainID(input.ChainID)
+	binding, ok := input.binding()
 	if !ok {
 		connectionFailure(w, app.ErrInvalidSession)
 		return
 	}
 	ref := app.ConnectionExecutionInput{ConnectionID: r.PathValue("id"), ID: input.ID}
-	binding := app.ConnectionBinding{
-		Wallet:  app.WalletDescriptor{Kind: app.WalletKind(input.Wallet.Kind), Name: input.Wallet.Name, RDNS: input.Wallet.RDNS},
-		Account: input.Account, ChainID: chain,
-	}
 	result, err := h.config.Connections.CompleteExecution(r.Context(), browser, ref, binding)
 	writeBrowserDecision(w, result, err)
 }

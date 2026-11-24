@@ -18,6 +18,11 @@ type TransactionRequests interface {
 	GetSession(context.Context, string) (app.Session, error)
 	ObserveTransactionReview(context.Context, string) (app.TransactionReviewStatus, error)
 	ApplyTransactionReview(context.Context, app.TransactionReviewRef, app.ReviewCommand) (app.ReviewResult, error)
+	RejectTransactionRequest(context.Context, string, string) (app.TransactionRequest, error)
+	GrantTransactionSend(context.Context, app.TransactionReviewRef, app.TransactionSendInput) (*app.Transaction, error)
+	RecordTransactionHash(context.Context, app.TransactionSendRef, string) (app.TransactionRequest, error)
+	RecordTransactionError(context.Context, app.TransactionSendRef, int) (app.TransactionRequest, error)
+	AcknowledgeTransactionInterruption(context.Context, string, string) (app.TransactionRequest, error)
 }
 
 // @Summary Create or retry a transaction request
@@ -112,6 +117,10 @@ func transactionFailure(w http.ResponseWriter, err error) {
 		failure(w, http.StatusConflict, "transaction_conflict", "The request ID already identifies different content")
 	case errors.Is(err, app.ErrTransactionReviewConflict):
 		failure(w, http.StatusConflict, "execution_conflict", "Read the current transaction and review phase")
+	case errors.Is(err, app.ErrTransactionResultConflict):
+		failure(w, http.StatusConflict, "result_conflict", "The wallet report conflicts with the recorded result")
+	case errors.Is(err, app.ErrInvalidSession):
+		failure(w, http.StatusBadRequest, "bad_request", "The observed wallet, account and network must match the Session")
 	case errors.Is(err, app.ErrInvalidBrowserCredential):
 		authorizationFailure(w, err)
 	case errors.Is(err, app.ErrWalletBusy):

@@ -215,3 +215,27 @@ go test -tags no_web ./internal/store -run '^(TestTransactionReviewDeadlineUnder
 ```
 
 第一条预期三组测试通过，覆盖多页面、准备调用重试、中断恢复、授权撤销和发送后的观察。第二条验证连接与交易只有一方领取成功，以及服务取得数据库写锁后按实际时间检查期限。退出时自动清理测试数据。
+
+## PR 3-8c 浏览器发送决定与结果
+
+在 `/api/v1/browser/transactions/{id}` 下使用四个 POST 操作，均要求有效管理 Cookie 和本机 Origin。
+
+| 操作 | 页面提交 | 返回 |
+|---|---|---|
+| `reject` | 空请求体，可从排队页操作 | 先于交接时记录明确拒绝；重复或已过期、已交接时返回已生效状态 |
+| `send` | 原执行 ID、新调用 ID、上一次准备调用 ID（如有），以及刚读到的钱包、账户和网络 | 首次提交成功返回一次许可和冻结交易。原调用重试返回 `invoke: false` |
+| `result` | 原执行 ID、原发送调用 ID 和钱包返回的 hash 或错误码 | 记录本次发送结果，支持重新授权后的补交和迟到 hash |
+| `acknowledge` | 用户确认已处理原弹窗后提交空请求体 | 放行已中断的发送，保留原结果与后续回报能力 |
+
+审阅页拒绝时，在同一 SQLite 事务内关闭待审批请求并写入 `rejected` 结果。已有的 `transaction_status` 视图向各入口提供同一结果。通过 `handedOffAt` 可区分页面拒绝和钱包发送弹窗拒绝。
+
+### 浏览器交易决定测试
+
+在 Windows 或 macOS 的仓库根目录，使用 [go.mod](../../../go.mod) 指定的 Go 执行以下命令。测试通过 HTTP handler 和临时 SQLite 验证行为，无需启动服务或安装钱包。
+
+```sh
+go test -tags no_web ./internal/api -run '^TestTransactionDecisionHTTP' -count=1 -v
+go test -tags no_web ./internal/api -run '^TestTransactionDecisionConcurrent$' -count=30
+```
+
+第一条预期四组测试通过，覆盖排队拒绝、结果写入失败回滚、许可响应重试、跨浏览器放行、重新授权后补交 hash、钱包拒绝及到期。第二条用两个数据库连接同时拒绝和申请发送许可，预期每次只生效一个决定。命令退出时清理临时数据库。

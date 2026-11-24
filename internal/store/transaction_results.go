@@ -8,31 +8,43 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 )
 
-func (s *Store) RecordTransactionHash(ctx context.Context, ref app.TransactionSendRef, hash string, now time.Time) (app.TransactionRequest, error) {
+func (s *Store) RecordTransactionHash(ctx context.Context, ref app.TransactionSendRef, hash string) (app.TransactionRequest, error) {
+	return s.recordTransactionHash(ctx, ref, hash, time.Now)
+}
+
+func (s *Store) recordTransactionHash(ctx context.Context, ref app.TransactionSendRef, hash string, clock func() time.Time) (app.TransactionRequest, error) {
 	if len(hash) != 66 || !strings.HasPrefix(hash, "0x") || strings.Trim(hash[2:], "0123456789abcdefABCDEF") != "" {
 		return app.TransactionRequest{}, app.ErrInvalidTransaction
 	}
-	return s.recordWalletResult(ctx, ref, app.TransactionSent, strings.ToLower(hash), now)
+	return s.recordWalletResult(ctx, ref, app.TransactionSent, strings.ToLower(hash), clock)
 }
 
 // A provider failure without an EIP-1193 code can be reported with code zero.
-func (s *Store) RecordTransactionError(ctx context.Context, ref app.TransactionSendRef, code int, now time.Time) (app.TransactionRequest, error) {
+func (s *Store) RecordTransactionError(ctx context.Context, ref app.TransactionSendRef, code int) (app.TransactionRequest, error) {
+	return s.recordTransactionError(ctx, ref, code, time.Now)
+}
+
+func (s *Store) recordTransactionError(ctx context.Context, ref app.TransactionSendRef, code int, clock func() time.Time) (app.TransactionRequest, error) {
 	state := app.TransactionUncertain
 	if code == 4001 {
 		state = app.TransactionRejected
 	}
-	return s.recordWalletResult(ctx, ref, state, "", now)
+	return s.recordWalletResult(ctx, ref, state, "", clock)
 }
 
-func (s *Store) recordWalletResult(ctx context.Context, ref app.TransactionSendRef, state app.TransactionState, hash string, now time.Time) (app.TransactionRequest, error) {
-	if !validID(ref.CallID) {
+func (s *Store) recordWalletResult(ctx context.Context, ref app.TransactionSendRef, state app.TransactionState, hash string, clock func() time.Time) (app.TransactionRequest, error) {
+	if !validID(ref.TransactionID) || !validID(ref.ID) || !validID(ref.BrowserGrantID) || !validID(ref.CallID) {
 		return app.TransactionRequest{}, app.ErrInvalidTransaction
 	}
-	tx, err := s.beginWalletExecution(ctx, ref.TransactionID, ref.ID, ref.BrowserGrantID, now)
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return app.TransactionRequest{}, err
 	}
 	defer tx.Rollback()
+	now := clock()
+	if err := checkWalletExecution(ctx, tx, ref.BrowserGrantID, now); err != nil {
+		return app.TransactionRequest{}, err
+	}
 	req, err := scanTransactionRequest(tx.QueryRowContext(ctx, transactionSelect+" WHERE id = ?", ref.TransactionID))
 	if err != nil {
 		return app.TransactionRequest{}, err

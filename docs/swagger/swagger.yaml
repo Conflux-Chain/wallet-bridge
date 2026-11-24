@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 10
+        example: 11
         type: integer
     type: object
   api.ActiveWalletRequestResponse:
@@ -281,6 +281,7 @@ definitions:
         - transactions.lifecycle
         - browser.transactions.read
         - browser.transactions.coordination
+        - browser.transactions.decisions
         items:
           type: string
         type: array
@@ -482,6 +483,49 @@ definitions:
       recoverFromId:
         type: string
     type: object
+  api.TransactionSendPermit:
+    properties:
+      invoke:
+        type: boolean
+      transaction:
+        $ref: '#/definitions/api.TransactionPayload'
+    type: object
+  api.TransactionSendRequest:
+    properties:
+      account:
+        type: string
+      callId:
+        type: string
+      chainId:
+        example: "0x47"
+        type: string
+      id:
+        type: string
+      previousCallId:
+        type: string
+      wallet:
+        $ref: '#/definitions/api.WalletResponse'
+    required:
+    - account
+    - callId
+    - chainId
+    - id
+    - wallet
+    type: object
+  api.TransactionWalletReport:
+    properties:
+      callId:
+        type: string
+      errorCode:
+        type: integer
+      id:
+        type: string
+      txHash:
+        type: string
+    required:
+    - callId
+    - id
+    type: object
   api.WalletOperationResponse:
     properties:
       connectionId:
@@ -512,7 +556,7 @@ info:
     and transaction lifecycle, browser execution coordination, wallet handoff and
     connection consent.
   title: Wallet Bridge Local API
-  version: "1.10"
+  version: "1.11"
 paths:
   /browser/authorize:
     post:
@@ -1361,6 +1405,68 @@ paths:
       security:
       - BrowserCookie: []
       summary: Read a transaction for browser review
+  /browser/transactions/{id}/acknowledge:
+    post:
+      description: Any authorized management page may confirm that the original popup
+        has been handled. Releases its slot and preserves the original transaction
+        for a late wallet report. Accepts an empty body or {}.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: Transaction request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.TransactionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Acknowledge an interrupted wallet send
   /browser/transactions/{id}/execution:
     get:
       description: Reports the recorded phase without claiming or renewing the execution.
@@ -1478,6 +1584,204 @@ paths:
       security:
       - BrowserCookie: []
       summary: Coordinate a review or a wallet preparation call
+  /browser/transactions/{id}/reject:
+    post:
+      description: Also accepts a queued request. Returns the effective state if cancellation,
+        expiry or wallet handoff already took effect. Accepts an empty body or {}.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: Transaction request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.TransactionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Reject a pending transaction from its review page
+  /browser/transactions/{id}/result:
+    post:
+      consumes:
+      - application/json
+      description: Supply exactly one of txHash or errorCode. Use code 0 when the
+        provider gives no code. A valid replacement browser authorization may submit
+        the original identifiers after the initial grant ends. A late hash can resolve
+        an uncertain result.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: Transaction request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Original execution and send call IDs with the wallet result
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.TransactionWalletReport'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.TransactionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Report the result of the original wallet send
+  /browser/transactions/{id}/send:
+    post:
+      consumes:
+      - application/json
+      description: After user confirmation, submit the observed wallet binding and
+        a fresh send call ID. Only invoke=true with the returned frozen payload permits
+        the page to call the wallet. Retry transport failures with the original IDs.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: Transaction request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Current execution, call and observed binding
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.TransactionSendRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.TransactionSendPermit'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Obtain a one-time transaction send permit
   /connections:
     post:
       consumes:

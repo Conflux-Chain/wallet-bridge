@@ -20,8 +20,12 @@ WHERE `+executionOccupied+` AND w.phase = 'interrupted_calling' AND r.state = 'a
 
 // AcknowledgeTransactionInterruption releases the original popup wait. Any
 // authorized management page can acknowledge it without knowing the call ID.
-func (s *Store) AcknowledgeTransactionInterruption(ctx context.Context, id, browserGrantID string, now time.Time) (app.TransactionRequest, error) {
-	if !validID(id) || !validID(browserGrantID) || !validTime(now) {
+func (s *Store) AcknowledgeTransactionInterruption(ctx context.Context, id, browserGrantID string) (app.TransactionRequest, error) {
+	return s.acknowledgeTransactionInterruption(ctx, id, browserGrantID, time.Now)
+}
+
+func (s *Store) acknowledgeTransactionInterruption(ctx context.Context, id, browserGrantID string, clock func() time.Time) (app.TransactionRequest, error) {
+	if !validID(id) || !validID(browserGrantID) {
 		return app.TransactionRequest{}, app.ErrInvalidTransaction
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -29,6 +33,7 @@ func (s *Store) AcknowledgeTransactionInterruption(ctx context.Context, id, brow
 		return app.TransactionRequest{}, err
 	}
 	defer tx.Rollback()
+	now := clock()
 	if err := checkWalletExecution(ctx, tx, browserGrantID, now); err != nil {
 		return app.TransactionRequest{}, err
 	}

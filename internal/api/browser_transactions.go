@@ -17,6 +17,14 @@ func (h *handler) routeBrowserTransactions(w http.ResponseWriter, r *http.Reques
 	switch {
 	case !nested:
 		h.serveBrowserResource(w, r, http.MethodGet, id, h.getBrowserTransaction)
+	case resource == "reject":
+		h.serveBrowserResource(w, r, http.MethodPost, id, h.rejectBrowserTransaction)
+	case resource == "send":
+		h.serveBrowserResource(w, r, http.MethodPost, id, h.grantBrowserSend)
+	case resource == "result":
+		h.serveBrowserResource(w, r, http.MethodPost, id, h.reportBrowserSend)
+	case resource == "acknowledge":
+		h.serveBrowserResource(w, r, http.MethodPost, id, h.acknowledgeBrowserSend)
 	case resource == "execution":
 		switch r.Method {
 		case http.MethodGet:

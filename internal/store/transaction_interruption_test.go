@@ -79,7 +79,7 @@ func TestTransactionInterruptionAcknowledge(t *testing.T) {
 	_, other, _ := executionFixture(t, s, 3)
 	at := sent.Add(4 * time.Second)
 	ack := func() (app.TransactionRequest, error) {
-		return s.AcknowledgeTransactionInterruption(ctx, ref.TransactionID, other.BrowserGrantID, at)
+		return s.acknowledgeTransactionInterruption(ctx, ref.TransactionID, other.BrowserGrantID, fixedDecisionTime(at))
 	}
 	if _, err := ack(); !errors.Is(err, app.ErrTransactionReviewConflict) {
 		t.Fatal("released a live call", err)
@@ -88,7 +88,7 @@ func TestTransactionInterruptionAcknowledge(t *testing.T) {
 	if _, err := s.ClaimConnectionExecution(ctx, other, at); !errors.Is(err, app.ErrWalletBusy) {
 		t.Fatal("another request claimed the unresolved popup", err)
 	}
-	if _, err := s.AcknowledgeTransactionInterruption(ctx, ref.TransactionID, "000000000000000000000000000000ff", at); !errors.Is(err, app.ErrInvalidBrowserCredential) {
+	if _, err := s.acknowledgeTransactionInterruption(ctx, ref.TransactionID, "000000000000000000000000000000ff", fixedDecisionTime(at)); !errors.Is(err, app.ErrInvalidBrowserCredential) {
 		t.Fatal("unauthorized acknowledgment", err)
 	}
 	req, err := ack()
@@ -104,7 +104,7 @@ func TestTransactionInterruptionAcknowledge(t *testing.T) {
 	}
 	foreign := ref
 	foreign.BrowserGrantID = other.BrowserGrantID
-	if _, err := s.RecordTransactionHash(ctx, foreign, walletHash, at); !errors.Is(err, app.ErrTransactionReviewConflict) {
+	if _, err := s.recordTransactionHash(ctx, foreign, walletHash, fixedDecisionTime(at)); !errors.Is(err, app.ErrTransactionReviewConflict) {
 		t.Fatal("acknowledgment transferred wallet result ownership", err)
 	}
 	if payload, err := grantAt(s, ref.TransactionReviewRef, app.TransactionSendInput{CallID: ref.CallID}, at); err != nil || payload != nil {
@@ -114,10 +114,10 @@ func TestTransactionInterruptionAcknowledge(t *testing.T) {
 	if got, err := s.AccessSession(ctx, session.ID, later); err != nil || got.ClosedAt == nil {
 		t.Fatal("released wait prevented idle collection", got, err)
 	}
-	if req, err := s.RecordTransactionHash(ctx, ref, walletHash, later); err != nil || req.TxHash != walletHash {
+	if req, err := s.recordTransactionHash(ctx, ref, walletHash, fixedDecisionTime(later)); err != nil || req.TxHash != walletHash {
 		t.Fatal("late wallet reply", req, err)
 	}
-	req, err = s.AcknowledgeTransactionInterruption(ctx, ref.TransactionID, other.BrowserGrantID, later)
+	req, err = s.acknowledgeTransactionInterruption(ctx, ref.TransactionID, other.BrowserGrantID, fixedDecisionTime(later))
 	if err != nil || req.State != app.TransactionSent || req.TxHash != walletHash {
 		t.Fatal("stale acknowledgment lost hash", req, err)
 	}
@@ -129,7 +129,7 @@ func TestTransactionInterruptionPreparation(t *testing.T) {
 	ref, input, _, now := sendFixture(t, s)
 	applyReview(t, s, ref, app.ReviewCommand{Action: app.BeginPreparationCall, CallID: input.CallID}, now, nil)
 	applyReview(t, s, ref, app.ReviewCommand{Action: app.InterruptReview}, now, nil)
-	if _, err := s.AcknowledgeTransactionInterruption(ctx, ref.TransactionID, ref.BrowserGrantID, now); !errors.Is(err, app.ErrTransactionReviewConflict) {
+	if _, err := s.acknowledgeTransactionInterruption(ctx, ref.TransactionID, ref.BrowserGrantID, fixedDecisionTime(now)); !errors.Is(err, app.ErrTransactionReviewConflict) {
 		t.Fatal("send acknowledgment released a preparation call", err)
 	}
 	req, err := s.GetTransactionRequest(ctx, ref.TransactionID, now)
@@ -171,11 +171,11 @@ func TestTransactionInterruptionConcurrentHash(t *testing.T) {
 	done := make(chan error, 1)
 	go func() {
 		<-start
-		_, err := second.AcknowledgeTransactionInterruption(ctx, ref.TransactionID, ref.BrowserGrantID, now)
+		_, err := second.acknowledgeTransactionInterruption(ctx, ref.TransactionID, ref.BrowserGrantID, fixedDecisionTime(now))
 		done <- err
 	}()
 	close(start)
-	_, sendErr := first.RecordTransactionHash(ctx, ref, walletHash, now)
+	_, sendErr := first.recordTransactionHash(ctx, ref, walletHash, fixedDecisionTime(now))
 	if ackErr := <-done; sendErr != nil || ackErr != nil {
 		t.Fatal("racing wallet reply and acknowledgment", sendErr, ackErr)
 	}

@@ -26,6 +26,43 @@ func (s *Store) CancelTransactionRequest(ctx context.Context, id string, now tim
 	return s.transactionStatus(ctx, id, now, true)
 }
 
+func (s *Store) RejectTransactionRequest(ctx context.Context, id, grantID string) (app.TransactionRequest, error) {
+	if !validID(id) || !validID(grantID) {
+		return app.TransactionRequest{}, app.ErrInvalidTransaction
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return app.TransactionRequest{}, err
+	}
+	defer tx.Rollback()
+	now := time.Now()
+	if err := requireActiveGrant(ctx, tx, grantID, now); err != nil {
+		return app.TransactionRequest{}, err
+	}
+	req, err := transactionStatusInTx(ctx, tx, id, now, false)
+	if err != nil {
+		return app.TransactionRequest{}, err
+	}
+	if req.State == app.TransactionPending {
+		// Stop pending work with the same trigger used by client cancellation.
+		// The result row records the user's decision for history and all readers.
+		req, err = cancelPendingTransaction(ctx, tx, req, now)
+		if err != nil {
+			return app.TransactionRequest{}, err
+		}
+		_, err = tx.ExecContext(ctx, `INSERT INTO transaction_results (transaction_id, outcome, tx_hash, reported_at)
+VALUES (?, 'rejected', '', ?)`, id, req.FinishedAt.UnixMilli())
+		if err != nil {
+			return app.TransactionRequest{}, err
+		}
+		req.State = app.TransactionRejected
+	}
+	if err := tx.Commit(); err != nil {
+		return app.TransactionRequest{}, err
+	}
+	return req, nil
+}
+
 func (s *Store) transactionStatus(ctx context.Context, id string, now time.Time, cancel bool) (app.TransactionRequest, error) {
 	if !validID(id) || !validTime(now) {
 		return app.TransactionRequest{}, app.ErrInvalidTransaction
@@ -57,20 +94,22 @@ func transactionStatusInTx(ctx context.Context, tx *sql.Tx, id string, now time.
 	if err != nil || req.State != app.TransactionPending {
 		return req, err
 	}
-	switch {
-	case !now.Before(req.ExpiresAt):
+	if !now.Before(req.ExpiresAt) {
 		req.State, req.FinishedAt = app.TransactionExpired, &req.ExpiresAt
-	case cancel:
-		finished := time.UnixMilli(max(now.UnixMilli(), req.CreatedAt.UnixMilli())).UTC()
-		req.State, req.FinishedAt = app.TransactionCanceled, &finished
-	default:
-		return req, nil
+		_, err = tx.ExecContext(ctx, "UPDATE transaction_requests SET state = 'expired', finished_at = expires_at WHERE id = ?", id)
+		return req, err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE transaction_requests SET state = ?, finished_at = ? WHERE id = ?", req.State, req.FinishedAt.UnixMilli(), id)
-	if err != nil {
-		return app.TransactionRequest{}, err
+	if cancel {
+		return cancelPendingTransaction(ctx, tx, req, now)
 	}
 	return req, nil
+}
+
+func cancelPendingTransaction(ctx context.Context, tx *sql.Tx, req app.TransactionRequest, now time.Time) (app.TransactionRequest, error) {
+	finished := time.UnixMilli(max(now.UnixMilli(), req.CreatedAt.UnixMilli())).UTC()
+	req.State, req.FinishedAt = app.TransactionCanceled, &finished
+	_, err := tx.ExecContext(ctx, "UPDATE transaction_requests SET state = 'canceled', finished_at = ? WHERE id = ?", finished.UnixMilli(), req.ID)
+	return req, err
 }
 
 func scanTransactionRequest(row *sql.Row) (app.TransactionRequest, error) {
