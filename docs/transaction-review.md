@@ -13,13 +13,26 @@ npm --prefix web run try:transaction
 4. 在五分钟内点击「拒绝这笔交易」。页面显示「用户已拒绝」，刷新仍可查看该结果。如需单独体验到期，重新运行示例并等待五分钟。
 5. 结束体验时回到终端按 **Enter**，看到「测试服务已停止，临时数据已清理」后关闭无痕窗口。
 
+## 核对插件钱包的账户与网络
+
+在装有 MetaMask 或 Fluent EVM 的 Chrome 测试配置中操作。先按上文安装依赖并释放端口，然后在仓库根目录运行以下命令。
+
+```sh
+npm --prefix web run try:transaction -- --wallet
+```
+
+1. 打开终端打印的连接链接，选择钱包，读取账户和网络。在 Conflux eSpace Testnet（chainId 71）选择测试账户，点击「同意连接」。
+2. 回到终端按 Enter，在同一 Chrome 配置打开交易链接。示例金额为零，收发地址均为所选账户。「钱包状态核对」应显示「网络匹配」和「固定发送账户可用」。
+3. 在钱包内更改网络，原页应显示「网络不匹配」。若从站点授权账户中移除固定地址，页面应提示切换或授权该地址。钱包可同时授权多个地址，固定地址仍在列表中时仍显示可用。
+4. 结束时可在页面拒绝示例交易，回到终端按 Enter 停止并清理临时服务。分别验证两个钱包时重新运行命令。
+
 ## 浏览器回归
 
 同样在仓库根目录运行，端口 18765 需空闲。
 
 ```sh
 npm --prefix web run bundle
-npm --prefix web run test:e2e:chrome -- transaction-review.spec.ts wallet-occupancy.spec.ts
+npm --prefix web run test:e2e:chrome -- transaction-review.spec.ts transaction-wallet.spec.ts wallet-occupancy.spec.ts
 ```
 
-预期九项通过。测试启动独立程序，使用合成 Session 和交易，覆盖金额、授权、费用、复制、取消、迟到 hash、占用链接，以及排队拒绝、丢失拒绝响应和发送许可先生效。测试退出时自动停止服务并清理数据。钱包状态核对和实际发送按[当轮计划](iterations/03-single-transaction/plan.md)验收。
+预期十二项通过。测试启动独立程序，使用合成 Session、交易和模拟钱包，覆盖交易展示、拒绝、发送竞争、迟到 hash、候选冲突、旧式钱包确认及账户／网络变化。测试退出时自动停止服务并清理数据。[当轮验收进度](iterations/03-single-transaction/plan.md)

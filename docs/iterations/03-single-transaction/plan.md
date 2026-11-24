@@ -1,6 +1,6 @@
 # 迭代 3 PR 计划
 
-当前步骤为 PR 3-10a，在交易审阅页拒绝待审批请求。[需求](spec.md) · [设计](design.md)
+当前步骤为 PR 3-10b，在交易页核对固定钱包与实时状态。[需求](spec.md) · [设计](design.md)
 
 | 步骤 | 单一交付 | 主要检查 |
 |---|---|---|
@@ -19,8 +19,8 @@
 | 3-8b | 浏览器审阅归属与准备调用接口 | [#48](https://github.com/Conflux-Chain/wallet-bridge/pull/48) 合并为 `1f4d735`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45321790744) 通过 |
 | 3-8c | 浏览器发送决定及结果接口 | [#49](https://github.com/Conflux-Chain/wallet-bridge/pull/49) 合并为 `b2a02ce`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45323830297) 通过 |
 | 3-9 | 只读交易审阅页面 | [#50](https://github.com/Conflux-Chain/wallet-bridge/pull/50) 合并为 `32a14fe`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45335710178) 通过 |
-| 3-10a | 在审阅页拒绝待审批交易 | [#51](https://github.com/Conflux-Chain/wallet-bridge/pull/51) 待评审 |
-| 3-10b | 识别 Session 固定钱包，核对实时账户与网络 | 重新打开页面、候选歧义、钱包事件 |
+| 3-10a | 在审阅页拒绝待审批交易 | [#51](https://github.com/Conflux-Chain/wallet-bridge/pull/51) 合并为 `48bb46d`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45339205191) 通过 |
+| 3-10b | 识别 Session 固定钱包，核对实时账户与网络 | [#52](https://github.com/Conflux-Chain/wallet-bridge/pull/52) 待评审 |
 | 3-10c | 领取审阅并修复钱包授权与网络 | 多标签页、执行恢复、切链拒绝和占用 |
 | 3-10d | 发起发送并回报结果 | 一次性许可、钱包调用次数、丢包、重新授权和手动放行 |
 | 3-11 | 共享 Go client 的交易操作 | ID 重试、能力检查、可查询的发送结果 |
@@ -88,3 +88,7 @@ Windows amd64 构建通过。本机 Chrome 的六项交易审阅与占用测试�
 ## PR 3-10a 验证
 
 Windows amd64 构建及本机 Chrome 全部 27 项端到端测试通过。拒绝排队交易时，发起方查到拒绝结果，另一笔交易继续占用钱包。拒绝响应丢失时页面按原 ID 查询，发送许可先提交时显示「等待钱包」。用体验命令启动的合成交易也已实测拒绝、刷新与清理。[人工验证指南](../../transaction-review.md)
+
+## PR 3-10b 验证
+
+Windows amd64 构建通过。本机 Chrome 的 30 项端到端测试与 9 项钱包发现测试通过。模拟 Provider 覆盖第二个授权账户、钱包事件、迟到读数、冲突公告和旧式注入替换。人工体验命令已用 Chrome 和模拟钱包走通连接、创建零金额示例、核对账户与网络变化、拒绝及清理。MetaMask 和 Fluent 的本轮真实扩展核对待人工验收。[人工验证指南](../../transaction-review.md)

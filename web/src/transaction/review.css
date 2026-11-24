@@ -20,6 +20,7 @@
 .review-units { margin: 5px 0 0; color: #465e55; overflow-wrap: anywhere; }
 .review-summary dl { border-top: 1px solid #d6e4dd; padding-top: 16px; }
 .transaction-page .review-fields { grid-template-columns: minmax(0, 1fr); }
+.wallet-check dl { margin-bottom: 16px; }
 .copy-value { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 4px 10px; }
 .copy-value code { align-self: center; overflow-wrap: anywhere; }
 .copy-value small { grid-column: 1 / -1; }

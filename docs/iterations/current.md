@@ -4,7 +4,7 @@
 
 ## 迭代 3 · 单笔交易
 
-交易审阅页已合并。当前步骤 3-10a 接入页面拒绝，下一步 3-10b 在原交易页核对固定钱包、实时账户和网络。[分步计划](03-single-transaction/plan.md) · [体验交易审阅页](../transaction-review.md)
+交易页拒绝已合并。当前步骤 3-10b 核对固定钱包、实时账户和网络。下一步 3-10c 接入审阅领取、授权和切链。[分步计划](03-single-transaction/plan.md) · [体验交易审阅页](../transaction-review.md)
 
 ## 上轮交接
 
