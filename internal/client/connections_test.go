@@ -43,7 +43,7 @@ func connectionClientFixture(t *testing.T, wrap func(http.Handler) http.Handler)
 		t.Fatal(err)
 	}
 	handler, err := api.New(api.Config{Version: "test", StartedAt: time.Now(), ServiceToken: token,
-		Stop: func() {}, BrowserAuthorization: grants, Connections: core})
+		Stop: func() {}, BrowserAuthorization: grants, Connections: core, Transactions: db})
 	if err != nil {
 		t.Fatal(err)
 	}

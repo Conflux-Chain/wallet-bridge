@@ -4,10 +4,10 @@
     ],
     "swagger": "2.0",
     "info": {
-        "description": "Local service access, browser authorization, client connection/Session lifecycle and browser execution coordination, wallet handoff and connection consent.",
+        "description": "Local service access, browser authorization, client connection/Session and transaction lifecycle, browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.7"
+        "version": "1.8"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -1929,6 +1929,257 @@
                     }
                 }
             }
+        },
+        "/transactions": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceBearer": []
+                    }
+                ],
+                "description": "Reuse the request ID for retries. Matching normalized content returns the original record and deadline. A changed request with that ID returns 409. Amounts and fees are strings in smallest units, in decimal or 0x hexadecimal. Omitted value and data default to zero and empty bytes. Omit fees for wallet estimation. The JSON body limit is 1 MiB.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create or retry a transaction request",
+                "parameters": [
+                    {
+                        "description": "Caller metadata and transaction for a fixed Session",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.TransactionCreateRequest"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "transaction": {
+                                            "$ref": "#/definitions/api.TransactionPayload"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.TransactionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ServiceBearer": []
+                    }
+                ],
+                "description": "Reads the original request without renewing its deadline or Session. A late wallet reply can update an uncertain result. A transaction hash identifies a submitted transaction. The client can use the chain ID and hash to query a receipt.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Read the transaction and its latest result",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.TransactionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/transactions/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceBearer": []
+                    }
+                ],
+                "description": "Accepts an empty body or an empty JSON object. Returns the effective state, including expiry or an earlier wallet handoff. Check state before treating the transaction as canceled.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Cancel a transaction awaiting approval",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "32-character lowercase hexadecimal request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.TransactionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1941,7 +2192,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 7
+                    "example": 8
                 }
             }
         },
@@ -2278,7 +2529,8 @@
                         "connections.lifecycle",
                         "browser.connections.coordination",
                         "browser.connections.decisions",
-                        "browser.wallet-operation"
+                        "browser.wallet-operation",
+                        "transactions.lifecycle"
                     ]
                 },
                 "challenge": {
@@ -2372,6 +2624,124 @@
                 "state": {
                     "type": "string",
                     "example": "stopping"
+                }
+            }
+        },
+        "api.TransactionCreateRequest": {
+            "type": "object",
+            "required": [
+                "clientName",
+                "id",
+                "sessionId",
+                "transaction"
+            ],
+            "properties": {
+                "clientName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "intent": {
+                    "description": "Optional caller-supplied description, displayed separately from the transaction fields.",
+                    "type": "string"
+                },
+                "sessionId": {
+                    "type": "string"
+                },
+                "transaction": {
+                    "type": "object"
+                }
+            }
+        },
+        "api.TransactionPayload": {
+            "type": "object",
+            "required": [
+                "chainId",
+                "from",
+                "to"
+            ],
+            "properties": {
+                "chainId": {
+                    "type": "string",
+                    "example": "0x47"
+                },
+                "data": {
+                    "type": "string",
+                    "example": "0x"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "gas": {
+                    "type": "string"
+                },
+                "gasPrice": {
+                    "type": "string"
+                },
+                "maxFeePerGas": {
+                    "type": "string"
+                },
+                "maxPriorityFeePerGas": {
+                    "type": "string"
+                },
+                "to": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string",
+                    "example": "0x0"
+                }
+            }
+        },
+        "api.TransactionResponse": {
+            "type": "object",
+            "properties": {
+                "clientName": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "finishedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "handedOffAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "intent": {
+                    "type": "string"
+                },
+                "sessionId": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "awaiting_wallet",
+                        "sent",
+                        "rejected",
+                        "uncertain",
+                        "canceled",
+                        "expired"
+                    ]
+                },
+                "transaction": {
+                    "$ref": "#/definitions/api.TransactionPayload"
+                },
+                "txHash": {
+                    "type": "string"
                 }
             }
         },

@@ -4,7 +4,7 @@
 
 ## 迭代 3 · 单笔交易
 
-钱包结果持久化已合并。当前步骤为 3-6b，交付发送中断后的恢复和手动放行。下一步 3-7 接入 client 侧创建、查询与取消交易的 HTTP 接口。进度与验收入口见[分步计划](03-single-transaction/plan.md)。
+发送中断恢复与手动放行已合并。当前步骤 3-7 提供 client 创建、查询和取消交易的 HTTP 接口。下一步 3-8 接入浏览器审阅与钱包结果回报。[分步计划](03-single-transaction/plan.md) · [交易 HTTP 测试](03-single-transaction/design.md#交易-http-测试)
 
 ## 上轮交接
 

@@ -28,6 +28,7 @@ type Config struct {
 	Stop                 func()
 	BrowserAuthorization *app.BrowserAuthorization
 	Connections          *app.ConnectionService
+	Transactions         TransactionRequests
 }
 
 type handler struct {
@@ -39,12 +40,12 @@ type handler struct {
 func New(config Config) (http.Handler, error) {
 	key, err := hex.DecodeString(config.ServiceToken)
 	if err != nil || len(key) != 32 || hex.EncodeToString(key) != config.ServiceToken ||
-		config.Stop == nil || config.BrowserAuthorization == nil || config.Connections == nil {
+		config.Stop == nil || config.BrowserAuthorization == nil || config.Connections == nil || config.Transactions == nil {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 7},
-		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation"}, Ready: true,
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 8},
+		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation", "transactions.lifecycle"}, Ready: true,
 	}}, nil
 }
 
@@ -103,7 +104,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if h.routeBrowserConnections(w, r) {
 			return
 		}
-		if h.routeConnections(w, r) {
+		if h.routeClientRequests(w, r) {
 			return
 		}
 		if strings.HasPrefix(r.URL.Path, "/api/") {

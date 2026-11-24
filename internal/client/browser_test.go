@@ -27,7 +27,7 @@ func browserClientFixture(t *testing.T, intercept func(http.ResponseWriter, *htt
 	}
 	token, _ := credentials.Read(c.dir)
 	core := testBrowserAuthorization(t)
-	handler, err := api.New(api.Config{Version: "test", ServiceToken: token, StartedAt: time.Now(), Stop: func() {}, BrowserAuthorization: core, Connections: unusedConnections(t)})
+	handler, err := api.New(api.Config{Version: "test", ServiceToken: token, StartedAt: time.Now(), Stop: func() {}, BrowserAuthorization: core, Connections: unusedConnections(t), Transactions: struct{ api.TransactionRequests }{}})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -545,7 +545,7 @@ func TestBrowserConnectionHTTPRevocationAfterAuthentication(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			f.handler, err = New(Config{ServiceToken: serviceFixture, Stop: func() { t.Error("unexpected stop") }, BrowserAuthorization: authorization, Connections: f.core})
+			f.handler, err = New(Config{ServiceToken: serviceFixture, Stop: func() { t.Error("unexpected stop") }, BrowserAuthorization: authorization, Connections: f.core, Transactions: f.database})
 			if err != nil {
 				t.Fatal(err)
 			}

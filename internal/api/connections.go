@@ -9,12 +9,23 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 )
 
-func (h *handler) routeConnections(w http.ResponseWriter, r *http.Request) bool {
+func (h *handler) routeClientRequests(w http.ResponseWriter, r *http.Request) bool {
 	var action func(http.ResponseWriter, *http.Request)
 	verb, id := http.MethodPost, ""
 	switch {
 	case r.URL.Path == "/api/v1/connections":
 		action = h.createConnection
+	case r.URL.Path == "/api/v1/transactions":
+		action = h.createTransaction
+	case strings.HasPrefix(r.URL.Path, "/api/v1/transactions/"):
+		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/transactions/"), "/")
+		id = parts[0]
+		switch {
+		case len(parts) == 1:
+			verb, action = http.MethodGet, h.getTransaction
+		case len(parts) == 2 && parts[1] == "cancel":
+			action = h.cancelTransaction
+		}
 	case strings.HasPrefix(r.URL.Path, "/api/v1/connections/"):
 		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/connections/"), "/")
 		id = parts[0]
@@ -38,7 +49,7 @@ func (h *handler) routeConnections(w http.ResponseWriter, r *http.Request) bool 
 		return false
 	}
 	if method(w, r, verb) && h.authorize(w, r) {
-		if r.URL.Path != "/api/v1/connections" && !validResourceID(id) {
+		if r.URL.Path != "/api/v1/connections" && r.URL.Path != "/api/v1/transactions" && !validResourceID(id) {
 			failure(w, http.StatusBadRequest, "bad_request", "Resource ID must be 32 lowercase hexadecimal characters")
 			return true
 		}
