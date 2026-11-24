@@ -40,7 +40,7 @@ npm ci --prefix web
 
 ### 页面预览
 
-要查看一笔完整的示例交易，在仓库根目录运行 `npm --prefix web run try:transaction`，在 Chrome 无痕窗口打开终端给出的链接。核对内容、回归测试和停止方法见[交易审阅页指南](docs/transaction-review.md)。
+在仓库根目录运行 `npm --prefix web run try:transaction` 可查看示例交易。使用已安装的 MetaMask 或 Fluent 核对账户与网络时，在命令末尾加上 `-- --wallet`。操作步骤见[交易审阅页指南](docs/transaction-review.md)。
 
 ```sh
 npm --prefix web run dev

@@ -20,6 +20,7 @@ export interface DiscoveredWallet {
 interface Snapshot {
   readonly wallets: readonly DiscoveredWallet[];
   readonly selectedId: string | null;
+  readonly injectedProvider?: EIP1193Provider;
 }
 
 function isProvider(value: unknown): value is EIP1193Provider {
@@ -87,12 +88,17 @@ export class WalletDiscovery {
   refresh = () => {
     if (!this.started) return;
     this.target.dispatchEvent(new Event('eip6963:requestProvider'));
+    let injectedProvider: EIP1193Provider | undefined;
     try {
       const provider = (this.target as Window & { ethereum?: unknown }).ethereum;
-      if (isProvider(provider)) this.add(provider);
+      if (isProvider(provider)) {
+        injectedProvider = provider;
+        this.add(provider);
+      }
     } catch {
       // A throwing legacy getter must not break standard discovery.
     }
+    if (injectedProvider !== this.snapshot.injectedProvider) this.update({ ...this.snapshot, injectedProvider });
   };
 
   clearSelection = () => { this.update({ ...this.snapshot, selectedId: null }); };

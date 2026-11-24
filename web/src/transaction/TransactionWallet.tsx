@@ -1,0 +1,122 @@
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import type { TransactionReview } from '../api/transactions';
+import { WalletDiscovery, type DiscoveredWallet } from '../wallet/discovery';
+import { networks } from '../wallet/networks';
+import { walletState } from '../wallet/state';
+
+function matchingWallets(discovery: WalletDiscovery, binding: TransactionReview['wallet']) {
+  const { wallets, injectedProvider } = discovery.getSnapshot();
+  if (binding.kind === 'legacy') return wallets.filter(wallet => !wallet.info && wallet.provider === injectedProvider);
+  return wallets.filter(wallet => wallet.info && wallet.info.name === binding.name && wallet.info.rdns === binding.rdns);
+}
+
+export function TransactionWallet({ review }: { review: TransactionReview }) {
+  const [discovery] = useState(() => new WalletDiscovery(window));
+  useSyncExternalStore(discovery.subscribe, discovery.getSnapshot);
+  useEffect(() => {
+    discovery.start();
+    return discovery.stop;
+  }, [discovery]);
+  const matches = matchingWallets(discovery, review.wallet);
+  return <section className="wallet-check" aria-labelledby="wallet-check">
+    <h2 id="wallet-check">钱包状态核对</h2>
+    {matches.length === 1
+      ? <WalletReadings key={matches[0].id} wallet={matches[0]} review={review} discovery={discovery} />
+      : <>
+        <p>{matches.length > 1 ? '多个钱包使用相同的名称和 rdns。请在只启用目标钱包的浏览器配置中重新打开原交易。'
+          : '未发现 Session 固定的钱包。请检查浏览器配置和扩展是否已启用。'}</p>
+        <button type="button" className="secondary" onClick={discovery.refresh}>重新检测钱包</button>
+      </>}
+  </section>;
+}
+
+function networkLabel(chain: string) {
+  return [networks.get(chain)?.name, chain].filter(Boolean).join(' · ');
+}
+
+function WalletReadings({ wallet, review, discovery }: {
+  wallet: DiscoveredWallet; review: TransactionReview; discovery: WalletDiscovery;
+}) {
+  const [confirmed, setConfirmed] = useState(!!wallet.info);
+  const [attempt, setAttempt] = useState(0);
+  const [reading, setReading] = useState<Awaited<ReturnType<typeof walletState>>>();
+  const [message, setMessage] = useState('正在读取钱包状态…');
+  const { kind, name, rdns } = review.wallet;
+  useEffect(() => {
+    if (!confirmed) return;
+    let revision = 0;
+    let active = true;
+    const { provider } = wallet;
+    const current = () => {
+      const matches = matchingWallets(discovery, { kind, name, rdns });
+      return matches.length === 1 && matches[0] === wallet;
+    };
+    async function refresh() {
+      if (!active) return;
+      const version = ++revision;
+      setReading(undefined);
+      setMessage('正在读取钱包状态…');
+      if (!current()) return;
+      try {
+        const next = await walletState(provider);
+        if (version === revision && current()) setReading(next);
+      } catch {
+        if (version === revision) setMessage('无法读取钱包状态，请检查钱包后重新核对。');
+      }
+    }
+    function disconnect() {
+      if (!active) return;
+      ++revision;
+      setReading(undefined);
+      setMessage('钱包已断开，请恢复连接后重新核对。');
+    }
+    const listeners: [string, () => void][] = [
+      ['accountsChanged', refresh], ['chainChanged', refresh], ['connect', refresh], ['disconnect', disconnect],
+    ];
+    const subscribed: typeof listeners = [];
+    try {
+      for (const listener of listeners) {
+        provider.on(...listener);
+        subscribed.push(listener);
+      }
+      window.addEventListener('focus', refresh);
+      void refresh();
+    } catch {
+      active = false;
+      ++revision;
+      setReading(undefined);
+      setMessage('无法订阅钱包状态，请检查钱包后重新核对。');
+    }
+    return () => {
+      active = false;
+      ++revision;
+      window.removeEventListener('focus', refresh);
+      for (const listener of subscribed) {
+        try { provider.removeListener(...listener); } catch { /* The extension may have disconnected. */ }
+      }
+    };
+  }, [confirmed, attempt, wallet, discovery, kind, name, rdns]);
+
+  function check() {
+    discovery.refresh();
+    setConfirmed(true);
+    setAttempt(n => n + 1);
+  }
+  if (!confirmed) return <>
+    <p>请核实当前浏览器注入的是建立 Session 时使用的钱包。</p>
+    <button type="button" className="secondary" onClick={check}>使用当前注入钱包</button>
+  </>;
+  const tx = review.transaction;
+  return <>
+    {reading ? <dl>
+      <div><dt>交易要求网络</dt><dd>{networkLabel(tx.chainId)}</dd></div>
+      <div><dt>钱包当前网络</dt><dd>{networkLabel(reading.chain)}
+        <small>{reading.chain === tx.chainId ? '网络匹配' : '网络不匹配，请在钱包中切换到交易要求的网络。'}</small></dd></div>
+      <div><dt>固定发送账户</dt><dd><code>{tx.from}</code></dd></div>
+      <div><dt>钱包已授权账户</dt><dd>{reading.accounts.length ? reading.accounts.map(account =>
+        <div key={account}><code>{account}</code></div>) : '尚未提供账户'}
+        <small>{reading.accounts.includes(tx.from.toLowerCase()) ? '固定发送账户可用' : '请在钱包中切换或授权固定发送账户。'}</small></dd></div>
+    </dl> : <p aria-live="polite">{message}</p>}
+    <button type="button" className="secondary" onClick={check}>重新核对钱包</button>
+  </>;
+}

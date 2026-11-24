@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { readTransaction, rejectTransaction, TransactionReadError, type TransactionReview } from '../api/transactions';
 import { networks } from '../wallet/networks';
+import { TransactionWallet } from './TransactionWallet';
 import './review.css';
 
 const states: Record<TransactionReview['state'], string> = {
@@ -56,6 +57,7 @@ function ReviewDetails({ review }: { review: TransactionReview }) {
         <div className="wide"><dt>调用方意图说明</dt><dd className="intent"><bdi>{review.intent.trim() ? review.intent : '调用方未提供说明'}</bdi></dd></div>
       </dl>
     </section>
+    {review.state === 'pending' && <TransactionWallet review={review} />}
     <section aria-labelledby="actual-tx"><h2 id="actual-tx">实际交易参数</h2>
       <dl className="review-fields">
         <div><dt>发送地址 · from</dt><dd><CopyValue value={tx.from} label="发送地址" /></dd></div>

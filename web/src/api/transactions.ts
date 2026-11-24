@@ -8,7 +8,7 @@ export interface TransactionReview {
   expiresAt: string;
   handedOffAt?: string;
   txHash?: string;
-  wallet: { name: string; rdns?: string };
+  wallet: { kind: 'eip6963' | 'legacy'; name: string; rdns?: string };
   transaction: {
     from: string; to: string; value: string; chainId: string; data: string;
     gas?: string; gasPrice?: string; maxFeePerGas?: string; maxPriorityFeePerGas?: string;
