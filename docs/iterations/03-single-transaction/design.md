@@ -157,3 +157,19 @@ go test -tags no_web ./internal/store -run '^TestTransactionInterruptionConcurre
 ```
 
 第一条预期五组测试通过，覆盖中断恢复、跨配置放行、准备调用隔离、写入回滚和迟到 hash。第二条用两个 SQLite 连接同时确认放行和提交 hash，每次均应保存 hash 并释放占用。测试退出时自动清理临时数据库，无需启动服务或打开钱包。
+
+## PR 3-7 Client 交易 HTTP 接口
+
+API 1.8 通过 `transactions.lifecycle` 声明能力。使用本机服务 Bearer 在 `/api/v1/transactions` 创建请求，按 ID 查询或取消。创建和幂等重试均返回 200，同 ID 内容冲突返回 409。取消返回已生效的状态，交接后的客户端据此继续查询结果。
+
+创建请求体上限选用 1 MiB，以容纳合约调用的十六进制 data。原始交易放在 `transaction` 对象内，数量使用字符串。响应包含规范化交易、原期限和已记录的结果，发送回报中取得的 hash 位于 `txHash`。
+
+### 交易 HTTP 测试
+
+在 Windows 或 macOS 的仓库根目录，使用 [go.mod](../../../go.mod) 指定的 Go 执行以下命令。测试直接访问 HTTP handler，使用临时 SQLite，无需启动服务或钱包。
+
+```sh
+go test -tags no_web ./internal/api -run '^TestTransactionHTTP' -count=1 -v
+```
+
+预期三组测试均显示 `PASS`。Lifecycle 验证省略意图、按 ID 重试和取消。Boundary 验证服务凭据、原始字段及请求大小。WalletResult 模拟钱包交接和迟到的 hash，验证 client 能查到最终结果。测试结束时自动清理临时数据库。[接口定义](../../swagger/swagger.yaml)

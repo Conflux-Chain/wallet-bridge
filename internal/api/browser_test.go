@@ -45,7 +45,7 @@ func newBrowserFixture(t *testing.T, dir string) browserFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return browserFixture{core: connections, database: database, handler: testHandlerWithCores(t, func() { t.Error("browser test stopped the service") }, core, connections), dir: dir}
+	return browserFixture{core: connections, database: database, handler: testHandlerWithCores(t, func() { t.Error("browser test stopped the service") }, core, connections, database), dir: dir}
 }
 
 func (f browserFixture) request(t *testing.T, method, path, body string, headers map[string]string, expected int) *httptest.ResponseRecorder {
