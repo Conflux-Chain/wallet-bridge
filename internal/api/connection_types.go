@@ -29,6 +29,10 @@ type WalletResponse struct {
 	RDNS string `json:"rdns,omitempty"`
 }
 
+func walletResponse(wallet app.WalletDescriptor) WalletResponse {
+	return WalletResponse{Kind: string(wallet.Kind), Name: wallet.Name, RDNS: wallet.RDNS}
+}
+
 type SessionResponse struct {
 	ID           string         `json:"id"`
 	ConnectionID string         `json:"connectionId"`
@@ -78,7 +82,7 @@ func connectionResponse(request app.ConnectionRequest) ConnectionResponse {
 
 func sessionResponse(session app.Session) SessionResponse {
 	result := SessionResponse{
-		ID: session.ID, ConnectionID: session.ConnectionID, Wallet: WalletResponse{Kind: string(session.Wallet.Kind), Name: session.Wallet.Name, RDNS: session.Wallet.RDNS},
+		ID: session.ID, ConnectionID: session.ConnectionID, Wallet: walletResponse(session.Wallet),
 		Account: session.Account, ChainID: session.ChainID, State: "active", CreatedAt: timestamp(session.CreatedAt), LastAccessAt: timestamp(session.LastAccessAt),
 	}
 	if session.ClosedAt != nil {

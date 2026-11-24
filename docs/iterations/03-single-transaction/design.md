@@ -173,3 +173,19 @@ go test -tags no_web ./internal/api -run '^TestTransactionHTTP' -count=1 -v
 ```
 
 预期三组测试均显示 `PASS`。Lifecycle 验证省略意图、按 ID 重试和取消。Boundary 验证服务凭据、原始字段及请求大小。WalletResult 模拟钱包交接和迟到的 hash，验证 client 能查到最终结果。测试结束时自动清理临时数据库。[接口定义](../../swagger/swagger.yaml)
+
+## PR 3-8a 浏览器读取交易
+
+已授权的管理页通过 `GET /api/v1/browser/transactions/{id}` 读取原交易及其 Session 固定的钱包。响应沿用 client 的交易字段，增加 `wallet`。页面可用 `transaction.from` 和 `transaction.chainId` 核对账户和网络。钱包描述在 Session 建立时固定，关闭后仍可读取。
+
+普通页面链接只包含请求 ID。接口沿用管理 Cookie 及同源检查，每次读取按原期限计算交易状态。查询不领取钱包、不刷新执行心跳或 Session 空闲计时。执行协调和发送结果回报分别由 3-8b 和 3-8c 交付。
+
+### 浏览器交易读取测试
+
+在 Windows 或 macOS 的仓库根目录，使用 [go.mod](../../../go.mod) 指定的 Go 运行以下命令。测试通过 HTTP handler 读取临时 SQLite 中的交易，无需启动服务或安装钱包。
+
+```sh
+go test -tags no_web ./internal/api -run '^TestBrowserTransactionHTTP' -count=1 -v
+```
+
+预期 Observation、Deadline 和 Access 三组测试均显示 `PASS`，分别覆盖重复打开与关闭后的历史、原审批期限、管理 Cookie 和同源访问。退出时自动清理测试数据。

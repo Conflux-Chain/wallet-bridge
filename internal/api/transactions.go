@@ -15,6 +15,7 @@ type TransactionRequests interface {
 	CreateTransactionRequest(context.Context, app.TransactionRequestInput, time.Time) (app.TransactionRequest, error)
 	GetTransactionRequest(context.Context, string, time.Time) (app.TransactionRequest, error)
 	CancelTransactionRequest(context.Context, string, time.Time) (app.TransactionRequest, error)
+	GetSession(context.Context, string) (app.Session, error)
 }
 
 // @Summary Create or retry a transaction request
@@ -88,9 +89,15 @@ func (h *handler) cancelTransaction(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeTransaction(w http.ResponseWriter, req app.TransactionRequest, err error) {
+	if err != nil {
+		transactionFailure(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, transactionResponse(req))
+}
+
+func transactionFailure(w http.ResponseWriter, err error) {
 	switch {
-	case err == nil:
-		writeJSON(w, http.StatusOK, transactionResponse(req))
 	case errors.Is(err, app.ErrInvalidTransaction):
 		failure(w, http.StatusBadRequest, "bad_request", err.Error())
 	case errors.Is(err, app.ErrTransactionRequestNotFound):
