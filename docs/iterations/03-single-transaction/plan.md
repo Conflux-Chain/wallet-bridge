@@ -1,6 +1,6 @@
 # 迭代 3 PR 计划
 
-当前步骤为 PR 3-10c，在交易页领取和恢复审阅、授权访问账户及切换目标网络。[需求](spec.md) · [设计](design.md)
+当前步骤为 PR 3-10d，接通用户在钱包中确认发送及结果回报。[需求](spec.md) · [设计](design.md)
 
 | 步骤 | 单一交付 | 主要检查 |
 |---|---|---|
@@ -21,8 +21,8 @@
 | 3-9 | 只读交易审阅页面 | [#50](https://github.com/Conflux-Chain/wallet-bridge/pull/50) 合并为 `32a14fe`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45335710178) 通过 |
 | 3-10a | 在审阅页拒绝待审批交易 | [#51](https://github.com/Conflux-Chain/wallet-bridge/pull/51) 合并为 `48bb46d`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45339205191) 通过 |
 | 3-10b | 识别 Session 固定钱包，核对实时账户与网络 | [#52](https://github.com/Conflux-Chain/wallet-bridge/pull/52) 合并为 `afdea78`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45341816653) 通过 |
-| 3-10c | 领取审阅并修复钱包授权与网络 | [#53](https://github.com/Conflux-Chain/wallet-bridge/pull/53) 待评审 |
-| 3-10d | 发起发送并回报结果 | 一次性许可、钱包调用次数、丢包、重新授权和手动放行 |
+| 3-10c | 领取审阅并修复钱包授权与网络 | [#53](https://github.com/Conflux-Chain/wallet-bridge/pull/53) 合并为 `c5d3d5f`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45344335614) 通过 |
+| 3-10d | 发起发送并回报结果 | [#54](https://github.com/Conflux-Chain/wallet-bridge/pull/54) 待评审 |
 | 3-11 | 共享 Go client 的交易操作 | ID 重试、能力检查、可查询的发送结果 |
 | 3-12 | CLI 创建、等待及按 ID 管理 | 独立程序与模拟钱包贯通，阻塞／异步、错误和退出码 |
 | 3-13 | 组合验收与指南 | A-07～16、三平台 CI、MetaMask／Fluent EVM 测试网及 client 查链分别留证 |
@@ -96,3 +96,7 @@ Windows amd64 构建通过。本机 Chrome 的 30 项端到端测试与 9 项钱
 ## PR 3-10c 验证
 
 Windows amd64 构建通过，本机 Chrome 的 33 项端到端及 9 项钱包发现测试通过。两个标签页同时查看时未领取执行权；切链拒绝后可在原请求重试，关闭原页后可在另一页继续并授权账户。模拟丢失许可响应时钱包调用为零，丢失归还响应时钱包只调用一次。弹窗期间取消后可手动放行，迟到返回保留「已取消」。真实 MetaMask／Fluent 弹窗待人工验收。[本地复现](../../transaction-review.md)
+
+## PR 3-10d 验证
+
+Windows amd64 构建、本机 Chrome 的 42 项端到端和 9 项钱包发现测试通过。模拟钱包实测重复点击仅发送一次，许可丢失或绑定变化时发送零次。钱包拒绝、断连及无效 hash 均显示对应状态。原页刷新或重新授权后能补交已返回的 hash，另一配置手动放行后仍可收到迟到结果。MetaMask／Fluent 的真实测试网广播和回执待人工验收。[本地复现](../../transaction-review.md)

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { readTransaction, rejectTransaction, TransactionReadError, type TransactionReview } from '../api/transactions';
 import { networks } from '../wallet/networks';
 import { TransactionWallet } from './TransactionWallet';
+import { WalletReport } from './WalletReport';
 import type { WalletOperation } from '../api/browser';
 import { WalletOperationNotice } from '../connection/WalletOperationNotice';
 import { useReviewExecution, type ReviewExecution } from './useReviewExecution';
@@ -41,7 +42,9 @@ function Fee({ label, value, unit }: { label: string; value?: string; unit: stri
   </>}</dd></div>;
 }
 
-function ReviewDetails({ review, execution, blocker }: { review: TransactionReview; execution?: ReviewExecution; blocker?: WalletOperation }) {
+function ReviewDetails({ review, execution, blocker, canSend }: {
+  review: TransactionReview; execution?: ReviewExecution; blocker?: WalletOperation; canSend: boolean;
+}) {
   const tx = review.transaction;
   const network = networks.get(tx.chainId);
   const units = BigInt(tx.value).toString();
@@ -61,8 +64,7 @@ function ReviewDetails({ review, execution, blocker }: { review: TransactionRevi
       </dl>
     </section>
     {blocker && review.state === 'pending' && <WalletOperationNotice operation={blocker} />}
-    {execution && <ExecutionNotice execution={execution} pending={review.state === 'pending'} blocked={!!blocker} />}
-    {review.state === 'pending' && <TransactionWallet key={execution?.recoveredId} review={review} execution={blocker ? undefined : execution} />}
+    {execution && !review.handedOffAt && <ExecutionNotice execution={execution} pending={review.state === 'pending'} blocked={!!blocker} />}
     <section aria-labelledby="actual-tx"><h2 id="actual-tx">实际交易参数</h2>
       <dl className="review-fields">
         <div><dt>发送地址 · from</dt><dd><CopyValue value={tx.from} label="发送地址" /></dd></div>
@@ -79,11 +81,20 @@ function ReviewDetails({ review, execution, blocker }: { review: TransactionRevi
         : <><Fee label="最高费率 · maxFeePerGas" value={tx.maxFeePerGas} unit="最小单位 / gas" />
           <Fee label="最高优先费 · maxPriorityFeePerGas" value={tx.maxPriorityFeePerGas} unit="最小单位 / gas" /></>}
     </dl></section>
+    {(review.state === 'pending' || execution?.sending) && <div hidden={review.state !== 'pending'}>
+      <TransactionWallet key={execution?.recoveredId} review={review} execution={blocker ? undefined : execution} canSend={canSend} />
+    </div>}
     <section aria-labelledby="request-record"><h2 id="request-record">请求记录</h2>
       <dl className="review-fields"><div><dt>请求 ID</dt><dd><code>{review.id}</code></dd></div>
         {review.txHash && <div><dt>交易 hash</dt><dd><CopyValue value={review.txHash} label="交易 hash" /></dd></div>}
       </dl>
       {review.state === 'uncertain' && <p>暂未确认是否已广播。可在原链接查看后续钱包结果。</p>}
+      {review.state === 'awaiting_wallet' && <p>请保留原交易标签页，在钱包中核对交易并确认或拒绝。</p>}
+      {canSend && review.state === 'uncertain' && review.handedOffAt && execution?.progress?.phase === 'interrupted_calling' && <>
+        <p>请先处理原钱包弹窗，再解除占用。原钱包仍可回报这笔交易的结果。</p>
+        <button type="button" disabled={execution.recovering} onClick={execution.acknowledge}>已处理钱包弹窗，解除占用</button>
+        {execution.message && <p aria-live="polite">{execution.message}</p>}
+      </>}
       {review.state === 'sent' && <p>钱包已返回交易 hash，可在目标网络查询链上执行结果。</p>}
     </section>
   </>;
@@ -109,15 +120,16 @@ function ExecutionNotice({ execution, pending, blocked }: { execution: ReviewExe
   return hint ? <p aria-live="polite">{hint}</p> : null;
 }
 
-export function TransactionPage({ id, canReject, canCoordinate, operation }: {
-  id: string; canReject: boolean; canCoordinate: boolean; operation?: WalletOperation;
+export function TransactionPage({ id, grant, canReject, canCoordinate, operation }: {
+  id: string; grant: string; canReject: boolean; canCoordinate: boolean; operation?: WalletOperation;
 }) {
   const [review, setReview] = useState<TransactionReview>();
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [rejecting, setRejecting] = useState(false);
   const [rejectUnconfirmed, setRejectUnconfirmed] = useState(false);
-  const watch = canCoordinate && review && !review.handedOffAt ? (review.state === 'pending' ? 'pending' : 'terminal') : undefined;
+  const refresh = useCallback(() => setAttempt(n => n + 1), []);
+  const watch = canCoordinate && review ? (review.state === 'pending' ? 'pending' : 'terminal') : undefined;
   const execution = useReviewExecution(id, watch);
   const blocker = operation?.kind === 'transaction' && operation.id === id ? undefined : operation;
   useEffect(() => {
@@ -165,7 +177,8 @@ export function TransactionPage({ id, canReject, canCoordinate, operation }: {
       </div></div>
     </header>
     {rejectUnconfirmed && review?.state === 'pending' && <p role="status">请求仍待审批，可以再次拒绝。</p>}
-    {error ? <p role="alert">{error}</p> : review ? <ReviewDetails review={review} execution={watch ? execution : undefined} blocker={blocker} /> :
+    {canReject && <WalletReport request={id} grant={grant} refresh={refresh} />}
+    {error ? <p role="alert">{error}</p> : review ? <ReviewDetails review={review} execution={watch ? execution : undefined} blocker={blocker} canSend={canReject && canCoordinate} /> :
       <p role="status">{rejectUnconfirmed ? '正在核对拒绝结果…' : '正在读取交易…'}</p>}
   </main>;
 }
