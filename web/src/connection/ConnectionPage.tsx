@@ -5,23 +5,12 @@ import { WalletOperationNotice } from './WalletOperationNotice';
 import { WalletDiscovery, type DiscoveredWallet } from '../wallet/discovery';
 import { WalletPicker } from '../wallet/WalletPicker';
 import { walletState } from '../wallet/state';
+import { networks } from '../wallet/networks';
 
 const terminal = { succeeded: '已同意连接', rejected: '已拒绝本次连接', canceled: '调用方已取消连接', expired: '连接请求已到期' };
 
-const networkNames = new Map([
-  ['0x406', 'Conflux eSpace'],
-  ['0x47', 'Conflux eSpace Testnet'],
-  ['0x1', 'Ethereum Mainnet'],
-  ['0xaa36a7', 'Sepolia'],
-  ['0xa', 'OP Mainnet'],
-  ['0x38', 'BNB Smart Chain'],
-  ['0x89', 'Polygon PoS'],
-  ['0x2105', 'Base'],
-  ['0xa4b1', 'Arbitrum One'],
-]);
-
 function targetNetwork({ chainId, chainName }: Connection) {
-  const name = chainName?.trim() || networkNames.get(chainId);
+  const name = chainName?.trim() || networks.get(chainId)?.name;
   return name ? `${name} · ${chainId}` : chainId;
 }
 

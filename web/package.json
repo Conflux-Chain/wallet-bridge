@@ -21,6 +21,8 @@
     "test:e2e": "playwright test --project=chromium",
     "pretry:connection": "npm run bundle",
     "try:connection": "node ../scripts/try-connection.mjs",
+    "pretry:transaction": "npm run bundle",
+    "try:transaction": "node ../scripts/try-transaction.mjs",
     "test:e2e:chrome": "playwright test --project=chrome",
     "test:wallet": "playwright test --config playwright.wallet.config.ts --project=chromium",
     "test:wallet:chrome": "playwright test --config playwright.wallet.config.ts --project=chrome",

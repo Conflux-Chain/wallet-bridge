@@ -4,6 +4,7 @@ import type { View } from './api/browser';
 import { WalletOperationNotice } from './connection/WalletOperationNotice';
 import { ConnectionPage } from './connection/ConnectionPage';
 import { WalletPicker } from './wallet/WalletPicker';
+import { TransactionPage } from './transaction/TransactionPage';
 
 const messages = {
   checking: ['正在检查浏览器授权', '正在连接本机 Wallet Bridge。'],
@@ -67,7 +68,19 @@ export function App({ initial }: { initial: Promise<View> }) {
     : messages[view.kind];
   const showCommand = ['unauthorized', 'logged-out', 'link-error', 'exchange-uncertain', 'cookie-error'].includes(view.kind);
 
-  const connection = new URLSearchParams(location.search).get('connection');
+  const params = new URLSearchParams(location.search);
+  const connection = params.get('connection');
+  const transactions = params.getAll('transaction');
+  if (authorized && transactions.length) {
+    const id = transactions[0];
+    if (connection !== null || transactions.length !== 1 || !/^[0-9a-f]{32}$/.test(id)) {
+      return <main><h1>交易链接无效</h1><p>请从调用方重新打开交易请求链接。</p></main>;
+    }
+    if (!view.status.info.capabilities.includes('browser.transactions.read')) {
+      return <main><h1>当前服务不支持交易审阅</h1><p>请使用支持交易读取的 Wallet Bridge 服务打开原链接。</p></main>;
+    }
+    return <TransactionPage key={id} id={id} />;
+  }
   if (authorized && connection !== null) {
     return /^[0-9a-f]{32}$/.test(connection) ? <ConnectionPage key={connection} id={connection} operation={view.status.activeWalletRequest} refreshStatus={() => perform(checkStatus)} />
       : <main><h1>连接链接无效</h1><p>请从调用方重新打开请求链接。</p></main>;

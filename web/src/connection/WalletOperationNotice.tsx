@@ -18,6 +18,7 @@ export function WalletOperationNotice({ operation }: { operation: WalletOperatio
       <h2>钱包正在处理交易</h2>
       <p>{transactionDescriptions[operation.phase]}</p>
       <p>交易请求 ID <code>{operation.id}</code></p>
+      <a href={'/?transaction=' + operation.id} target="_blank" rel="noopener">在新标签页查看占用钱包的交易</a>
     </section>;
   }
   return <section aria-label="钱包占用情况">

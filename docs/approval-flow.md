@@ -1,6 +1,6 @@
 # 请求审阅与钱包确认流程
 
-状态：2026-11-20 用户已确认页面信息、状态修复与交易确认流程；尚未实现。交易属迭代 3，连接属[迭代 2](iterations/02-connection-session/spec.md)。本文维护页面信息与交互，数据及生命周期约束沿用[需求 §5～8](requirements.md#5-连接钱包与-session)；协议和兼容细节随对应 PR 验证。
+2026-11-20 用户已确认页面信息、状态修复与交易确认流程。交易实现进度见[迭代 3](iterations/03-single-transaction/plan.md)，连接验收见[迭代 2](iterations/02-connection-session/acceptance.md)。数据及生命周期约束沿用[需求 §5～8](requirements.md#5-连接钱包与-session)。
 
 ## 页面先展示什么
 
