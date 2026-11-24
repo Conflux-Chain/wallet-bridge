@@ -45,6 +45,7 @@ type ConnectionService struct {
 type ConnectionServiceStore interface {
 	ConnectionStore
 	ConnectionExecutionStore
+	ListActivity(context.Context, time.Time, *ActivityKey, int) ([]Activity, error)
 }
 
 func NewConnectionService(store ConnectionServiceStore) (*ConnectionService, error) {

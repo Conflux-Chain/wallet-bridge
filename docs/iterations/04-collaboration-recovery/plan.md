@@ -11,4 +11,6 @@
 
 4-1 已合并为 `6efdb1a`。HTTP 与 SQLite 测试覆盖权限、排序、同 ID、无续期及后到交易先取得发送许可。Windows amd64、macOS amd64／arm64 CI 通过，Windows 在同一提交上重跑通过。[PR #59](https://github.com/Conflux-Chain/wallet-bridge/pull/59)
 
-4-2 已实现首页列表与原请求导航，待评审。Windows 独立程序构建通过，本机 Chrome 在模拟列表响应下验证了同 ID 两种链接、窄屏、空态、读取失败、授权失效和旧服务。三平台 CI 运行带真实本地服务与模拟钱包的集成用例。[4-2 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Fhome-pending-requests) · [复现步骤](design.md#验证管理首页)
+4-2 已合并为 `15790c0`。Windows amd64、macOS amd64／arm64 CI 通过，包括同 ID 两种链接、后到交易先取得钱包、取消后刷新、授权失效及旧服务。[PR #60](https://github.com/Conflux-Chain/wallet-bridge/pull/60) · [复现步骤](design.md#验证管理首页)
+
+4-3 待评审。Windows amd64 的 HTTP／SQLite 用例已验证跨页顺序、重试去重、到期显示、访问控制，以及 Session 关闭后补回哈希并保留原排序。[4-3 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Flocal-activity-query) · [复现步骤](design.md#验证活动记录接口)

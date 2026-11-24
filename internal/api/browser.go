@@ -144,25 +144,11 @@ func (h *handler) logoutBrowser(w http.ResponseWriter, r *http.Request) {
 // @Failure 400,401,403,405,500 {object} ErrorResponse
 // @Router /control/browser-grants [get]
 func (h *handler) listBrowserGrants(w http.ResponseWriter, r *http.Request) {
-	query, err := url.ParseQuery(r.URL.RawQuery)
-	limit, after := 50, query.Get("after")
-	if err != nil || len(query) > 2 {
-		failure(w, http.StatusBadRequest, "bad_request", "Invalid pagination query")
+	limit, query, ok := paginationQuery(w, r)
+	if !ok {
 		return
 	}
-	for key, values := range query {
-		if (key != "limit" && key != "after") || len(values) != 1 {
-			failure(w, http.StatusBadRequest, "bad_request", "Only single limit and after parameters are accepted")
-			return
-		}
-	}
-	if values, exists := query["limit"]; exists {
-		limit, err = strconv.Atoi(values[0])
-		if err != nil || limit < 1 || limit > 50 {
-			failure(w, http.StatusBadRequest, "bad_request", "Page size must be between 1 and 50")
-			return
-		}
-	}
+	after := query.Get("after")
 	grants, err := h.config.BrowserAuthorization.List(r.Context())
 	if err != nil {
 		authorizationFailure(w, err)
@@ -194,6 +180,29 @@ func (h *handler) listBrowserGrants(w http.ResponseWriter, r *http.Request) {
 		response.NextAfter = grants[end-1].ID
 	}
 	writeJSON(w, http.StatusOK, response)
+}
+
+func paginationQuery(w http.ResponseWriter, r *http.Request) (int, url.Values, bool) {
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		failure(w, http.StatusBadRequest, "bad_request", "Invalid pagination query")
+		return 0, nil, false
+	}
+	for key, values := range query {
+		if (key != "limit" && key != "after") || len(values) != 1 {
+			failure(w, http.StatusBadRequest, "bad_request", "Only single limit and after parameters are accepted")
+			return 0, nil, false
+		}
+	}
+	limit := 50
+	if query.Has("limit") {
+		limit, err = strconv.Atoi(query.Get("limit"))
+		if err != nil || limit < 1 || limit > 50 {
+			failure(w, http.StatusBadRequest, "bad_request", "Page size must be between 1 and 50")
+			return 0, nil, false
+		}
+	}
+	return limit, query, true
 }
 
 // revokeBrowserGrants invalidates a named grant or all grants and pending links.

@@ -7,11 +7,79 @@
         "description": "Local service access, browser authorization, client connection/Session and transaction lifecycle, browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.12"
+        "version": "1.13"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
     "paths": {
+        "/browser/activity": {
+            "get": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Lists connection and transaction requests newest first, including pending requests and the latest wallet outcome. Requires a browser management cookie. Reading activity does not renew a Session or claim the wallet.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "List local wallet activity",
+                "parameters": [
+                    {
+                        "maximum": 50,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page size (default 50)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pass nextAfter from the previous page",
+                        "name": "after",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ActivityListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/browser/authorize": {
             "post": {
                 "description": "Requires Origin http://127.0.0.1:18765, including for native HTTP callers. The ticket is consumed once; after a failed or lost exchange request a new link. Cookie is host-only, HttpOnly, SameSite=Strict, Path=/api/v1, with fixed expiration. The HTTP loopback cookie does not use Secure. JSON never returns the cookie secret. Request body is limited to 1024 bytes; query parameters are rejected.",
@@ -2880,7 +2948,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 12
+                    "example": 13
                 }
             }
         },
@@ -2904,6 +2972,64 @@
                         "calling",
                         "interrupted_calling"
                     ]
+                }
+            }
+        },
+        "api.ActivityListResponse": {
+            "type": "object",
+            "properties": {
+                "activities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.ActivityResponse"
+                    }
+                },
+                "nextAfter": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ActivityResponse": {
+            "type": "object",
+            "properties": {
+                "chainId": {
+                    "type": "string"
+                },
+                "clientName": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "connection",
+                        "transaction"
+                    ]
+                },
+                "sessionId": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "succeeded",
+                        "awaiting_wallet",
+                        "sent",
+                        "rejected",
+                        "uncertain",
+                        "canceled",
+                        "expired"
+                    ]
+                },
+                "txHash": {
+                    "type": "string"
                 }
             }
         },
@@ -3276,7 +3402,8 @@
                         "browser.transactions.read",
                         "browser.transactions.coordination",
                         "browser.transactions.decisions",
-                        "browser.pending-requests"
+                        "browser.pending-requests",
+                        "browser.activity"
                     ]
                 },
                 "challenge": {
