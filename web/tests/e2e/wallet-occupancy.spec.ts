@@ -9,7 +9,7 @@ test('transaction occupancy blocks a same-ID connection until the wallet is free
   await expect(page.getByRole('status')).toHaveText('浏览器已授权');
 
   let phase: string | undefined = 'ready';
-  // The transaction claim endpoint arrives later. All other reads use the running service.
+  // Control the reported phase independently of the connection sharing this ID.
   await page.route('**/api/v1/status', async route => {
     const response = await route.fetch();
     const status = await response.json();
@@ -26,7 +26,7 @@ test('transaction occupancy blocks a same-ID connection until the wallet is free
   await expect(notice.getByText('请等待钱包返回操作结果。')).toBeVisible();
   await expect(page.getByRole('button', { name: '拒绝本次连接' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '选择浏览器钱包' })).toHaveCount(0);
-  await expect(notice.getByRole('link')).toHaveCount(0);
+  await expect(notice.getByRole('link')).toHaveAttribute('href', '/?transaction=' + id);
   phase = 'interrupted_calling';
   await page.getByRole('button', { name: '重新检查请求' }).click();
   await expect(notice.getByText(/检查钱包中是否还有待处理的弹窗/)).toBeVisible();

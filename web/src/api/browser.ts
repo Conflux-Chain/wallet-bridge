@@ -9,7 +9,7 @@ export interface WalletOperation {
 interface BrowserStatus {
   activeWalletRequest?: WalletOperation;
   startedAt: string;
-  info: { version: string };
+  info: { version: string; capabilities: string[] };
   browser: { id: string; issuedAt: string; expiresAt: string };
 }
 
@@ -17,7 +17,7 @@ export type View =
   | { kind: 'authorized'; status: BrowserStatus }
   | { kind: 'checking' | 'unauthorized' | 'logged-out' | 'link-error' | 'exchange-uncertain' | 'logout-uncertain' | 'unavailable' | 'cookie-error' | 'preview' };
 
-function request(path: string, body?: object) {
+export function browserRequest(path: string, body?: object) {
   return fetch(`/api/v1/${path}`, {
     method: body === undefined ? 'GET' : 'POST',
     credentials: 'same-origin', mode: 'same-origin', redirect: 'error', cache: 'no-store',
@@ -33,7 +33,7 @@ function timestamp(value: unknown): value is string {
 export async function checkStatus(): Promise<View> {
   if (location.origin !== bridgeOrigin) return { kind: 'preview' };
   try {
-    const response = await request('status');
+    const response = await browserRequest('status');
     if (response.status === 401) return { kind: 'unauthorized' };
     if (!response.ok) return { kind: 'unavailable' };
     const value = await response.json();
@@ -76,7 +76,7 @@ export async function initialize(): Promise<View> {
   const match = /^#authorize=([0-9a-f]{64})$/.exec(fragment);
   if (!match) return { kind: 'link-error' };
   try {
-    const response = await request('browser/authorize', { ticket: match[1] });
+    const response = await browserRequest('browser/authorize', { ticket: match[1] });
     if (response.status === 401) return { kind: 'link-error' };
     if (!response.ok) return { kind: 'exchange-uncertain' };
   } catch {
@@ -89,7 +89,7 @@ export async function initialize(): Promise<View> {
 export async function logout(): Promise<View> {
   if (location.origin !== bridgeOrigin) return { kind: 'preview' };
   try {
-    const response = await request('browser/logout', {});
+    const response = await browserRequest('browser/logout', {});
     if (response.status === 401) return { kind: 'unauthorized' };
     if (response.ok && (await response.json())?.state === 'revoked') return { kind: 'logged-out' };
   } catch {

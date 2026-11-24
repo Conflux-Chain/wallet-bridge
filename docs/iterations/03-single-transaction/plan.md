@@ -1,6 +1,6 @@
 # 迭代 3 PR 计划
 
-当前步骤为 PR 3-8c，接入发送决定、钱包结果和手动放行。[需求](spec.md) · [设计](design.md)
+当前步骤为 PR 3-9，交付只读交易审阅页及本地体验入口。[需求](spec.md) · [设计](design.md)
 
 | 步骤 | 单一交付 | 主要检查 |
 |---|---|---|
@@ -17,8 +17,8 @@
 | 3-7 | Client 侧交易 HTTP 接口及 Swagger | [#46](https://github.com/Conflux-Chain/wallet-bridge/pull/46) 合并为 `fb15269`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45317183499) 通过 |
 | 3-8a | 浏览器读取交易及固定钱包，更新 Swagger | [#47](https://github.com/Conflux-Chain/wallet-bridge/pull/47) 合并为 `1905dcc`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45319487050) 通过 |
 | 3-8b | 浏览器审阅归属与准备调用接口 | [#48](https://github.com/Conflux-Chain/wallet-bridge/pull/48) 合并为 `1f4d735`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45321790744) 通过 |
-| 3-8c | 浏览器发送决定及结果接口 | [#49](https://github.com/Conflux-Chain/wallet-bridge/pull/49) 待评审，覆盖排队拒绝、发送许可、回报、重新授权及手动放行 |
-| 3-9 | 只读交易审阅页面 | 原始参数、费用来源、完整复制、原链接重开 |
+| 3-8c | 浏览器发送决定及结果接口 | [#49](https://github.com/Conflux-Chain/wallet-bridge/pull/49) 合并为 `b2a02ce`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45323830297) 通过 |
+| 3-9 | 只读交易审阅页面 | [#50](https://github.com/Conflux-Chain/wallet-bridge/pull/50) 待评审，覆盖原始参数、金额精度、费用来源、复制和原链接重开 |
 | 3-10 | 页面核对固定钱包与发起发送 | 账户／网络修复、多页面、拒绝、丢包与模拟钱包调用次数 |
 | 3-11 | 共享 Go client 的交易操作 | ID 重试、能力检查、可查询的发送结果 |
 | 3-12 | CLI 创建、等待及按 ID 管理 | 独立程序与模拟钱包贯通，阻塞／异步、错误和退出码 |
@@ -77,3 +77,7 @@ Windows 上三组 HTTP 协调测试通过。双连接竞争及写锁内到期检
 ## PR 3-8c 验证
 
 Windows 上四组 HTTP 决定测试通过。两个 SQLite 连接同时拒绝和申请许可，重复 30 次通过。默认及 `no_web` 完整 Go 测试和两种 vet 通过，本机因权限跳过符号链接用例。本次通过接口模拟钱包回报，真实钱包发送待页面接入验收。[本地复现](design.md#浏览器交易决定测试)
+
+## PR 3-9 验证
+
+Windows amd64 构建通过。本机 Chrome 的六项交易审阅与占用测试通过，全量浏览器回归 24 项通过。用合成交易验证了金额精度、未知网络、费用来源、复制时传入的完整内容、撤销授权，以及原页显示迟到的 hash。体验命令实测可打开示例、展开 data、刷新并清理临时服务。真实钱包发送随 3-10 接入。[人工验证指南](../../transaction-review.md)
