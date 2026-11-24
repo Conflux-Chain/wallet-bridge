@@ -125,6 +125,7 @@ test('ordinary link requires authorization and revoked access clears details', a
   await expect(page.getByText(/浏览器授权已失效|需要浏览器授权/)).toBeVisible();
   await expect(page.getByText(account, { exact: true })).toHaveCount(0);
   await authorize(page);
+  await expect(page.getByRole('status')).toHaveText('浏览器已授权');
   await page.goto('/?transaction=' + id);
   await expect(page.getByRole('alert')).toHaveText(/找不到这笔交易/);
 });
