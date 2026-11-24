@@ -1,8 +1,9 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { TransactionReview } from '../api/transactions';
 import { WalletDiscovery, type DiscoveredWallet } from '../wallet/discovery';
 import { networks } from '../wallet/networks';
 import { walletState } from '../wallet/state';
+import type { ReviewExecution } from './useReviewExecution';
 
 function matchingWallets(discovery: WalletDiscovery, binding: TransactionReview['wallet']) {
   const { wallets, injectedProvider } = discovery.getSnapshot();
@@ -10,7 +11,7 @@ function matchingWallets(discovery: WalletDiscovery, binding: TransactionReview[
   return wallets.filter(wallet => wallet.info && wallet.info.name === binding.name && wallet.info.rdns === binding.rdns);
 }
 
-export function TransactionWallet({ review }: { review: TransactionReview }) {
+export function TransactionWallet({ review, execution }: { review: TransactionReview; execution?: ReviewExecution }) {
   const [discovery] = useState(() => new WalletDiscovery(window));
   useSyncExternalStore(discovery.subscribe, discovery.getSnapshot);
   useEffect(() => {
@@ -21,7 +22,7 @@ export function TransactionWallet({ review }: { review: TransactionReview }) {
   return <section className="wallet-check" aria-labelledby="wallet-check">
     <h2 id="wallet-check">钱包状态核对</h2>
     {matches.length === 1
-      ? <WalletReadings key={matches[0].id} wallet={matches[0]} review={review} discovery={discovery} />
+      ? <WalletReadings key={matches[0].id} wallet={matches[0]} review={review} discovery={discovery} execution={execution} />
       : <>
         <p>{matches.length > 1 ? '多个钱包使用相同的名称和 rdns。请在只启用目标钱包的浏览器配置中重新打开原交易。'
           : '未发现 Session 固定的钱包。请检查浏览器配置和扩展是否已启用。'}</p>
@@ -34,9 +35,11 @@ function networkLabel(chain: string) {
   return [networks.get(chain)?.name, chain].filter(Boolean).join(' · ');
 }
 
-function WalletReadings({ wallet, review, discovery }: {
-  wallet: DiscoveredWallet; review: TransactionReview; discovery: WalletDiscovery;
+function WalletReadings({ wallet, review, discovery, execution }: {
+  wallet: DiscoveredWallet; review: TransactionReview; discovery: WalletDiscovery; execution?: ReviewExecution;
 }) {
+  const mounted = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [confirmed, setConfirmed] = useState(!!wallet.info);
   const [attempt, setAttempt] = useState(0);
   const [reading, setReading] = useState<Awaited<ReturnType<typeof walletState>>>();
@@ -107,6 +110,23 @@ function WalletReadings({ wallet, review, discovery }: {
     <button type="button" className="secondary" onClick={check}>使用当前注入钱包</button>
   </>;
   const tx = review.transaction;
+  function prepare(method: 'eth_requestAccounts' | 'wallet_switchEthereumChain') {
+    void execution?.prepare(async () => {
+      discovery.refresh();
+      const matches = matchingWallets(discovery, review.wallet);
+      if (!mounted.current || matches.length !== 1 || matches[0] !== wallet) return '钱包已改变，请重新核对。';
+      try {
+        await wallet.provider.request(method === 'eth_requestAccounts' ? { method } : { method, params: [{ chainId: tx.chainId }] });
+        return '钱包操作已返回，请核对当前账户和网络。';
+      } catch (error) {
+        if ((error as { code?: number } | null)?.code === 4001)
+          return '已在钱包中拒绝此次操作。交易仍可在原期限内重试或拒绝。';
+        return method === 'wallet_switchEthereumChain' ? '切链未完成，请在钱包中选择目标网络后重新核对。' : '授权未完成，请检查钱包的站点授权后重新核对。';
+      } finally {
+        if (mounted.current) setAttempt(n => n + 1);
+      }
+    });
+  }
   return <>
     {reading ? <dl>
       <div><dt>交易要求网络</dt><dd>{networkLabel(tx.chainId)}</dd></div>
@@ -117,6 +137,10 @@ function WalletReadings({ wallet, review, discovery }: {
         <div key={account}><code>{account}</code></div>) : '尚未提供账户'}
         <small>{reading.accounts.includes(tx.from.toLowerCase()) ? '固定发送账户可用' : '请在钱包中切换或授权固定发送账户。'}</small></dd></div>
     </dl> : <p aria-live="polite">{message}</p>}
+    {execution && reading && (!reading.accounts.length || reading.chain !== tx.chainId) && <div className="actions">
+      {reading.accounts.length === 0 && <button type="button" disabled={!execution.available} onClick={() => prepare('eth_requestAccounts')}>授权访问账户</button>}
+      {reading.chain !== tx.chainId && <button type="button" disabled={!execution.available} onClick={() => prepare('wallet_switchEthereumChain')}>切换到 {networkLabel(tx.chainId)}</button>}
+    </div>}
     <button type="button" className="secondary" onClick={check}>重新核对钱包</button>
   </>;
 }

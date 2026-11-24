@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { account, createReview, to } from './transaction-fixture';
+import { connectionClient, origin } from './bridge';
 
 interface WalletFixture {
   accounts: string[];
@@ -10,6 +11,8 @@ interface WalletFixture {
   replaceLegacy(): void;
   delayAccountRead(): void;
   finishAccountRead(): void;
+  switchMode: 'approve' | 'reject' | 'hold';
+  finishSwitch(): void;
 }
 declare global { interface Window { reviewWallet: WalletFixture } }
 
@@ -18,6 +21,7 @@ async function install(page: Page, legacy = false) {
     const events = new EventTarget();
     let delayed = false;
     let finish = () => {};
+    let releaseSwitch = () => {};
     const fixture: WalletFixture = {
       accounts: [to, account], chain: '0x047', calls: [],
       event: name => events.dispatchEvent(new Event(name)),
@@ -25,14 +29,22 @@ async function install(page: Page, legacy = false) {
       replaceLegacy: () => { Object.defineProperty(window, 'ethereum', { configurable: true, value: other }); },
       delayAccountRead: () => { delayed = true; },
       finishAccountRead: () => finish(),
+      switchMode: 'approve', finishSwitch: () => releaseSwitch(),
     };
     function makeProvider(label: string) {
       return {
         on: (name: string, fn: EventListener) => events.addEventListener(name, fn),
         removeListener: (name: string, fn: EventListener) => events.removeEventListener(name, fn),
-        request: async ({ method }: { method: string }) => {
+        request: async ({ method, params }: { method: string; params?: { chainId: string }[] }) => {
           fixture.calls.push(label + '/' + method);
           if (method === 'eth_chainId') return fixture.chain;
+          if (method === 'eth_requestAccounts') { fixture.accounts = [account]; return fixture.accounts; }
+          if (method === 'wallet_switchEthereumChain') {
+            if (fixture.switchMode === 'reject') throw { code: 4001 };
+            if (fixture.switchMode === 'hold') await new Promise<void>(resolve => { releaseSwitch = resolve; });
+            fixture.chain = params![0].chainId;
+            return null;
+          }
           if (method !== 'eth_accounts') throw Error('Unexpected wallet method');
           const accounts = [...fixture.accounts];
           if (delayed) {
@@ -124,4 +136,100 @@ test('legacy injection requires confirmation on reopening and replacement', asyn
   await page.reload();
   await expect(confirm).toBeVisible();
   expect(await page.evaluate(() => window.reviewWallet.calls)).toEqual([]);
+});
+
+async function openMismatched(page: Page, id: string) {
+  await install(page);
+  await page.goto('/?transaction=' + id);
+  await expect(page.getByText('固定发送账户可用')).toBeVisible();
+  await page.evaluate(() => {
+    window.reviewWallet.chain = '0x1';
+    window.reviewWallet.event('chainChanged');
+  });
+  return page.getByRole('button', { name: /切换到 Conflux eSpace Testnet/ });
+}
+
+test('the first wallet action claims the review, a refusal can be retried, and another tab can resume after closure', async ({ page, context }) => {
+  const id = await createReview(page, '0x47', {});
+  const switchNetwork = await openMismatched(page, id);
+  const other = await context.newPage();
+  const otherSwitch = await openMismatched(other, id);
+  const path = origin + '/api/v1/browser/transactions/' + id + '/execution';
+  await expect(switchNetwork).toBeEnabled();
+  await expect(otherSwitch).toBeEnabled();
+  expect((await (await page.request.get(path)).json()).phase).toBe('unclaimed');
+  await page.evaluate(() => { window.reviewWallet.switchMode = 'reject'; });
+  await switchNetwork.click();
+  await expect(page.getByText(/交易仍可在原期限内重试/)).toBeVisible();
+  expect((await connectionClient('transactions/' + id)).state).toBe('pending');
+  await expect(otherSwitch).toBeDisabled();
+  await expect(other.getByText(/此交易正在其他页面审阅/)).toBeVisible();
+  await page.evaluate(() => { window.reviewWallet.switchMode = 'approve'; });
+  await switchNetwork.click();
+  await expect(page.getByText('网络匹配', { exact: true })).toBeVisible();
+  expect((await (await page.request.get(path)).json()).phase).toBe('ready');
+  expect(await page.evaluate(() => window.reviewWallet.calls.filter(call => call.endsWith('/wallet_switchEthereumChain')).length)).toBe(2);
+  await page.close();
+  await other.getByRole('button', { name: '继续审阅', exact: true }).click();
+  await expect(otherSwitch).toBeEnabled();
+  await other.evaluate(() => { window.reviewWallet.accounts = []; window.reviewWallet.event('accountsChanged'); });
+  await other.getByRole('button', { name: '授权访问账户' }).click();
+  await expect(other.getByText('固定发送账户可用')).toBeVisible();
+  expect(await other.evaluate(() => window.reviewWallet.calls.filter(call => call.endsWith('/eth_requestAccounts')).length)).toBe(1);
+  await other.getByRole('button', { name: '拒绝这笔交易' }).click();
+  await expect(other.getByText('用户已拒绝', { exact: true })).toBeVisible();
+});
+
+test('a lost preparation permit never opens the wallet and a lost return does not repeat it', async ({ page }) => {
+  const id = await createReview(page, '0x47', {});
+  const switchNetwork = await openMismatched(page, id);
+  let lose = 'begin_preparation';
+  const receipts: Record<string, string[]> = {};
+  await page.route('**/transactions/' + id + '/execution', async route => {
+    if (route.request().method() === 'POST') {
+      const { action, callId } = route.request().postDataJSON();
+      (receipts[action] ??= []).push(callId);
+      if (action === lose) {
+        lose = '';
+        expect((await route.fetch()).status()).toBe(200);
+        await route.abort();
+        return;
+      }
+    }
+    await route.continue();
+  });
+  await switchNetwork.click();
+  await expect(page.getByText(/钱包操作未执行/)).toBeVisible();
+  expect(receipts.begin_preparation).toHaveLength(2);
+  expect(new Set(receipts.begin_preparation).size).toBe(1);
+  expect(await page.evaluate(() => window.reviewWallet.calls.some(call => call.endsWith('/wallet_switchEthereumChain')))).toBe(false);
+  lose = 'return_preparation';
+  await switchNetwork.click();
+  await expect(page.getByText('网络匹配', { exact: true })).toBeVisible();
+  await expect(page.getByText(/钱包操作已返回/)).toBeVisible();
+  expect(receipts.return_preparation.slice(-2)).toEqual([receipts.begin_preparation[2], receipts.begin_preparation[2]]);
+  expect(await page.evaluate(() => window.reviewWallet.calls.filter(call => call.endsWith('/wallet_switchEthereumChain')).length)).toBe(1);
+  await connectionClient('transactions/' + id + '/cancel', {});
+});
+
+test('canceling a transaction during switching keeps the popup occupied until a confirmed release', async ({ page, context }) => {
+  const id = await createReview(page, '0x47', {});
+  const switchNetwork = await openMismatched(page, id);
+  await page.evaluate(() => { window.reviewWallet.switchMode = 'hold'; });
+  await switchNetwork.click();
+  await expect.poll(() => page.evaluate(() => window.reviewWallet.calls.includes('fixed/wallet_switchEthereumChain'))).toBe(true);
+  await connectionClient('transactions/' + id + '/cancel', {});
+  const other = await context.newPage();
+  await other.goto('/?transaction=' + id);
+  await expect(other.getByText('已取消', { exact: true })).toBeVisible();
+  const status = async () => (await (await other.request.get(origin + '/api/v1/status')).json()).activeWalletRequest;
+  expect(await status()).toMatchObject({ kind: 'transaction', id, phase: 'interrupted_calling' });
+  await expect(other.getByRole('button', { name: '已处理钱包弹窗，解除占用' })).toBeEnabled();
+  await page.getByRole('button', { name: '已处理钱包弹窗，解除占用' }).click();
+  await expect.poll(status).toBeUndefined();
+  const returned = page.waitForResponse(r => r.request().method() === 'POST' && r.url().endsWith('/execution') &&
+    r.request().postDataJSON()?.action === 'return_preparation');
+  await page.evaluate(() => window.reviewWallet.finishSwitch());
+  await returned;
+  expect((await connectionClient('transactions/' + id)).state).toBe('canceled');
 });

@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { readTransaction, rejectTransaction, TransactionReadError, type TransactionReview } from '../api/transactions';
 import { networks } from '../wallet/networks';
 import { TransactionWallet } from './TransactionWallet';
+import type { WalletOperation } from '../api/browser';
+import { WalletOperationNotice } from '../connection/WalletOperationNotice';
+import { useReviewExecution, type ReviewExecution } from './useReviewExecution';
 import './review.css';
 
 const states: Record<TransactionReview['state'], string> = {
@@ -38,7 +41,7 @@ function Fee({ label, value, unit }: { label: string; value?: string; unit: stri
   </>}</dd></div>;
 }
 
-function ReviewDetails({ review }: { review: TransactionReview }) {
+function ReviewDetails({ review, execution, blocker }: { review: TransactionReview; execution?: ReviewExecution; blocker?: WalletOperation }) {
   const tx = review.transaction;
   const network = networks.get(tx.chainId);
   const units = BigInt(tx.value).toString();
@@ -57,7 +60,9 @@ function ReviewDetails({ review }: { review: TransactionReview }) {
         <div className="wide"><dt>调用方意图说明</dt><dd className="intent"><bdi>{review.intent.trim() ? review.intent : '调用方未提供说明'}</bdi></dd></div>
       </dl>
     </section>
-    {review.state === 'pending' && <TransactionWallet review={review} />}
+    {blocker && review.state === 'pending' && <WalletOperationNotice operation={blocker} />}
+    {execution && <ExecutionNotice execution={execution} pending={review.state === 'pending'} blocked={!!blocker} />}
+    {review.state === 'pending' && <TransactionWallet key={execution?.recoveredId} review={review} execution={blocker ? undefined : execution} />}
     <section aria-labelledby="actual-tx"><h2 id="actual-tx">实际交易参数</h2>
       <dl className="review-fields">
         <div><dt>发送地址 · from</dt><dd><CopyValue value={tx.from} label="发送地址" /></dd></div>
@@ -84,12 +89,37 @@ function ReviewDetails({ review }: { review: TransactionReview }) {
   </>;
 }
 
-export function TransactionPage({ id, canReject }: { id: string; canReject: boolean }) {
+function ExecutionNotice({ execution, pending, blocked }: { execution: ReviewExecution; pending: boolean; blocked: boolean }) {
+  const { progress, busy, owned, message } = execution;
+  if (progress?.recoverFromId) {
+    const popup = progress.phase === 'interrupted_calling';
+    if (!pending && !popup) return null;
+    return <section aria-label="恢复交易审阅">
+      <p>{popup ? '原钱包操作已中断。请先处理原钱包弹窗，再继续。' : '原交易页已中断，可在本页继续核对。'}</p>
+      <button type="button" disabled={execution.recovering || (pending && blocked)} onClick={execution.recover}>
+        {popup ? (pending ? '已处理钱包弹窗，继续审阅' : '已处理钱包弹窗，解除占用') : '继续审阅'}
+      </button>
+    </section>;
+  }
+  if (!pending) return null;
+  let hint = message || (!progress ? '正在核对审阅进度…' : '');
+  if (busy) hint = '正在处理钱包操作…';
+  else if (!owned && (progress?.phase === 'ready' || progress?.phase === 'calling')) hint = '此交易正在其他页面审阅，请在原页面操作钱包。';
+  else if (owned && !hint) hint = '本页正在审阅交易。';
+  return hint ? <p aria-live="polite">{hint}</p> : null;
+}
+
+export function TransactionPage({ id, canReject, canCoordinate, operation }: {
+  id: string; canReject: boolean; canCoordinate: boolean; operation?: WalletOperation;
+}) {
   const [review, setReview] = useState<TransactionReview>();
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [rejecting, setRejecting] = useState(false);
   const [rejectUnconfirmed, setRejectUnconfirmed] = useState(false);
+  const watch = canCoordinate && review && !review.handedOffAt ? (review.state === 'pending' ? 'pending' : 'terminal') : undefined;
+  const execution = useReviewExecution(id, watch);
+  const blocker = operation?.kind === 'transaction' && operation.id === id ? undefined : operation;
   useEffect(() => {
     if (rejecting) return;
     let live = true;
@@ -135,7 +165,7 @@ export function TransactionPage({ id, canReject }: { id: string; canReject: bool
       </div></div>
     </header>
     {rejectUnconfirmed && review?.state === 'pending' && <p role="status">请求仍待审批，可以再次拒绝。</p>}
-    {error ? <p role="alert">{error}</p> : review ? <ReviewDetails review={review} /> :
+    {error ? <p role="alert">{error}</p> : review ? <ReviewDetails review={review} execution={watch ? execution : undefined} blocker={blocker} /> :
       <p role="status">{rejectUnconfirmed ? '正在核对拒绝结果…' : '正在读取交易…'}</p>}
   </main>;
 }
