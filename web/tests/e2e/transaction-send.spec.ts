@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { authorize, connectionClient, origin } from './bridge';
-import { createReview } from './transaction-fixture';
+import { createReview, waitingSend } from './transaction-fixture';
 import { install } from './review-wallet-fixture';
 
 const txHash = '0x' + '72'.repeat(32);
@@ -16,8 +16,11 @@ async function open(page: Page) {
 }
 
 test('a double click sends one frozen payload and a lost hash response only replays the result', async ({ page }) => {
-  const id = await open(page);
+  const { receipt: { id, url }, done } = await waitingSend(page);
+  await install(page);
+  await page.goto(url);
   const tx = (await connectionClient('transactions/' + id)).transaction;
+  expect(tx).toMatchObject({value: '0xd', data: '0x0001', gas: '0x124f8', chainId: '0x47'});
   const reports: unknown[] = [];
   await page.route('**/' + id + '/result', async route => {
     reports.push(route.request().postDataJSON());
@@ -30,6 +33,9 @@ test('a double click sends one frozen payload and a lost hash response only repl
   expect(await page.evaluate(() => window.reviewWallet.calls.filter(c => c.endsWith('/eth_sendTransaction')))).toEqual(['fixed/eth_sendTransaction']);
   await page.evaluate(hash => window.reviewWallet.finishSend({ hash }), txHash);
   await expect(page.getByText(txHash, { exact: true })).toBeVisible();
+  const result = await done;
+  expect(result.code).toBe(0);
+  expect(JSON.parse(result.stdout)).toMatchObject({id, state: 'sent', txHash});
   expect(reports).toHaveLength(2);
   expect(reports[1]).toEqual(reports[0]);
   await page.reload();

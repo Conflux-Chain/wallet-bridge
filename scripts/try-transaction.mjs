@@ -24,7 +24,9 @@ async function post(path, body, headers) {
   return response;
 }
 
-async function sampleSession(client) {
+async function sampleSession() {
+  const token = (await readFile(join(directory, 'client.key'), 'utf8')).trim();
+  const client = { Authorization: 'Bearer ' + token };
   const ticket = new URL(cli('ui', '--print-url')).hash.slice('#authorize='.length);
   const auth = await post('browser/authorize', { ticket }, { Origin: origin });
   const browser = { Origin: origin, Cookie: auth.headers.getSetCookie()[0].split(';')[0] };
@@ -57,17 +59,17 @@ async function selectedSession(signal) {
 }
 
 async function previewURL(withWallet, signal) {
-  const token = (await readFile(join(directory, 'client.key'), 'utf8')).trim();
-  const client = { Authorization: 'Bearer ' + token };
-  const { sessionId, account, chainId } = withWallet ? await selectedSession(signal) : await sampleSession(client);
-  const request = newID();
-  const sample = withWallet
-    ? { intent: '在 Conflux eSpace 测试网上向自己的账户发送零 CFX', transaction: { from: account, to: account, chainId } }
-    : { intent: '在测试网上调用合约，并附带原生币。', transaction: { from: account, to: '0x' + 'cd'.repeat(20), chainId,
-      value: '1250000000000000001', data: '0x00' + 'f0'.repeat(128), gas: '75000', maxFeePerGas: '40', maxPriorityFeePerGas: '0' } };
-  await post('transactions', { id: request, sessionId, clientName: '示例 CLI', ...sample }, client);
-  const link = new URL(withWallet ? origin : cli('ui', '--print-url'));
-  link.searchParams.set('transaction', request);
+  const { sessionId, account, chainId } = withWallet ? await selectedSession(signal) : await sampleSession();
+  const fields = withWallet
+    ? ['--to', account, '--intent', '在 Conflux eSpace 测试网上向自己的账户发送零 CFX']
+    : ['--to', '0x' + 'cd'.repeat(20), '--intent', '在测试网上调用合约，并附带原生币。',
+      '--value', '1250000000000000001', '--data', '0x00' + 'f0'.repeat(128), '--gas', '75000',
+      '--max-fee-per-gas', '40', '--max-priority-fee-per-gas', '0'];
+  const request = JSON.parse(cli('transaction', 'send', '--session-id', sessionId, '--from', account,
+    '--chain-id', chainId, '--client-name', '示例 CLI', ...fields, '--no-open', '--no-wait', '--json'));
+  console.log('Session ID:', sessionId);
+  const link = new URL(withWallet ? request.url : cli('ui', '--print-url'));
+  link.searchParams.set('transaction', request.id);
   return link;
 }
 

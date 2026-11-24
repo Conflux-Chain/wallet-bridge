@@ -281,3 +281,7 @@ go test -tags no_web ./internal/client -run '^TestTransactionClient' -count=1 -v
 ## PR 3-12a CLI 管理已有交易
 
 `transaction get|cancel <request-id>` 复用已有资源命令的参数解析和服务启动流程。人读输出标明请求状态、固定网络和已有 hash，`--json` 将共享 client 的完整交易记录写到 stdout。取消和查询都显示服务实际保存的状态。
+
+## PR 3-12b CLI 发起交易
+
+`transaction send` 将显式提供的交易字段提交给共享 client。每次命令生成一个请求 ID，创建响应不明时用相同参数重试一次。普通审阅链接只定位原交易。等待期间先把 ID 和链接写到 stderr，按原 ID 轮询，最终快照写到 stdout。JSON 模式使用相同的输出流，便于脚本解析。[退出码](spec.md#cli-发起交易)

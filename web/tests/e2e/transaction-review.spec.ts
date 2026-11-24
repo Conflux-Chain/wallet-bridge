@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { authorize, cli, connectionClient, origin } from './bridge';
-import { account, createReview, newID, to } from './transaction-fixture';
+import { account, createReview, newID, to, waitingSend } from './transaction-fixture';
 
 const data = '0x00' + 'f0'.repeat(512);
 
@@ -60,7 +60,7 @@ test('CLI recovers a stopped service and cancels a pending transaction by ID', a
 });
 
 test('an uncertain transaction updates to its late hash on the original page', async ({ page }) => {
-  const id = await createReview(page, '0x47', {});
+  const { receipt: { id }, done } = await waitingSend(page);
   const path = origin + '/api/v1/browser/transactions/' + id;
   const execution = newID();
   const callId = newID();
@@ -77,6 +77,10 @@ test('an uncertain transaction updates to its late hash on the original page', a
   await report('/result', { id: execution, callId, errorCode: 4900 });
   await page.goto('/?transaction=' + id);
   await expect(page.getByRole('status')).toHaveText('结果未确定');
+  const result = await done;
+  expect(result.code).toBe(3);
+  expect(JSON.parse(result.stdout)).toMatchObject({id, state: 'uncertain',
+    checkCommand: expect.stringContaining(' transaction get ' + id + ' --data-dir')});
   expect(await cli(['transaction', 'get', id])).toContain('Broadcast status is uncertain');
   const txHash = '0x' + '08'.repeat(32);
   await report('/result', { id: execution, callId, txHash });
