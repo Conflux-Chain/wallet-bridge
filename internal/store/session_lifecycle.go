@@ -48,7 +48,7 @@ func updateSessionInTx(ctx context.Context, tx *sql.Tx, id string, now time.Time
 	idle := !now.Before(expires)
 	if idle {
 		var protected bool
-		err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM transaction_requests
+		err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM transaction_status
 WHERE session_id = ? AND (state = 'awaiting_wallet' OR (state = 'pending' AND expires_at > ?)))`, id, now.UnixMilli()).Scan(&protected)
 		if err != nil {
 			return app.Session{}, err
@@ -114,7 +114,7 @@ WHERE state = 'pending' AND expires_at <= ?`, now.UnixMilli())
 	}
 	sessions, err := tx.ExecContext(ctx, `UPDATE sessions SET closed_at = last_access_at + ?
 WHERE closed_at IS NULL AND last_access_at <= ? AND NOT EXISTS
-(SELECT 1 FROM transaction_requests WHERE session_id = sessions.id AND state IN ('pending', 'awaiting_wallet'))`,
+(SELECT 1 FROM transaction_status WHERE session_id = sessions.id AND state IN ('pending', 'awaiting_wallet'))`,
 		app.SessionIdleLifetime.Milliseconds(), now.UnixMilli()-app.SessionIdleLifetime.Milliseconds())
 	if err != nil {
 		return app.ConnectionExpiryCounts{}, err

@@ -12,6 +12,7 @@ var (
 	ErrTransactionRequestNotFound = errors.New("transaction request not found")
 	ErrSessionClosed              = errors.New("session is closed")
 	ErrTransactionReviewConflict  = errors.New("transaction review owner or phase changed")
+	ErrTransactionResultConflict  = errors.New("wallet result conflicts with the recorded outcome")
 )
 
 type TransactionRequestInput struct {
@@ -27,6 +28,9 @@ type TransactionState string
 const (
 	TransactionPending        TransactionState = "pending"
 	TransactionAwaitingWallet TransactionState = "awaiting_wallet"
+	TransactionSent           TransactionState = "sent"
+	TransactionRejected       TransactionState = "rejected"
+	TransactionUncertain      TransactionState = "uncertain"
 	TransactionCanceled       TransactionState = "canceled"
 	TransactionExpired        TransactionState = "expired"
 )
@@ -43,6 +47,7 @@ type TransactionRequest struct {
 	HandedOffAt *time.Time
 	State       TransactionState
 	FinishedAt  *time.Time
+	TxHash      string
 }
 
 // The browser adapter supplies BrowserGrantID after authenticating the page.
@@ -85,4 +90,9 @@ type TransactionSendInput struct {
 	CallID         string
 	PreviousCallID string // Last preparation acknowledged when the user confirmed.
 	Binding        ConnectionBinding
+}
+
+type TransactionSendRef struct {
+	TransactionReviewRef
+	CallID string
 }

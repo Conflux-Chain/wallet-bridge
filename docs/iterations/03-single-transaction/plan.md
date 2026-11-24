@@ -1,6 +1,6 @@
 # 迭代 3 PR 计划
 
-当前步骤为 PR 3-5，交付一次性交易发送许可。[需求](spec.md) · [设计](design.md)
+当前步骤为 PR 3-6a，持久化钱包对原发送调用的回报。[需求](spec.md) · [设计](design.md)
 
 | 步骤 | 单一交付 | 主要检查 |
 |---|---|---|
@@ -11,8 +11,9 @@
 | 3-4a | SQLite 共享执行表与全局唯一占用约束 | [#40](https://github.com/Conflux-Chain/wallet-bridge/pull/40) 合并为 `d1d5662`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45148199287) 通过 |
 | 3-4b | 占用状态按请求类型定位 | [#41](https://github.com/Conflux-Chain/wallet-bridge/pull/41) 合并为 `9dc8ba4`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45154618967) 通过 |
 | 3-4c | 交易发送前的执行归属与中断恢复 | [#42](https://github.com/Conflux-Chain/wallet-bridge/pull/42) 合并为 `ccd052c`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45157567046) 通过 |
-| 3-5 | 交易发送许可与 Session 关闭竞争 | [#43](https://github.com/Conflux-Chain/wallet-bridge/pull/43) 待评审，覆盖点击重放、交接响应丢失、取消和关闭的先后顺序 |
-| 3-6 | 钱包结果、活动持久化及恢复 | 拒绝、hash、未确定、迟到回报、提交失败和重启 |
+| 3-5 | 交易发送许可与 Session 关闭竞争 | [#43](https://github.com/Conflux-Chain/wallet-bridge/pull/43) 合并为 `5c1db8f`，[三平台 CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45161624223) 通过 |
+| 3-6a | 钱包回报及活动记录 | 开发中，验证拒绝、hash、未确定、迟到回报及事务回滚 |
+| 3-6b | 交接后中断与手动放行 | 重启／页面中断时记录未确定，保留钱包占用，用户放行后仍可接收原调用回报 |
 | 3-7 | Client 侧交易 HTTP 接口及 Swagger | 创建、读取、取消、服务凭据及错误映射 |
 | 3-8 | 浏览器侧交易 HTTP 接口及 Swagger | 授权页面读取、执行归属、交接及结果回传 |
 | 3-9 | 只读交易审阅页面 | 原始参数、费用来源、完整复制、原链接重开 |
@@ -50,3 +51,7 @@ Windows 临时 SQLite 验证四组审阅归属与恢复测试，同 ID 的连接
 ## PR 3-5 验证
 
 Windows 临时 SQLite 的六组发送许可测试通过，双连接竞争重试、取消及关闭 Session 各跑 30 次。默认及 `no_web` 的完整 Go 测试与 vet 通过，本机跳过需符号链接权限的用例。浏览器调用次数与真实钱包发送随页面接入验收。[本地复现](design.md#一次性发送许可测试)
+
+## PR 3-6a 验证
+
+Windows 的临时 SQLite 实测通过五组结果回报测试，双连接并发写入不同 hash 重复 30 次通过。默认及 `no_web` 完整 Go 测试和两种 vet 通过，本机跳过需符号链接权限的用例。页面保留回报、提示重新授权以及真实钱包操作随浏览器接入验收。[本地复现](design.md#钱包结果测试)

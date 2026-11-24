@@ -123,3 +123,20 @@ go test -tags no_web ./internal/store -run '^TestTransactionSendConcurrent$' -co
 ```
 
 第一条命令预期六组测试通过，包含 v8 数据库升级、重启、交接提交失败和审批到期的最后一毫秒。第二条用两个数据库连接分别竞争重试、取消和关闭 Session，预期全部通过。测试在临时 SQLite 中读取发送许可，命令退出时自动清理。无需启动服务或连接钱包。
+
+## PR 3-6a 钱包回报
+
+授权页面用原请求、执行和发送调用 ID 回报钱包结果。服务按 D-049 分类，在同一事务中保存结果并释放该调用的占用。Session 关闭后仍可回报。钱包返回的 hash 按 32 字节比较。
+
+每个请求最多有一条发送结果记录，与冻结交易关联，作为本地交易活动的数据来源。重复回报保留原时间。迟到的确定结果可更新「结果未确定」，已经记录的 hash 或明确拒绝保留原值。3-6b 单独处理尚未回报时的中断和手动放行。
+
+### 钱包结果测试
+
+在 Windows 或 macOS 的仓库根目录，用 [go.mod](../../../go.mod) 指定的 Go 运行：
+
+```sh
+go test -tags no_web ./internal/store -run '^TestTransactionResult' -count=1 -v
+go test -tags no_web ./internal/store -run '^TestTransactionResultConcurrentHashes$' -count=30
+```
+
+第一条预期五组测试通过，覆盖拒绝、迟到 hash、重新授权补交及失败回滚。第二条用两个 SQLite 连接同时写入不同 hash，预期每次仅保留一个。命令使用临时数据库，退出时自动清理，无需运行服务或打开钱包。
