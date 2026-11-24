@@ -6,7 +6,7 @@ export interface WalletOperation {
   phase: 'ready' | 'calling' | 'interrupted_calling';
 }
 
-interface BrowserStatus {
+export interface BrowserStatus {
   activeWalletRequest?: WalletOperation;
   startedAt: string;
   info: { version: string; capabilities: string[] };

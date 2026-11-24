@@ -4,7 +4,7 @@
 
 ## 迭代 4 · 协作与恢复
 
-当前步骤 4-1 为已授权浏览器提供待审批请求列表，下一步将列表接入管理首页。[需求](04-collaboration-recovery/spec.md) · [设计](04-collaboration-recovery/design.md) · [PR 计划](04-collaboration-recovery/plan.md)
+当前步骤 4-2 将待审批列表接入管理首页。下一步确认活动记录的查询范围。[需求](04-collaboration-recovery/spec.md) · [设计](04-collaboration-recovery/design.md) · [PR 计划](04-collaboration-recovery/plan.md)
 
 ## 上轮交接
 

@@ -74,7 +74,7 @@ go run ./cmd/wallet-bridge version --json
 
 - 交易接口验证：[共享 Go client](docs/iterations/03-single-transaction/design.md#go-client-交易测试) · [HTTP 创建、查询、取消](docs/iterations/03-single-transaction/design.md#交易-http-测试) · [浏览器读取交易及固定钱包](docs/iterations/03-single-transaction/design.md#浏览器交易读取测试) · [多页面协调与切链许可](docs/iterations/03-single-transaction/design.md#浏览器交易审阅协调测试) · [拒绝、发送许可及钱包回报](docs/iterations/03-single-transaction/design.md#浏览器交易决定测试)。
 - 单笔交易开发验证：[交易输入校验](docs/iterations/03-single-transaction/design.md#本地验证) · [SQLite 创建与幂等重试](docs/iterations/03-single-transaction/design.md#创建与重试测试) · [取消、到期与 Session 关闭](docs/iterations/03-single-transaction/design.md#取消与到期测试) · [共享执行槽迁移](docs/iterations/03-single-transaction/design.md#共享执行槽测试) · [钱包占用提示](docs/iterations/03-single-transaction/design.md#钱包占用提示测试) · [交易审阅归属](docs/iterations/03-single-transaction/design.md#交易审阅归属测试) · [一次性发送许可](docs/iterations/03-single-transaction/design.md#一次性发送许可测试) · [钱包结果与重新授权](docs/iterations/03-single-transaction/design.md#钱包结果测试) · [发送中断与手动放行](docs/iterations/03-single-transaction/design.md#发送中断恢复测试)。
-- [待审批请求列表验证](docs/iterations/04-collaboration-recovery/design.md#本地验证)覆盖多 client 的连接与交易、审批期限和管理页读取权限。
+- 多 client 待审批请求：[管理首页体验与浏览器回归](docs/iterations/04-collaboration-recovery/design.md#验证管理首页) · [列表接口验证](docs/iterations/04-collaboration-recovery/design.md#本地验证)。
 - 三目标构建：`npm --prefix web run bundle:all`（Windows amd64、macOS amd64／arm64）。
 - 无页面的后端开发：`go test -tags no_web ./...`、`go run -tags no_web ./cmd/wallet-bridge version --json`。
 
