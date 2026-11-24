@@ -87,5 +87,12 @@ AND g.revoked_at IS NULL AND g.issued_at <= ? AND g.expires_at > ?))`,
 		return 0, err
 	}
 	reviews, err := result.RowsAffected()
-	return connections + reviews, err
+	if err != nil {
+		return 0, err
+	}
+	// Also recover v10 rows already interrupted before outcome tracking.
+	if err := recordInterruptedSend(ctx, tx, now); err != nil {
+		return 0, err
+	}
+	return connections + reviews, nil
 }

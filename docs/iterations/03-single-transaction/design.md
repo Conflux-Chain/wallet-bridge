@@ -140,3 +140,20 @@ go test -tags no_web ./internal/store -run '^TestTransactionResultConcurrentHash
 ```
 
 第一条预期五组测试通过，覆盖拒绝、迟到 hash、重新授权补交及失败回滚。第二条用两个 SQLite 连接同时写入不同 hash，预期每次仅保留一个。命令使用临时数据库，退出时自动清理，无需运行服务或打开钱包。
+
+## PR 3-6b 发送调用中断
+
+页面主动中断、心跳超时、授权失效及服务重启共用恢复规则。SQLite 在中断执行的同一事务内为已交接的发送记录「结果未确定」。原调用继续占用钱包，也继续保护 Session 免于空闲回收。恢复时补记旧版本已中断且缺少结果的发送。
+
+管理页凭当前授权和交易请求 ID 确认已处理弹窗。只有已中断的发送可由此释放。放行保留执行和调用 ID，重复确认返回原交易当前状态。原钱包回报与放行串行提交，迟到的回报仍可更新同一条活动记录。
+
+### 发送中断恢复测试
+
+在 Windows 或 macOS 的仓库根目录，使用 [go.mod](../../../go.mod) 指定的 Go 运行：
+
+```sh
+go test -tags no_web ./internal/store -run '^TestTransactionInterruption' -count=1 -v
+go test -tags no_web ./internal/store -run '^TestTransactionInterruptionConcurrentHash$' -count=30
+```
+
+第一条预期五组测试通过，覆盖中断恢复、跨配置放行、准备调用隔离、写入回滚和迟到 hash。第二条用两个 SQLite 连接同时确认放行和提交 hash，每次均应保存 hash 并释放占用。测试退出时自动清理临时数据库，无需启动服务或打开钱包。

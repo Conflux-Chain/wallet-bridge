@@ -8,6 +8,12 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/app"
 )
 
+// An uncertain result still protects its Session while the interrupted send
+// occupies the wallet. An acknowledged wait or an actual wallet reply releases it.
+const unfinishedTransaction = `(state = 'awaiting_wallet' OR (state = 'pending' AND expires_at > ?)
+OR (state = 'uncertain' AND EXISTS (SELECT 1 FROM wallet_executions w
+    WHERE w.transaction_id = transaction_status.id AND w.phase = 'interrupted_calling')))`
+
 func (s *Store) AccessSession(ctx context.Context, id string, now time.Time) (app.Session, error) {
 	return s.updateSessionLifecycle(ctx, id, now, false)
 }
@@ -49,7 +55,7 @@ func updateSessionInTx(ctx context.Context, tx *sql.Tx, id string, now time.Time
 	if idle {
 		var protected bool
 		err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM transaction_status
-WHERE session_id = ? AND (state = 'awaiting_wallet' OR (state = 'pending' AND expires_at > ?)))`, id, now.UnixMilli()).Scan(&protected)
+WHERE session_id = ? AND `+unfinishedTransaction+")", id, now.UnixMilli()).Scan(&protected)
 		if err != nil {
 			return app.Session{}, err
 		}
@@ -114,8 +120,8 @@ WHERE state = 'pending' AND expires_at <= ?`, now.UnixMilli())
 	}
 	sessions, err := tx.ExecContext(ctx, `UPDATE sessions SET closed_at = last_access_at + ?
 WHERE closed_at IS NULL AND last_access_at <= ? AND NOT EXISTS
-(SELECT 1 FROM transaction_status WHERE session_id = sessions.id AND state IN ('pending', 'awaiting_wallet'))`,
-		app.SessionIdleLifetime.Milliseconds(), now.UnixMilli()-app.SessionIdleLifetime.Milliseconds())
+(SELECT 1 FROM transaction_status WHERE session_id = sessions.id AND `+unfinishedTransaction+")",
+		app.SessionIdleLifetime.Milliseconds(), now.UnixMilli()-app.SessionIdleLifetime.Milliseconds(), now.UnixMilli())
 	if err != nil {
 		return app.ConnectionExpiryCounts{}, err
 	}
