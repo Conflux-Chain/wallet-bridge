@@ -9,4 +9,6 @@
 | 4-5 | 按用户选择清理活动记录 | 规则确认后验证清理范围、重复清理和中断恢复 |
 | 4-6 | 多 client／多页面组合验收 | 交接、服务重启、原页恢复和手动放行 |
 
-当前交付 [4-1 待评审](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Fbrowser-pending-requests)。Windows amd64 的 HTTP 与 SQLite 测试已验证读取权限、排序、同 ID、无续期，以及后到交易先取得发送许可。各步实施前按[本轮需求](spec.md)和[设计](design.md)细化。
+4-1 已合并为 `6efdb1a`。HTTP 与 SQLite 测试覆盖权限、排序、同 ID、无续期及后到交易先取得发送许可。Windows amd64、macOS amd64／arm64 CI 通过，Windows 在同一提交上重跑通过。[PR #59](https://github.com/Conflux-Chain/wallet-bridge/pull/59)
+
+4-2 已实现首页列表与原请求导航，待评审。Windows 独立程序构建通过，本机 Chrome 在模拟列表响应下验证了同 ID 两种链接、窄屏、空态、读取失败、授权失效和旧服务。三平台 CI 运行带真实本地服务与模拟钱包的集成用例。[4-2 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Fhome-pending-requests) · [复现步骤](design.md#验证管理首页)

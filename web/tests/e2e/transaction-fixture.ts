@@ -7,7 +7,7 @@ export const to = '0x' + 'cd'.repeat(20);
 export const newID = () => randomBytes(16).toString('hex');
 
 type Wallet = { kind: string; name: string; rdns?: string };
-async function createSession(page: Page, chainId: string,
+export async function createSession(page: Page, chainId: string,
   wallet: Wallet = { kind: 'eip6963', name: '测试钱包', rdns: 'test.wallet' }) {
   const connection = newID();
   await connectionClient('connections', { id: connection, clientName: 'Review fixture', chainId });

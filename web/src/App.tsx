@@ -5,6 +5,7 @@ import { WalletOperationNotice } from './connection/WalletOperationNotice';
 import { ConnectionPage } from './connection/ConnectionPage';
 import { WalletPicker } from './wallet/WalletPicker';
 import { TransactionPage } from './transaction/TransactionPage';
+import { PendingRequests } from './PendingRequests';
 
 const messages = {
   checking: ['正在检查浏览器授权', '正在连接本机 Wallet Bridge。'],
@@ -25,6 +26,7 @@ export function App({ initial }: { initial: Promise<View> }) {
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
   const mounted = useRef(true);
+  const authorizationLost = useCallback(() => setView({ kind: 'unauthorized' }), []);
 
   useEffect(() => {
     let active = true;
@@ -93,6 +95,9 @@ export function App({ initial }: { initial: Promise<View> }) {
         <h1>Wallet Bridge</h1>
         <p className="intro">连接你的工具，保留你的确认。</p>
       </header>
+      {authorized && view.status.activeWalletRequest && <WalletOperationNotice operation={view.status.activeWalletRequest} />}
+      {authorized && view.status.info.capabilities.includes('browser.pending-requests') &&
+        <PendingRequests key={view.status.browser.id} status={view.status} onUnauthorized={authorizationLost} />}
       <section aria-labelledby="authorization-title" aria-busy={busy || view.kind === 'checking'}>
         <div className="state-heading">
           <span className={`state-dot ${authorized ? 'active' : ''}`} aria-hidden="true" />
@@ -119,7 +124,6 @@ export function App({ initial }: { initial: Promise<View> }) {
           </div>
         )}
       </section>
-      {authorized && view.status.activeWalletRequest && <WalletOperationNotice operation={view.status.activeWalletRequest} />}
       {(authorized || view.kind === 'preview') && <WalletPicker />}
       <footer>
         <p>私钥由浏览器钱包保管。</p>
