@@ -108,6 +108,11 @@ func decideReview(current app.TransactionReview, ref app.TransactionReviewRef, c
 		return app.ReviewResult{}, app.ErrInvalidTransaction
 	}
 	pending := req.State == app.TransactionPending
+	// After handoff, only liveness belongs to the review API. The send result or
+	// its explicit acknowledgment owns release of the outstanding wallet call.
+	if req.HandedOffAt != nil && cmd.Action != app.HeartbeatReview && cmd.Action != app.InterruptReview {
+		return app.ReviewResult{}, app.ErrTransactionReviewConflict
+	}
 	owner := current.TransactionReviewRef == ref
 	live := current.Phase == app.ExecutionReady || current.Phase == app.ExecutionCalling
 	create := func() app.ReviewResult {
@@ -144,15 +149,15 @@ func decideReview(current app.TransactionReview, ref app.TransactionReviewRef, c
 		if !owner {
 			return app.ReviewResult{}, app.ErrTransactionReviewConflict
 		}
-		return advanceOwnedReview(current, cmd, pending, now)
+		return advanceOwnedReview(current, cmd, req.State, now)
 	}
 	return app.ReviewResult{Review: current}, nil
 }
 
-func advanceOwnedReview(review app.TransactionReview, cmd app.ReviewCommand, pending bool, now time.Time) (app.ReviewResult, error) {
+func advanceOwnedReview(review app.TransactionReview, cmd app.ReviewCommand, state app.TransactionState, now time.Time) (app.ReviewResult, error) {
 	switch cmd.Action {
 	case app.HeartbeatReview:
-		if !pending || (review.Phase != app.ExecutionReady && review.Phase != app.ExecutionCalling) {
+		if (state != app.TransactionPending && state != app.TransactionAwaitingWallet) || (review.Phase != app.ExecutionReady && review.Phase != app.ExecutionCalling) {
 			return app.ReviewResult{}, app.ErrTransactionReviewConflict
 		}
 		if now.After(review.LastSeenAt) {
@@ -169,7 +174,7 @@ func advanceOwnedReview(review app.TransactionReview, cmd app.ReviewCommand, pen
 		if review.CallID == cmd.CallID {
 			break
 		}
-		if !pending || review.Phase != app.ExecutionReady || review.CallID != cmd.PreviousID {
+		if state != app.TransactionPending || review.Phase != app.ExecutionReady || review.CallID != cmd.PreviousID {
 			return app.ReviewResult{}, app.ErrTransactionReviewConflict
 		}
 		review.CallID, review.Phase = cmd.CallID, app.ExecutionCalling
@@ -183,7 +188,7 @@ func advanceOwnedReview(review app.TransactionReview, cmd app.ReviewCommand, pen
 			review.Phase = app.ExecutionReady
 		case app.ExecutionInterruptedCalling:
 			review.Phase = app.ExecutionInterruptedReady
-			if !pending {
+			if state != app.TransactionPending {
 				review.Phase = app.ExecutionFinished
 			}
 		}

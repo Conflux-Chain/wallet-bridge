@@ -12,7 +12,7 @@ import (
 )
 
 const transactionSelect = `SELECT id, session_id, client_name, intent, from_address, to_address,
-chain_id, value, data, gas, gas_price, max_fee_per_gas, max_priority_fee_per_gas, created_at, expires_at, state, finished_at
+chain_id, value, data, gas, gas_price, max_fee_per_gas, max_priority_fee_per_gas, created_at, expires_at, state, finished_at, handed_off_at
 FROM transaction_requests`
 
 const expireDueTransactions = `UPDATE transaction_requests SET state = 'expired', finished_at = expires_at
@@ -77,10 +77,10 @@ func scanTransactionRequest(row *sql.Row) (app.TransactionRequest, error) {
 	var req app.TransactionRequest
 	payload := &req.Transaction
 	var created, expires int64
-	var finished sql.NullInt64
+	var finished, handedOff sql.NullInt64
 	err := row.Scan(&req.ID, &req.SessionID, &req.ClientName, &req.Intent, &payload.From, &payload.To, &payload.ChainID,
 		&payload.Value, &payload.Data, &payload.Gas, &payload.GasPrice, &payload.MaxFeePerGas, &payload.MaxPriorityFeePerGas,
-		&created, &expires, &req.State, &finished)
+		&created, &expires, &req.State, &finished, &handedOff)
 	if errors.Is(err, sql.ErrNoRows) {
 		return app.TransactionRequest{}, app.ErrTransactionRequestNotFound
 	}
@@ -88,6 +88,10 @@ func scanTransactionRequest(row *sql.Row) (app.TransactionRequest, error) {
 		return app.TransactionRequest{}, err
 	}
 	req.CreatedAt, req.ExpiresAt = time.UnixMilli(created).UTC(), time.UnixMilli(expires).UTC()
+	if handedOff.Valid {
+		at := time.UnixMilli(handedOff.Int64).UTC()
+		req.HandedOffAt = &at
+	}
 	if finished.Valid {
 		at := time.UnixMilli(finished.Int64).UTC()
 		req.FinishedAt = &at

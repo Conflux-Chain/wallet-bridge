@@ -27,6 +27,12 @@ type ConnectionBinding struct {
 	ChainID string
 }
 
+// MatchesSession compares the page's latest wallet observations with the fixed binding.
+func (binding ConnectionBinding) MatchesSession(session Session) bool {
+	observed, err := normalizeConnectionBinding(binding)
+	return err == nil && observed.Wallet == session.Wallet && observed.Account == session.Account && observed.ChainID == session.ChainID
+}
+
 // ConnectionService is internal orchestration, not an authorization boundary.
 // Adapters authenticate callers; completion/rejection additionally require the
 // browser's consent and execution ownership before invoking these methods.
