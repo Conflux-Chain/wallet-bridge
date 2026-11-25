@@ -32,7 +32,7 @@ WSL／容器等兼容范围待细化；目标系统、Chrome 与钱包版本的�
 
 自动发现以向当前页面暴露的标准 Provider 为范围；验收名单不作为品牌白名单。Fluent 沿用现有 EVM／Conflux eSpace 范围验收。
 
-普通用户通过下载可执行文件或包含所需组件的应用包使用，无需预装 Node.js、npm、Python、Go 或 Rust 工具链。
+普通用户从本仓库 GitHub Releases 下载对应平台的独立程序，无需预装 Node.js、npm、Python、Go 或 Rust 工具链。[发行与版本选择](iterations/06-release-upgrade/spec.md#首次获取与版本选择)
 
 Bridge 提供统一可执行程序，包含 CLI 和 local HTTP 服务能力。不同语言的 client 可以调用该程序确保服务就绪，再直接访问 HTTP；各语言 SDK 是可选封装，不是使用前提。
 

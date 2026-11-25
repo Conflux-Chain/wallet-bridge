@@ -2,10 +2,10 @@
 
 更新时间：2026-11-25。
 
-## 迭代 5 · AI agent 接入
+## 迭代 6 · 发布与升级
 
-5-5 已合并。5-6 已验证真实 Codex 的审批链接、恢复查询和 MetaMask 连接，待 PR 评审。下一步按评审结果收尾迭代 5。[Codex 接入指南](../codex.md) · [迭代需求](05-agent-integration/spec.md) · [适配设计](05-agent-integration/design.md) · [PR 计划与验收记录](05-agent-integration/plan.md)
+6-0 规划待评审。下一项是本地生成三平台发行产物与校验清单。[本轮需求](06-release-upgrade/spec.md) · [设计草案](06-release-upgrade/design.md) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 
-迭代 4 已合并。双 CLI 与模拟钱包在服务重启后的交接、迟到哈希和历史查询通过三平台组合验收。[验收结论](04-collaboration-recovery/plan.md) · [复现步骤](04-collaboration-recovery/acceptance.md)
+迭代 5 已合并，Windows 上的真实 Codex 与 MetaMask 已通过连接、恢复查询、同 ID 重试和关闭 Session 验收。[A-18 记录与覆盖范围](05-agent-integration/plan.md#a-18-验收记录) · [Codex 接入指南](../codex.md)
