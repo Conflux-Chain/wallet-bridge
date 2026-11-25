@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +11,7 @@ import (
 )
 
 type ActivityResponse struct {
+	Removable  bool   `json:"removable"`
 	Kind       string `json:"kind" enums:"connection,transaction"`
 	ID         string `json:"id"`
 	ClientName string `json:"clientName"`
@@ -79,7 +81,44 @@ func (h *handler) listActivity(w http.ResponseWriter, r *http.Request, grant app
 	result.Activities = make([]ActivityResponse, len(records))
 	for i, record := range records {
 		result.Activities[i] = ActivityResponse{Kind: string(record.Kind), ID: record.ID, CreatedAt: timestamp(record.CreatedAt),
+			Removable:  app.ActivityRemovable(record.State),
 			ClientName: record.ClientName, ChainID: record.ChainID, State: record.State, SessionID: record.SessionID, TxHash: record.TxHash}
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+type ActivityRemoveRequest struct {
+	Kind app.WalletRequestKind `json:"kind" enums:"connection,transaction"`
+	ID   string                `json:"id" minlength:"32" maxlength:"32"`
+}
+
+// @Summary Remove a finished request from the local activity list
+// @Description Idempotent for a finished request. The original request remains available by ID. Unfinished requests, including uncertain wallet outcomes, remain visible.
+// @Accept json
+// @Security BrowserCookie
+// @Param Origin header string true "Fixed local origin"
+// @Param request body ActivityRemoveRequest true "Request to remove from activity"
+// @Success 204 "Removed"
+// @Failure 400,401,403,404,405,409,413,415,500 {object} ErrorResponse
+// @Router /browser/activity/remove [post]
+func (h *handler) removeActivity(w http.ResponseWriter, r *http.Request, grant app.BrowserGrant) {
+	var req ActivityRemoveRequest
+	if !decodeBody(w, r, &req, false) {
+		return
+	}
+	if !validResourceID(req.ID) || (req.Kind != app.WalletConnection && req.Kind != app.WalletTransaction) {
+		failure(w, http.StatusBadRequest, "bad_request", "A request kind and ID are required")
+		return
+	}
+	err := h.config.Connections.RemoveActivity(r.Context(), grant, req.Kind, req.ID)
+	switch {
+	case err == nil:
+		w.WriteHeader(http.StatusNoContent)
+	case errors.Is(err, app.ErrActivityUnfinished):
+		failure(w, http.StatusConflict, "activity_unfinished", "Only finished requests can be removed")
+	case errors.Is(err, app.ErrActivityNotFound):
+		failure(w, http.StatusNotFound, "activity_not_found", "The request does not exist")
+	default:
+		connectionFailure(w, err)
+	}
 }

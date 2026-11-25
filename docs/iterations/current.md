@@ -4,7 +4,7 @@
 
 ## 迭代 4 · 协作与恢复
 
-当前步骤 4-4 在管理页展示活动与结果。下一步是确认清理活动时的历史查询和迟到结果保留规则。[需求](04-collaboration-recovery/spec.md) · [设计](04-collaboration-recovery/design.md) · [PR 计划](04-collaboration-recovery/plan.md)
+当前步骤 4-5 支持逐条从活动列表移除已结束请求。下一步进行多 client、多页面与重启恢复的组合验收。[需求](04-collaboration-recovery/spec.md) · [设计](04-collaboration-recovery/design.md) · [PR 计划](04-collaboration-recovery/plan.md)
 
 ## 上轮交接
 

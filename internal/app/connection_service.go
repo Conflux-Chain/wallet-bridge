@@ -46,6 +46,7 @@ type ConnectionServiceStore interface {
 	ConnectionStore
 	ConnectionExecutionStore
 	ListActivity(context.Context, time.Time, *ActivityKey, int) ([]Activity, error)
+	RemoveActivity(context.Context, string, WalletRequestKind, string) error
 }
 
 func NewConnectionService(store ConnectionServiceStore) (*ConnectionService, error) {
