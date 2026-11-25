@@ -44,7 +44,7 @@ func check(ctx context.Context, client *http.Client, url, current string, includ
 		}
 		for _, r := range releases {
 			// x/mod also accepts v1 and v1.0, while our release tags use all three components.
-			if r.Draft || !semver.IsValid(r.Tag) || semver.Canonical(r.Tag)+semver.Build(r.Tag) != r.Tag {
+			if r.Draft || !validReleaseTag(r.Tag) {
 				continue
 			}
 			if !includePreview && (r.Prerelease || semver.Prerelease(r.Tag) != "") {
@@ -73,27 +73,42 @@ func check(ctx context.Context, client *http.Client, url, current string, includ
 	return result, nil
 }
 
+func validReleaseTag(tag string) bool {
+	return semver.IsValid(tag) && semver.Canonical(tag)+semver.Build(tag) == tag
+}
+
 func readPage(ctx context.Context, client *http.Client, url string) ([]release, bool, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	var entries []release
+	header, err := githubJSON(ctx, client, url, &entries)
 	if err != nil {
 		return nil, false, err
+	}
+	if entries == nil {
+		return nil, false, errors.New("GitHub release query returned an invalid list")
+	}
+	return entries, strings.Contains(header.Get("Link"), `rel="next"`), nil
+}
+
+func githubJSON(ctx context.Context, client *http.Client, url string, value any) (http.Header, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, false, fmt.Errorf("GitHub release query returned HTTP %d", resp.StatusCode)
+		return nil, fmt.Errorf("GitHub release query returned HTTP %d", resp.StatusCode)
 	}
-	var entries []release
 	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&entries); err != nil || entries == nil {
-		return nil, false, errors.New("GitHub release query returned an invalid list")
+	if err := decoder.Decode(value); err != nil {
+		return nil, fmt.Errorf("invalid GitHub release response: %w", err)
 	}
 	if err := decoder.Decode(new(json.RawMessage)); err != io.EOF {
-		return nil, false, errors.New("Unexpected data after GitHub release list")
+		return nil, errors.New("unexpected data after GitHub release response")
 	}
-	return entries, strings.Contains(resp.Header.Get("Link"), `rel="next"`), nil
+	return resp.Header, nil
 }
