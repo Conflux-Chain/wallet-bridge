@@ -26,6 +26,7 @@ func main() {
 	os.Exit(cli.Run(os.Args[1:], cli.Dependencies{
 		BuildInfo:   info,
 		CheckUpdate: update.Check,
+		StageUpdate: update.Stage,
 		NewClient:   client.New,
 		OpenBrowser: platform.OpenBrowser,
 		RunMCP: func(dir string) error {

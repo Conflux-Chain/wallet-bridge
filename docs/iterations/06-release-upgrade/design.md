@@ -57,7 +57,22 @@ go test ./internal/update ./internal/cli -run 'TestRelease|TestUpdateCheck'
 
 按指定标签读取本仓库的公开 Release，从其元数据取得清单和程序的附件 ID、长度与 SHA-256。通过官方资产 API 下载文件，二进制下载允许跳转到 GitHub 附件 CDN。先核对清单的字节长度与摘要，找到目标程序唯一对应的一行。两处程序摘要一致后流式读取程序，并核对实际长度和摘要。调用方须丢弃失败的临时输出。
 
-在仓库根目录用项目指定的 Go 版本运行 `go test ./internal/update -run TestDownload -count=1 -v`。测试以模拟 GitHub 响应验证成功、截断、超长、文件被改、重复条目、错误标签和跳转范围。预期所有用例通过，进程退出即完成测试。CLI 和候选目录在 6-4b 接入。
+在仓库根目录用项目指定的 Go 版本运行 `go test ./internal/update -run TestDownload -count=1 -v`。测试以模拟 GitHub 响应验证成功、截断、超长、文件被改、重复条目、错误标签和跳转范围。预期所有用例通过，进程退出即完成测试。
+
+## 下载候选版本
+
+从 `update check` 的 `latest` 取得目标标签后，运行 `wallet-bridge update download <版本号> [--data-dir <绝对路径>] [--json]`。成功输出版本、文件路径与 SHA-256。命令读取 Windows PE 或 macOS Mach-O 的平台信息，核对通过后将文件保存到用户数据目录下的 `versions/<版本号>/`。启用版本由后续切换步骤处理。
+
+再次下载时，先从官方仓库重取清单，再核对本地候选。内容相同可直接复用，已有文件内容冲突会报错。并发下载通过同一文件系统的硬链接提交完整文件。
+
+在 Windows 或 macOS 仓库根目录使用项目指定的 Go 版本运行：
+
+```sh
+go run -tags no_web ./cmd/wallet-bridge update download --help
+go test ./internal/update ./internal/cli -run 'TestStage|TestUpdateDownload' -count=1 -v
+```
+
+第一条输出命令用法。第二条用模拟下载源和真实原生测试程序验证并发、复用和冲突，并检查错误架构的候选无法保存。用例自动清理临时目录。首次公开发布前，向真实仓库请求不存在的标签会返回 HTTP 404，退出码为 1。
 
 ## 拟实施的切换顺序
 

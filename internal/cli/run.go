@@ -18,6 +18,7 @@ import (
 type Dependencies struct {
 	BuildInfo     buildinfo.Info
 	CheckUpdate   func(context.Context, string, bool) (update.Result, error)
+	StageUpdate   func(context.Context, string, string) (update.Candidate, error)
 	RunMCP        func(dataDir string) error
 	NewClient     func(dataDir string) (*client.Client, error)
 	RunService    func(dataDir string) error
