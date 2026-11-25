@@ -4,7 +4,7 @@
 
 ## 迭代 5 · AI agent 接入
 
-首次连接的交互已确认，当前评审本轮规划。下一步实现 MCP STDIO 入口和工具发现。[迭代需求](05-agent-integration/spec.md) · [适配设计](05-agent-integration/design.md) · [PR 计划](05-agent-integration/plan.md)
+本轮规划已合并，当前步骤 5-1 交付 MCP STDIO 入口与工具发现。下一步细化首次连接工具的调用方名称和创建重试。[迭代需求](05-agent-integration/spec.md) · [适配设计](05-agent-integration/design.md) · [PR 计划](05-agent-integration/plan.md)
 
 ## 上轮交接
 

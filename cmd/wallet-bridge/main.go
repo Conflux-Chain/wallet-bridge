@@ -12,6 +12,7 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/buildinfo"
 	"github.com/Conflux-Chain/wallet-bridge/internal/cli"
 	"github.com/Conflux-Chain/wallet-bridge/internal/client"
+	"github.com/Conflux-Chain/wallet-bridge/internal/mcp"
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
 	"github.com/Conflux-Chain/wallet-bridge/internal/service"
 	"github.com/Conflux-Chain/wallet-bridge/web"
@@ -25,6 +26,11 @@ func main() {
 		BuildInfo:   info,
 		NewClient:   client.New,
 		OpenBrowser: platform.OpenBrowser,
+		RunMCP: func() error {
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
+			return mcp.Run(ctx, info.Version)
+		},
 		BrowserLink: func(dir string) (api.BrowserTicketResponse, error) {
 			c, err := client.New(dir)
 			if err != nil {

@@ -1,6 +1,8 @@
 # 迭代 5 PR 计划
 
-5-0 为本轮规划，待评审。下表各项均待开发，按顺序从合并后的 main 开分支。[需求](spec.md) · [设计](design.md)
+5-0 规划已合并为 `958cf0b`，三平台 CI 通过。Windows 首次在连接维护测试观察 SQLite 状态时遇到 `SQLITE_BUSY`，本机该用例连续 15 次通过，同一提交重跑通过。[PR #65](https://github.com/Conflux-Chain/wallet-bridge/pull/65) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45543399271)
+
+5-1 待评审，Windows 本机独立程序 smoke 已通过。5-2～5-6 待开发。[需求](spec.md) · [验证方法](design.md#验证-stdio-接入)
 
 | 步骤 | 单一交付 | 验证 |
 |---|---|---|
