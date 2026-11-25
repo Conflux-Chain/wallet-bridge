@@ -12,7 +12,7 @@
 
 5-5 已合并为 `0537a32`。三平台 CI 均通过查询、取消、服务重启和新 MCP 进程查回迟到哈希的模拟钱包用例。[PR #70](https://github.com/Conflux-Chain/wallet-bridge/pull/70) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45563009042)
 
-5-6 待评审。[Codex 配置、复现步骤与清理](../../codex.md)。
+5-6 已合并为 `b96cf68`，本轮规划和六个能力 PR 全部合并。Windows 首次在连接维护测试遇到 `SQLITE_BUSY`，本机连续 15 次通过，同一提交重跑后三平台 CI 通过。实测范围见下方 A-18 记录。[PR #71](https://github.com/Conflux-Chain/wallet-bridge/pull/71) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45566225167) · [Codex 接入指南](../../codex.md)
 
 | 步骤 | 单一交付 | 验证 |
 |---|---|---|
