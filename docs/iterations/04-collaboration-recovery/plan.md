@@ -19,4 +19,4 @@
 
 4-5 已合并为 `578627a`，三平台 CI 通过。Windows 首次运行在 Session 并发访问测试遇到 SQLite 锁等待超时，本机连续 30 次通过，同一提交重跑通过。[PR #63](https://github.com/Conflux-Chain/wallet-bridge/pull/63) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45538845989)
 
-4-6 验收 PR 覆盖两份 Session 共享钱包、服务重启、用户手动放行、迟到哈希及移除后的 CLI 查询。[验收与复现](acceptance.md)
+4-6 已合并为 `edb4861`，迭代 4 的六个步骤均已合并。Windows amd64、macOS amd64／arm64 均通过双 CLI 与模拟钱包组合用例，覆盖服务重启、手动放行、迟到哈希及移除后的 CLI 查询。本机已有服务占用测试端口，组合场景在 CI 运行。[PR #64](https://github.com/Conflux-Chain/wallet-bridge/pull/64) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45541688498) · [验收与复现](acceptance.md)
