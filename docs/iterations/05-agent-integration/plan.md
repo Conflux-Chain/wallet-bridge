@@ -8,7 +8,9 @@
 
 5-3 已合并为 `f40b396`。三平台 CI 均通过服务重启后取消连接、Session 查询与重复关闭。[PR #68](https://github.com/Conflux-Chain/wallet-bridge/pull/68) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45556987685)
 
-5-4 待评审，覆盖创建原始交易审阅请求。5-5～5-6 待开发。[创建单笔交易](design.md#创建单笔交易) · [复现步骤](design.md#验证-mcp-交易创建)
+5-4 已合并为 `dfddcf2`，三平台 CI 均通过独立程序的原始交易创建、重试和审阅用例。[PR #69](https://github.com/Conflux-Chain/wallet-bridge/pull/69) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45560131376)
+
+5-5 待评审，覆盖查询、取消与迟到哈希。5-6 待开发。[复现步骤](design.md#验证-mcp-交易)
 
 | 步骤 | 单一交付 | 验证 |
 |---|---|---|
