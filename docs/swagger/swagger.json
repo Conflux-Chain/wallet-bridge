@@ -7,7 +7,7 @@
         "description": "Local service access, browser authorization, client connection/Session and transaction lifecycle, browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.13"
+        "version": "1.14"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -67,6 +67,97 @@
                     },
                     "405": {
                         "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/browser/activity/remove": {
+            "post": {
+                "security": [
+                    {
+                        "BrowserCookie": []
+                    }
+                ],
+                "description": "Idempotent for a finished request. The original request remains available by ID. Unfinished requests, including uncertain wallet outcomes, remain visible.",
+                "consumes": [
+                    "application/json"
+                ],
+                "summary": "Remove a finished request from the local activity list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Fixed local origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Request to remove from activity",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.ActivityRemoveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Removed"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -2948,7 +3039,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 13
+                    "example": 14
                 }
             }
         },
@@ -2989,6 +3080,9 @@
                 }
             }
         },
+        "api.ActivityRemoveRequest": {
+            "type": "object"
+        },
         "api.ActivityResponse": {
             "type": "object",
             "properties": {
@@ -3011,6 +3105,9 @@
                         "connection",
                         "transaction"
                     ]
+                },
+                "removable": {
+                    "type": "boolean"
                 },
                 "sessionId": {
                     "type": "string"
@@ -3403,7 +3500,8 @@
                         "browser.transactions.coordination",
                         "browser.transactions.decisions",
                         "browser.pending-requests",
-                        "browser.activity"
+                        "browser.activity",
+                        "browser.activity.remove"
                     ]
                 },
                 "challenge": {

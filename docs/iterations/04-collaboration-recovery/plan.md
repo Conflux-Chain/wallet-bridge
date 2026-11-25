@@ -15,4 +15,6 @@
 
 4-3 已合并为 `815c35d`，三平台 CI 通过。HTTP／SQLite 用例验证跨页顺序、重试去重、到期显示、访问控制，以及 Session 关闭后补回哈希并保留原排序。[PR #61](https://github.com/Conflux-Chain/wallet-bridge/pull/61) · [复现步骤](design.md#验证活动记录接口)
 
-4-4 待评审。Windows 独立程序已构建，本机 Chrome 在模拟响应下验证了翻页、迟到哈希、窄屏显示、读取失败与授权失效。[4-4 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Fbrowser-activity-page) · [复现步骤](design.md#验证活动记录页面)
+4-4 已合并为 `5a8a45a`。三平台 CI 通过，覆盖打开原请求、翻页、迟到哈希、读取失败及授权失效。[PR #62](https://github.com/Conflux-Chain/wallet-bridge/pull/62) · [复现步骤](design.md#验证活动记录页面)
+
+4-5 待评审。Windows HTTP／SQLite 测试已验证逐条移除、未决交易保护、同 ID 隔离、重启后幂等重试及原结果查询，本机 Chrome 已用模拟响应验证移除反馈。[4-5 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Fremove-finished-activity) · [复现步骤](design.md#验证活动记录页面)

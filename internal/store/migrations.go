@@ -202,6 +202,12 @@ FROM transaction_requests r LEFT JOIN transaction_results o ON o.transaction_id 
 `, `
 CREATE INDEX connection_requests_by_creation ON connection_requests (created_at, id);
 CREATE INDEX transaction_requests_by_creation ON transaction_requests (created_at, id);
+`, `
+CREATE TABLE removed_activities (
+    kind TEXT NOT NULL CHECK (kind IN ('connection', 'transaction')),
+    request_id TEXT NOT NULL,
+    PRIMARY KEY (kind, request_id)
+) WITHOUT ROWID;
 `}
 
 const closeSessionTransactionsV6 = `

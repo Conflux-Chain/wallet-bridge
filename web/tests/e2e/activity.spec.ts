@@ -16,6 +16,7 @@ test('an authorized user can find requests, refresh their outcomes and open the 
   const transaction = rows.filter({ has: page.getByRole('link', { name: '交易 · WorkBuddy' }) });
   const connection = rows.filter({ has: page.getByRole('link', { name: '连接 · Codex' }) });
   await expect(transaction).toContainText('待审批');
+  await expect(rows.getByRole('button', { name: '从活动列表移除' })).toHaveCount(0);
   await expect(transaction).toContainText(sessionId);
   await expect(connection.getByRole('link')).toHaveAttribute('href', '/?connection=' + id);
   expect(await page.evaluate(() => window.reviewWallet.calls)).toEqual([]);
@@ -24,6 +25,9 @@ test('an authorized user can find requests, refresh their outcomes and open the 
   await page.getByRole('button', { name: '刷新记录' }).click();
   await expect(transaction).toContainText('已取消');
   await expect(connection).toContainText('已取消');
+  await connection.getByRole('button', { name: '从活动列表移除' }).click();
+  await expect(connection).toHaveCount(0);
+  expect((await connectionClient('connections/' + id)).state).toBe('canceled');
   await transaction.getByRole('link').click();
   await expect(page).toHaveURL(/\?transaction=/);
   await expect(page.getByText('已取消', { exact: true })).toBeVisible();

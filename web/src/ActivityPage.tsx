@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { browserRequest, type BrowserStatus } from './api/browser';
 import { requestStates } from './requestStates';
 import { networks } from './wallet/networks';
@@ -12,6 +12,7 @@ interface Activity {
   state: keyof typeof requestStates;
   sessionId?: string;
   txHash?: string;
+  removable?: boolean;
 }
 
 interface ActivityPageData { activities: Activity[]; nextAfter?: string }
@@ -31,6 +32,32 @@ export function ActivityPage({ status, after, onUnauthorized }: {
 }) {
   const [data, setData] = useState<ActivityPageData | 'loading' | 'error'>('loading');
   const [refresh, setRefresh] = useState(0);
+  const [removing, setRemoving] = useState(false);
+  const [notice, setNotice] = useState('');
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+
+  async function remove(row: Activity) {
+    setRemoving(true);
+    setNotice('');
+    try {
+      const response = await browserRequest('browser/activity/remove', { kind: row.kind, id: row.id });
+      if (!mounted.current) return;
+      if (response.status === 401) { onUnauthorized(); return; }
+      if (!response.ok) throw new Error();
+      setNotice('已从活动列表移除，仍可按原请求 ID 查询。');
+    } catch {
+      if (mounted.current) setNotice('暂时无法确认移除结果，请核对刷新后的列表。');
+    } finally {
+      if (mounted.current) {
+        setRefresh(value => value + 1);
+        setRemoving(false);
+      }
+    }
+  }
   useEffect(() => {
     let current = true;
     async function read() {
@@ -65,6 +92,7 @@ export function ActivityPage({ status, after, onUnauthorized }: {
       </div>
       {data === 'loading' && <p role="status">正在读取活动记录…</p>}
       {data === 'error' && <p role="alert">暂时无法读取活动记录。请点击「刷新记录」重试。</p>}
+      {notice && <p role="status">{notice}</p>}
       {typeof data === 'object' && (data.activities.length === 0 ? <p>此页没有活动记录。</p> : <ol>
         {data.activities.map(row => {
           const network = networks.get(row.chainId);
@@ -77,6 +105,8 @@ export function ActivityPage({ status, after, onUnauthorized }: {
             <div>请求 ID <code>{row.id}</code></div>
             {row.sessionId && <div>Session ID <code>{row.sessionId}</code></div>}
             {row.txHash && <div>交易哈希 <code>{row.txHash}</code></div>}
+            {row.removable === true && status.info.capabilities.includes('browser.activity.remove') &&
+              <button type="button" className="secondary" disabled={removing} onClick={() => void remove(row)}>从活动列表移除</button>}
           </li>;
         })}
       </ol>)}

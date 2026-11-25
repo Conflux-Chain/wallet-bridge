@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 13
+        example: 14
         type: integer
     type: object
   api.ActiveWalletRequestResponse:
@@ -34,6 +34,8 @@ definitions:
       nextAfter:
         type: string
     type: object
+  api.ActivityRemoveRequest:
+    type: object
   api.ActivityResponse:
     properties:
       chainId:
@@ -50,6 +52,8 @@ definitions:
         - connection
         - transaction
         type: string
+      removable:
+        type: boolean
       sessionId:
         type: string
       state:
@@ -325,6 +329,7 @@ definitions:
         - browser.transactions.decisions
         - browser.pending-requests
         - browser.activity
+        - browser.activity.remove
         items:
           type: string
         type: array
@@ -626,7 +631,7 @@ info:
     and transaction lifecycle, browser execution coordination, wallet handoff and
     connection consent.
   title: Wallet Bridge Local API
-  version: "1.13"
+  version: "1.14"
 paths:
   /browser/activity:
     get:
@@ -674,6 +679,67 @@ paths:
       security:
       - BrowserCookie: []
       summary: List local wallet activity
+  /browser/activity/remove:
+    post:
+      consumes:
+      - application/json
+      description: Idempotent for a finished request. The original request remains
+        available by ID. Unfinished requests, including uncertain wallet outcomes,
+        remain visible.
+      parameters:
+      - description: Fixed local origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: Request to remove from activity
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ActivityRemoveRequest'
+      responses:
+        "204":
+          description: Removed
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: Remove a finished request from the local activity list
   /browser/authorize:
     post:
       consumes:

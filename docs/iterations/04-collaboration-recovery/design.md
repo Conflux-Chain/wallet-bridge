@@ -12,6 +12,10 @@ SQLite 用一条查询读取两类仍为 pending 且未到期的请求，共用�
 
 同一次 SQLite 读取合并连接请求和交易状态视图，按创建时间、ID、类型依次倒序。待审批请求越过期限即显示已到期。使用两个创建时间索引和 `limit`／`after` 游标向前翻阅历史，每页默认及最多 50 条。读取沿用原始记录，旧数据和后续回报均可查询。
 
+## 逐条移除活动
+
+已授权页面通过 `POST /api/v1/browser/activity/remove` 提交一个请求类型与 ID。SQLite 在同一写事务内校验管理授权和请求当前状态，按类型与 ID 保存唯一移除标记。活动查询在分页前排除标记，原请求与钱包结果继续供查询、重试和恢复使用。活动摘要的 `removable` 字段控制页面入口。
+
 ## 本地验证
 
 在装有项目指定 Go 版本的 Windows 或 macOS 仓库根目录执行以下命令。
@@ -30,7 +34,7 @@ go test -tags no_web ./internal/api -run '^TestBrowserPendingRequests' -count=1 
 go test -tags no_web ./internal/api -run '^TestBrowserActivity' -count=1 -v
 ```
 
-预期三个用例通过。测试经 HTTP 接口读取临时 SQLite，验证同毫秒同 ID 的跨页边界、翻页时插入新请求、重试去重、到期显示、读取权限，以及关闭 Session 后补回哈希。测试自动清理，无需占用本机服务端口。
+预期四个用例通过。测试经 HTTP 接口读取临时 SQLite，验证同毫秒同 ID 的跨页边界、翻页时插入新请求、重试去重、到期显示、管理权限，以及关闭 Session 后补回哈希。移除用例重新打开数据库后，再次移除同一项并按原 ID 重试。测试自动清理，无需占用本机服务端口。
 
 ## 验证管理首页
 
@@ -65,4 +69,6 @@ npm --prefix web run browser:install
 npm --prefix web run test:e2e -- activity.spec.ts
 ```
 
-预期三个用例通过。首项使用临时服务创建同 ID 的连接和交易，关闭 Session 后核对状态及原请求链接。其余用例模拟分页、迟到哈希、服务错误和浏览器授权失效。测试自动停止服务并清理临时数据。
+预期三个用例通过。首项使用临时服务创建同 ID 的连接和交易，逐条移除已取消的连接，核对原连接结果及同 ID 的交易链接。其余用例模拟分页、迟到哈希、服务错误和浏览器授权失效。测试自动停止服务并清理临时数据。
+
+手动核对时，记下已拒绝连接的请求 ID，点击该条目的「从活动列表移除」，刷新后该条目应消失。用同一可执行程序运行 `wallet-bridge connection get <请求ID> --json`，应仍返回原 ID 和 `rejected`。如使用自定义数据目录，沿用原来的 `--data-dir`。
