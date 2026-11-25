@@ -49,7 +49,7 @@ try {
     assert.equal(init.serverInfo.version, info.version);
     assert.ok(init.capabilities.tools);
     const { tools } = await request('tools/list', {});
-    assert.deepEqual(tools.map(tool => tool.name).sort(), ['create_connection', 'get_connection']);
+    assert.deepEqual(tools.map(tool => tool.name).sort(), ['cancel_connection', 'close_session', 'create_connection', 'get_connection', 'get_session']);
     const create = tools.find(tool => tool.name === 'create_connection');
     assert.deepEqual([...create.inputSchema.required].sort(), ['chainId', 'requestId']);
     assert.equal(create.inputSchema.additionalProperties, false);

@@ -19,7 +19,21 @@ func Run(ctx context.Context, info buildinfo.Info, dataDir string) error {
 	}, tools.create)
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        "get_connection",
-		Description: "Look up the original connection by requestId, including after an interruption. While pending, leave time between checks. Stop polling on succeeded, rejected, canceled or expired.",
+		Description: "Look up the original connection by requestId, including after an interruption. While pending, leave time between checks. Stop polling on succeeded, rejected, canceled or expired. On success, call get_session with the returned sessionId to show the fixed wallet, account and network.",
 	}, tools.get)
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        "cancel_connection",
+		Description: "Cancel a pending connection when the user wants to withdraw it. Returns the effective state if approval, refusal or expiry already took effect.",
+		Annotations: &sdk.ToolAnnotations{IdempotentHint: true},
+	}, tools.cancel)
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        "get_session",
+		Description: "Look up a Session by sessionId and show its fixed wallet, account, chain and active or closed state. Access renews an active Session's five-minute idle deadline.",
+	}, tools.getSession)
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        "close_session",
+		Description: "Close this Session and cancel its pending requests that have not reached the wallet. Returns the closed Session, including on repeat calls. A transaction already handed to the wallet may still return a hash.",
+		Annotations: &sdk.ToolAnnotations{IdempotentHint: true},
+	}, tools.closeSession)
 	return server.Run(ctx, &sdk.StdioTransport{})
 }
