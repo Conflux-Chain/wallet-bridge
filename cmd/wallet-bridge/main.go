@@ -25,6 +25,7 @@ func main() {
 	info.UIEmbedded = err == nil && !entry.IsDir()
 	os.Exit(cli.Run(os.Args[1:], cli.Dependencies{
 		BuildInfo:   info,
+		Install:     update.Install,
 		CheckUpdate: update.Check,
 		StageUpdate: update.Stage,
 		NewClient:   client.New,

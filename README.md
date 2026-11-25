@@ -26,6 +26,8 @@
 
 使用 Codex 的开发者可按[Codex 接入指南](docs/codex.md)注册 MCP、发起首次连接，并验证中断后的结果查询。
 
+需要长期使用时，运行下载或构建的程序并加上 `install`，将输出的绝对路径用于 CLI 和 Codex。安装成功后可清理下载副本。[安装位置与隔离测试](docs/iterations/06-release-upgrade/design.md#本机安装)
+
 ### 环境准备
 
 先安装 [go.mod](go.mod)、[.node-version](.node-version) 和 [web/package.json](web/package.json) 指定的 Go、Node.js 和 npm。以下命令均在仓库根目录执行。首次检出或依赖锁文件更新后安装前端依赖：

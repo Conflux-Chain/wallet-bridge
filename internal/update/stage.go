@@ -63,7 +63,7 @@ func stage(ctx context.Context, client *http.Client, tag, dir string) (Candidate
 	finalDir := filepath.Join(versions, tag)
 	result := Candidate{Version: tag, Path: filepath.Join(finalDir, name), SHA256: strings.TrimPrefix(asset.Digest, "sha256:")}
 	if err := platform.CheckPrivateDir(finalDir); err == nil {
-		if err := verifyExisting(result); err == nil {
+		if err := verifyExecutable(result.Path, result.SHA256); err == nil {
 			return result, nil
 		} else if !errors.Is(err, os.ErrNotExist) {
 			return Candidate{}, err
@@ -77,7 +77,7 @@ func stage(ctx context.Context, client *http.Client, tag, dir string) (Candidate
 		return Candidate{}, err
 	}
 	defer os.Remove(temp.Name())
-	if err := writeCandidate(ctx, client, asset, temp); err != nil {
+	if err := writeExecutable(temp, func(w io.Writer) error { return asset.copyVerified(ctx, client, w) }); err != nil {
 		return Candidate{}, err
 	}
 	if err := ctx.Err(); err != nil {
@@ -86,21 +86,15 @@ func stage(ctx context.Context, client *http.Client, tag, dir string) (Candidate
 	if err := platform.EnsurePrivateDir(finalDir); err != nil {
 		return Candidate{}, err
 	}
-	// Competing downloads cannot overwrite an already complete candidate.
-	if err := os.Link(temp.Name(), result.Path); err != nil {
-		if !errors.Is(err, os.ErrExist) {
-			return Candidate{}, err
-		}
-		if err := verifyExisting(result); err != nil {
-			return Candidate{}, err
-		}
+	if err := publishExecutable(temp.Name(), result.Path, result.SHA256); err != nil {
+		return Candidate{}, err
 	}
 	return result, nil
 }
 
-func writeCandidate(ctx context.Context, client *http.Client, asset releaseAsset, f *os.File) (err error) {
+func writeExecutable(f *os.File, write func(io.Writer) error) (err error) {
 	defer func() { err = errors.Join(err, f.Close()) }()
-	if err := asset.copyVerified(ctx, client, f); err != nil {
+	if err := write(f); err != nil {
 		return err
 	}
 	if err := checkNativeExecutable(f); err != nil {
@@ -110,6 +104,15 @@ func writeCandidate(ctx context.Context, client *http.Client, asset releaseAsset
 		return err
 	}
 	return f.Sync()
+}
+
+// Link only a complete program. A concurrent installer may already have won.
+func publishExecutable(temp, path, digest string) error {
+	err := os.Link(temp, path)
+	if errors.Is(err, os.ErrExist) {
+		return verifyExecutable(path, digest)
+	}
+	return err
 }
 
 func checkNativeExecutable(f *os.File) error {
@@ -130,15 +133,15 @@ func checkNativeExecutable(f *os.File) error {
 	return fmt.Errorf("candidate is not a %s/%s executable", runtime.GOOS, runtime.GOARCH)
 }
 
-func verifyExisting(c Candidate) error {
-	info, err := os.Lstat(c.Path)
+func verifyExecutable(path, digest string) error {
+	info, err := os.Lstat(path)
 	if err != nil {
 		return err
 	}
 	if !info.Mode().IsRegular() {
-		return fmt.Errorf("invalid candidate file: %s", c.Path)
+		return fmt.Errorf("expected a regular executable: %s", path)
 	}
-	f, err := os.Open(c.Path)
+	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
@@ -148,17 +151,17 @@ func verifyExisting(c Candidate) error {
 		return err
 	}
 	if !os.SameFile(info, opened) {
-		return errors.New("candidate changed while opening")
+		return errors.New("program changed while opening")
 	}
 	hash := sha256.New()
 	if _, err := io.Copy(hash, f); err != nil {
 		return err
 	}
-	if fmt.Sprintf("%x", hash.Sum(nil)) != c.SHA256 {
-		return fmt.Errorf("existing candidate checksum differs: %s", c.Path)
+	if fmt.Sprintf("%x", hash.Sum(nil)) != digest {
+		return fmt.Errorf("existing program checksum differs: %s", path)
 	}
 	if runtime.GOOS == "darwin" && info.Mode().Perm() != 0700 {
-		return errors.New("unexpected candidate permissions")
+		return errors.New("unexpected executable permissions")
 	}
 	return checkNativeExecutable(f)
 }

@@ -4,20 +4,21 @@
 
 ## 注册 MCP
 
-在仓库根目录按 [README 环境准备](../README.md#环境准备)安装依赖，然后运行 `npm --prefix web run bundle`。Codex 通过 STDIO 启动这个程序，使用绝对路径可以从其他工作目录发起请求。
+下面以本机构建为例。在仓库根目录按 [README 环境准备](../README.md#环境准备)安装依赖，然后运行 `npm --prefix web run bundle`。已有独立程序时可直接使用其路径。Codex 通过 STDIO 启动程序，长期使用可先运行 `install` 并注册它输出的固定路径。若选择直接运行，将 `bridge` 设为原程序的绝对路径并保留该文件。
 
 Windows PowerShell：
 
 ```powershell
-$bridge = (Resolve-Path .\dist\wallet-bridge-windows-amd64.exe).Path
+$bridge = .\dist\wallet-bridge-windows-amd64.exe install
+if ($LASTEXITCODE -ne 0) { throw 'Wallet Bridge install failed' }
 codex mcp add wallet_bridge -- "$bridge" mcp
 ```
 
 macOS（Intel 将 `arm64` 换为 `amd64`）：
 
 ```sh
-bridge="$PWD/dist/wallet-bridge-darwin-arm64"
-codex mcp add wallet_bridge -- "$bridge" mcp
+bridge="$(./dist/wallet-bridge-darwin-arm64 install)" &&
+  codex mcp add wallet_bridge -- "$bridge" mcp
 ```
 
 运行 `codex mcp get wallet_bridge --json`，核对 `enabled` 为 `true`、`transport.type` 为 `stdio`、命令为上述绝对路径且参数为 `["mcp"]`。然后打开新的 Codex 会话。首次钱包调用会启动或复用本机服务。[Codex MCP 配置](https://developers.openai.com/codex/mcp/)

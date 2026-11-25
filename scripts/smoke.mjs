@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,8 +14,8 @@ const binary = join(root, 'dist', `wallet-bridge-${goos}-${goarch}${goos === 'wi
 const isolatedEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => key.toLowerCase() !== 'path'));
 isolatedEnv.PATH = '';
 
-function run(args, status = 0) {
-  const result = spawnSync(binary, args, { cwd: root, env: isolatedEnv, encoding: 'utf8' });
+function run(args, status = 0, program = binary) {
+  const result = spawnSync(program, args, { cwd: root, env: isolatedEnv, encoding: 'utf8' });
   if (result.error) throw result.error;
   assert.equal(result.status, status, result.stderr);
   if (status === 0) assert.equal(result.stderr, '');
@@ -39,12 +39,21 @@ run(['version', '--unknown-flag'], 2);
 run(['version', 'unexpected-argument'], 2);
 assert.match(run(['mcp', '--help']).stdout, /wallet-bridge mcp/);
 run(['mcp', 'unexpected-argument'], 2);
+run(['install', '--data-dir', 'relative'], 2);
 
 // Exercise the packaged STDIO endpoint without using the user's Bridge data.
 const profile = mkdtempSync(join(tmpdir(), 'wallet-bridge-mcp-'));
 try {
+  const dir = join(profile, 'Bridge data');
+  const download = join(profile, goos === 'windows' ? 'download.exe' : 'download');
+  copyFileSync(binary, download);
+  const installed = run(['install', '--data-dir', dir], 0, download).stdout.trim();
+  assert.equal(installed, join(dir, 'bin', goos === 'windows' ? 'wallet-bridge.exe' : 'wallet-bridge'));
+  rmSync(download);
+  assert.deepEqual(JSON.parse(run(['version', '--json'], 0, installed).stdout), info);
+  assert.deepEqual(JSON.parse(run(['install', '--data-dir', dir, '--json'], 0, installed).stdout), { path: installed });
   const env = { ...isolatedEnv, HOME: profile, LOCALAPPDATA: profile };
-  await withMCP({ binary, env, clientInfo: { name: 'smoke', version: '1' } }, async (init, request) => {
+  await withMCP({ binary: installed, env, clientInfo: { name: 'smoke', version: '1' } }, async (init, request) => {
     assert.equal(init.serverInfo.name, 'wallet-bridge');
     assert.equal(init.serverInfo.version, info.version);
     assert.ok(init.capabilities.tools);
@@ -61,9 +70,9 @@ try {
     assert.deepEqual([...txSchema.properties.transaction.required].sort(), ['chainId', 'from', 'to']);
     assert.equal(txSchema.properties.transaction.additionalProperties, false);
   });
-  assert.deepEqual(readdirSync(profile), [], 'Discovery created local service data');
+  assert.deepEqual(readdirSync(profile), ['Bridge data'], 'Discovery created local service data');
 } finally {
   rmSync(profile, { recursive: true, force: true });
 }
-console.log('MCP discovery passed');
+console.log('Installed CLI and MCP discovery passed');
 console.log(`Smoke passed: ${info.platform}, embedded UI, empty PATH`);
