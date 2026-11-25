@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-6-3 已合并。6-4a 下载字节校验待评审，下一项是 CLI 下载、平台检查与候选目录写入。[校验测试](06-release-upgrade/design.md#下载字节校验) · [本轮需求](06-release-upgrade/spec.md) · [PR 计划](06-release-upgrade/plan.md)
+6-4a 已合并，6-4b CLI 下载和候选目录写入待评审。下一项是本机启用版本与启动入口。[候选下载测试](06-release-upgrade/design.md#下载候选版本) · [本轮需求](06-release-upgrade/spec.md) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

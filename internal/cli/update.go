@@ -8,17 +8,24 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/client"
+	"github.com/Conflux-Chain/wallet-bridge/internal/update"
 )
 
-const updateUsage = "Usage: wallet-bridge update check [--include-preview] [--json]"
+const downloadUsage = "Usage: wallet-bridge update download <version> [--data-dir <absolute path>] [--json]"
+const updateUsage = "Usage: wallet-bridge update check [--include-preview] [--json]\n" + downloadUsage
 
 func runUpdate(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	if len(args) == 0 || (len(args) == 1 && (args[0] == "--help" || args[0] == "-h")) {
 		fmt.Fprintln(stdout, updateUsage)
 		return 0
+	}
+	if args[0] == "download" {
+		return runDownload(args[1:], deps, stdout, stderr)
 	}
 	if args[0] != "check" {
 		fmt.Fprintln(stderr, updateUsage)
@@ -64,6 +71,44 @@ func runUpdate(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	}
 	if err != nil {
 		return commandError(stderr, *asJSON, &client.Error{Code: "output_error", Message: "Cannot write release check result"}, "")
+	}
+	return 0
+}
+
+func runDownload(args []string, deps Dependencies, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("update download", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	dir := flags.String("data-dir", "", "Use an absolute private data directory")
+	asJSON := flags.Bool("json", false, "Print structured output")
+	var versions []string
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		versions = []string{args[0]}
+		args = args[1:]
+	}
+	if code, done := parseFlags(flags, args, downloadUsage, stdout, stderr); done {
+		return code
+	}
+	versions = append(versions, flags.Args()...)
+	if len(versions) != 1 || !update.ValidReleaseTag(versions[0]) || (*dir != "" && !filepath.IsAbs(*dir)) {
+		fmt.Fprintln(stderr, downloadUsage)
+		return 2
+	}
+	if deps.StageUpdate == nil {
+		return commandError(stderr, *asJSON, &client.Error{Code: "configuration_error", Message: "Release downloader is unavailable"}, "")
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	result, err := deps.StageUpdate(ctx, versions[0], *dir)
+	if err != nil {
+		return commandError(stderr, *asJSON, &client.Error{Code: "release_download_failed", Message: err.Error()}, "")
+	}
+	if *asJSON {
+		err = json.NewEncoder(stdout).Encode(result)
+	} else {
+		_, err = fmt.Fprintf(stdout, "Candidate %s: %s\nSHA-256: %s\n", result.Version, result.Path, result.SHA256)
+	}
+	if err != nil {
+		return commandError(stderr, *asJSON, &client.Error{Code: "output_error", Message: "Cannot write release download result"}, "")
 	}
 	return 0
 }

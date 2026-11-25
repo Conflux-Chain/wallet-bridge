@@ -73,43 +73,51 @@ func DownloadProgram(ctx context.Context, tag, name string, dst io.Writer) (stri
 }
 
 func downloadProgram(ctx context.Context, client *http.Client, tag, name string, dst io.Writer) (string, error) {
-	if !validReleaseTag(tag) {
-		return "", errors.New("invalid release tag")
-	}
-	var r taggedRelease
-	if _, err := githubJSON(ctx, client, releasesURL+"/tags/"+tag, &r); err != nil {
-		return "", err
-	}
-	if r.Tag != tag || r.Draft {
-		return "", errors.New("release is not the requested published tag")
-	}
-	manifest, err := r.asset("SHA256SUMS")
+	program, err := resolveProgram(ctx, client, tag, name)
 	if err != nil {
 		return "", err
-	}
-	program, err := r.asset(name)
-	if err != nil {
-		return "", err
-	}
-	// The manifest contains one checksum per release target and is held in memory.
-	if manifest.Size > 64<<10 {
-		return "", errors.New("release checksum list is too large")
-	}
-	var list bytes.Buffer
-	if err := manifest.copyVerified(ctx, client, &list); err != nil {
-		return "", err
-	}
-	digest, err := manifestDigest(list.String(), name)
-	if err != nil {
-		return "", err
-	}
-	if program.Digest != "sha256:"+digest {
-		return "", errors.New("program digest differs between GitHub and SHA256SUMS")
 	}
 	if err := program.copyVerified(ctx, client, dst); err != nil {
 		return "", err
 	}
-	return digest, nil
+	return strings.TrimPrefix(program.Digest, "sha256:"), nil
+}
+
+func resolveProgram(ctx context.Context, client *http.Client, tag, name string) (releaseAsset, error) {
+	if !ValidReleaseTag(tag) {
+		return releaseAsset{}, errors.New("invalid release tag")
+	}
+	var r taggedRelease
+	if _, err := githubJSON(ctx, client, releasesURL+"/tags/"+tag, &r); err != nil {
+		return releaseAsset{}, err
+	}
+	if r.Tag != tag || r.Draft {
+		return releaseAsset{}, errors.New("release is not the requested published tag")
+	}
+	manifest, err := r.asset("SHA256SUMS")
+	if err != nil {
+		return releaseAsset{}, err
+	}
+	program, err := r.asset(name)
+	if err != nil {
+		return releaseAsset{}, err
+	}
+	// The manifest contains one checksum per release target and is held in memory.
+	if manifest.Size > 64<<10 {
+		return releaseAsset{}, errors.New("release checksum list is too large")
+	}
+	var list bytes.Buffer
+	if err := manifest.copyVerified(ctx, client, &list); err != nil {
+		return releaseAsset{}, err
+	}
+	digest, err := manifestDigest(list.String(), name)
+	if err != nil {
+		return releaseAsset{}, err
+	}
+	if program.Digest != "sha256:"+digest {
+		return releaseAsset{}, errors.New("program digest differs between GitHub and SHA256SUMS")
+	}
+	return program, nil
 }
 
 func manifestDigest(list, name string) (string, error) {

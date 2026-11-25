@@ -44,7 +44,7 @@ func check(ctx context.Context, client *http.Client, url, current string, includ
 		}
 		for _, r := range releases {
 			// x/mod also accepts v1 and v1.0, while our release tags use all three components.
-			if r.Draft || !validReleaseTag(r.Tag) {
+			if r.Draft || !ValidReleaseTag(r.Tag) {
 				continue
 			}
 			if !includePreview && (r.Prerelease || semver.Prerelease(r.Tag) != "") {
@@ -73,7 +73,8 @@ func check(ctx context.Context, client *http.Client, url, current string, includ
 	return result, nil
 }
 
-func validReleaseTag(tag string) bool {
+// ValidReleaseTag accepts the complete, v-prefixed versions produced by the release build.
+func ValidReleaseTag(tag string) bool {
 	return semver.IsValid(tag) && semver.Canonical(tag)+semver.Build(tag) == tag
 }
 

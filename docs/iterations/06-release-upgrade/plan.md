@@ -8,7 +8,9 @@
 
 6-3 已合并为 `4ba6e7a`，三平台 CI 通过。Windows 真实查询本仓库返回 `no_release`，版本选择通过模拟分页响应验证。[PR #75](https://github.com/Conflux-Chain/wallet-bridge/pull/75) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45578324116)
 
-6-4a 待评审。本地模拟下载已验证清单和程序摘要、短读／超长及无效附件。真实发行附件待首次发布后验证。[复现步骤](design.md#下载字节校验)
+6-4a 已合并为 `2a32d0d`。三平台 CI 通过，Apple Silicon 首轮在既有浏览器授权测试读取地址栏时失败，同一提交重跑通过。[PR #76](https://github.com/Conflux-Chain/wallet-bridge/pull/76) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45582151454) · [字节校验测试](design.md#下载字节校验)
+
+6-4b 待评审。Windows 本机通过并发写入、复用、冲突和错误平台的模拟下载测试。真实查询不存在的发行标签返回 404，未产生候选目录。真实附件下载成功路径待首次公开发行后验证。[复现步骤](design.md#下载候选版本)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|
