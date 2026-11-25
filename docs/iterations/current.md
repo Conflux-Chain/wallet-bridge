@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-6-0 规划待评审。下一项是本地生成三平台发行产物与校验清单。[本轮需求](06-release-upgrade/spec.md) · [设计草案](06-release-upgrade/design.md) · [PR 计划](06-release-upgrade/plan.md)
+6-0 规划已合并，6-1 本地发行构建待评审。下一项是 GitHub Releases 发行流程。[构建与核对步骤](06-release-upgrade/design.md#本地发行构建) · [本轮需求](06-release-upgrade/spec.md) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

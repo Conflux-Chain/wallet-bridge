@@ -54,6 +54,8 @@ npm --prefix web run dev
 
 ### 构建与检查
 
+在仓库根目录运行 `npm --prefix web run release:build -- v0.0.0-local.1` 可生成三平台独立程序和 SHA-256 清单。[本地发行构建与核对步骤](docs/iterations/06-release-upgrade/design.md#本地发行构建)
+
 验证 MCP 工具发现可运行下列 `bundle` 和 `smoke` 两项。连接与单笔交易可运行独立程序的端到端用例。[STDIO 握手与工具发现](docs/iterations/05-agent-integration/design.md#验证-stdio-接入) · [MCP 首次连接](docs/iterations/05-agent-integration/design.md#验证-mcp-连接) · [MCP 交易创建、查询与取消](docs/iterations/05-agent-integration/design.md#验证-mcp-交易)
 
 ```sh
