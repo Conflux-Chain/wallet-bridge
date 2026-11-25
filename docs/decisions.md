@@ -72,6 +72,7 @@
 | D-063 | 用户确认 | Codex 展示首次连接的审批链接后，任务运行期间优先自动查询。用户稍后说「继续」时，按原请求 ID 取回结果。[首次连接](iterations/05-agent-integration/spec.md#首次连接) | 2026-11-25，用户选择优先自动查询、支持稍后继续 |
 | D-064 | 用户确认 | 首次连接使用 MCP 握手标题或名称。agent 在调用前准备请求 ID，响应丢失后复用原 ID。[连接来源与重试](iterations/05-agent-integration/spec.md#连接来源与重试) | 2026-11-25，用户确认调用方名称来源及重试方式 |
 | D-065 | 用户确认 | MCP 创建交易时可省略意图。agent 无法可靠说明 calldata 时，用户仍可审阅原始字段。[后续请求](iterations/05-agent-integration/spec.md#后续请求) | 2026-11-25，用户选择允许省略、保留原始字段 |
+| D-066 | 用户确认 | 交易结果未确定时，Codex 结束自动等待，提示可能已广播，稍后按原请求 ID 查询迟到哈希。[后续请求](iterations/05-agent-integration/spec.md#后续请求) | 2026-11-25，用户确认 agent 的等待与恢复方式 |
 
 ## 新增记录时应包含
 

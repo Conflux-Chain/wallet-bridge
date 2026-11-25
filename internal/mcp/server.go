@@ -44,8 +44,17 @@ func Run(ctx context.Context, info buildinfo.Info, dataDir string) error {
 	}
 	sdk.AddTool(server, &sdk.Tool{
 		Name: "create_transaction", InputSchema: input,
-		Description: "Create one transaction for browser review. Generate a fresh random requestId per intended transaction. Retry with the original ID and inputs. Provide the fixed Session sender and chain. Show the returned review link immediately. The user confirms sending in the browser wallet.",
+		Description: "Create one transaction for browser review. Generate a fresh random requestId per intended transaction. Retry with the original ID and inputs. Provide the fixed Session sender and chain. Show the review link immediately, then use get_transaction to follow the original request. The user confirms sending in the browser wallet.",
 		Annotations: &sdk.ToolAnnotations{IdempotentHint: true, DestructiveHint: new(false)},
 	}, tools.createTransaction)
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        "get_transaction",
+		Description: "Look up the original transaction by requestId. While pending or awaiting_wallet, leave time between checks. Stop automatic polling on all other states. If uncertain, tell the user it may have been broadcast and keep the ID for a later lookup. Never automatically resubmit.",
+	}, tools.getTransaction)
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        "cancel_transaction",
+		Description: "Cancel a transaction still waiting for approval when the user withdraws it. Report the returned state. After handoff the wallet can still broadcast, and an earlier outcome is preserved.",
+		Annotations: &sdk.ToolAnnotations{IdempotentHint: true},
+	}, tools.cancelTransaction)
 	return server.Run(ctx, &sdk.StdioTransport{})
 }
