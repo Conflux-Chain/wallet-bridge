@@ -46,6 +46,8 @@ jobs:
       - run: npm --prefix web run test:e2e
       - run: npm --prefix web run test:wallet
       - run: npm --prefix web run release:build -- v0.0.0-ci.1
+      - run: npm --prefix web run release:review -- v0.0.0-ci.1
+      - run: node --test scripts/release-review.test.mjs
       - name: Verify release checksums
         shell: bash
         working-directory: dist/releases/v0.0.0-ci.1
