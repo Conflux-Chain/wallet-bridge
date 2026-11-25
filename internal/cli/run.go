@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -11,10 +12,12 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/buildinfo"
 	"github.com/Conflux-Chain/wallet-bridge/internal/client"
+	"github.com/Conflux-Chain/wallet-bridge/internal/update"
 )
 
 type Dependencies struct {
 	BuildInfo     buildinfo.Info
+	CheckUpdate   func(context.Context, string, bool) (update.Result, error)
 	RunMCP        func(dataDir string) error
 	NewClient     func(dataDir string) (*client.Client, error)
 	RunService    func(dataDir string) error
@@ -27,7 +30,7 @@ type Dependencies struct {
 
 const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status|stop [--data-dir <absolute path>] [--json]"
 const mcpUsage = "Usage: wallet-bridge mcp [--data-dir <absolute path>]"
-const usage = "Usage: wallet-bridge version [--json]\n" + mcpUsage + "\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
+const usage = "Usage: wallet-bridge version [--json]\n" + updateUsage + "\n" + mcpUsage + "\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
 
 func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
 	info := dependencies.BuildInfo
@@ -37,6 +40,9 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 	}
 	if args[0] == "service" {
 		return runService(args[1:], dependencies, stdout, stderr)
+	}
+	if args[0] == "update" {
+		return runUpdate(args[1:], dependencies, stdout, stderr)
 	}
 	if args[0] == "mcp" {
 		flags := flag.NewFlagSet("mcp", flag.ContinueOnError)

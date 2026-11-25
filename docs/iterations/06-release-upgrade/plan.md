@@ -4,7 +4,9 @@
 
 6-1 已合并为 `4951d74`，三平台 CI 通过本机程序与三份文件摘要检查。[PR #73](https://github.com/Conflux-Chain/wallet-bridge/pull/73) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45573020381)
 
-6-2 待评审。Windows 本地核对通过稳定版和预览版，改动一份程序后核对失败。模拟草稿按原验收摘要通过，替换摘要、附件或目标标签时失败。实际草稿核对及公开发布留待用户整体验收通过后执行。[演练与发布步骤](release.md)
+6-2 已合并为 `a387bb5`。三平台 CI 通过候选文件核对与模拟草稿用例。实际草稿核对及公开发布留待用户整体验收通过后执行。[PR #74](https://github.com/Conflux-Chain/wallet-bridge/pull/74) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45575259197) · [演练与发布步骤](release.md)
+
+6-3 待评审。Windows 真实查询本仓库返回 `no_release`。包级模拟验证稳定／预览版比较、分页、空候选及查询失败，CLI 测试验证参数和结构化输出。[版本查询与本地测试](design.md#查询可升级版本)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|

@@ -58,6 +58,8 @@ npm --prefix web run dev
 
 对已有版本运行 `npm --prefix web run release:review -- v0.0.0-local.1`，可在本地核对候选文件并查看版本、稳定／预览标记与清单摘要。[候选版本和发行步骤](docs/iterations/06-release-upgrade/release.md)
 
+使用 `wallet-bridge update check` 查询最新稳定版，添加 `--include-preview` 可同时比较预览版。[版本查询与本地测试](docs/iterations/06-release-upgrade/design.md#查询可升级版本)
+
 验证 MCP 工具发现可运行下列 `bundle` 和 `smoke` 两项。连接与单笔交易可运行独立程序的端到端用例。[STDIO 握手与工具发现](docs/iterations/05-agent-integration/design.md#验证-stdio-接入) · [MCP 首次连接](docs/iterations/05-agent-integration/design.md#验证-mcp-连接) · [MCP 交易创建、查询与取消](docs/iterations/05-agent-integration/design.md#验证-mcp-交易)
 
 ```sh
