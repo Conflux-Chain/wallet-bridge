@@ -15,6 +15,7 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/mcp"
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
 	"github.com/Conflux-Chain/wallet-bridge/internal/service"
+	"github.com/Conflux-Chain/wallet-bridge/internal/update"
 	"github.com/Conflux-Chain/wallet-bridge/web"
 )
 
@@ -24,6 +25,7 @@ func main() {
 	info.UIEmbedded = err == nil && !entry.IsDir()
 	os.Exit(cli.Run(os.Args[1:], cli.Dependencies{
 		BuildInfo:   info,
+		CheckUpdate: update.Check,
 		NewClient:   client.New,
 		OpenBrowser: platform.OpenBrowser,
 		RunMCP: func(dir string) error {

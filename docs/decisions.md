@@ -76,6 +76,7 @@
 | D-067 | 用户确认 | 首版从本仓库 GitHub Releases 下载对应平台的独立程序。[发行入口](iterations/06-release-upgrade/spec.md#首次获取与版本选择) | 2026-11-25，用户选择 GitHub Releases 下载独立程序 |
 | D-068 | 用户确认 | 主动检查升级默认选择最新稳定版，用户可显式选择预览版。[版本选择](iterations/06-release-upgrade/spec.md#首次获取与版本选择) | 2026-11-25，用户确认默认稳定版和预览版选择方式 |
 | D-069 | 用户确认 | 开发完成后由用户亲自整体验收，确认候选版本可以发布后再发布 GitHub Release。[验收安排](iterations/06-release-upgrade/spec.md#首版发布前的用户验收) | 2026-11-25，用户要求从使用者角度先行体验 |
+| D-070 | 用户确认 | 显式包含预览版时，稳定版与预览版按语义化版本一起比较。[版本选择](iterations/06-release-upgrade/spec.md#首次获取与版本选择) | 2026-11-25，用户确认取两者中较新的版本 |
 
 ## 新增记录时应包含
 

@@ -39,6 +39,20 @@ try {
 
 预期三个文件摘要都匹配，本机程序输出 `version: v0.0.0-local.1`、对应 `platform` 和 `uiEmbedded: true`。命令退出即完成测试。清理时删除此次生成的版本目录即可。发行者签名及其验证方式留到后续 PR 确定。
 
+## 查询可升级版本
+
+`wallet-bridge update check [--include-preview] [--json]` 比较当前 CLI 的内嵌版本与本仓库公开的 GitHub Releases。分页读取完整列表后按语义化版本选择，默认只看稳定版。查询独立运行，访问网络超时或 GitHub 返回限流时以退出码 1 报错。
+
+开发者在 Windows 或 macOS 仓库根目录，使用 [go.mod](../../../go.mod) 指定的 Go 版本运行：
+
+```sh
+go run -tags no_web ./cmd/wallet-bridge update check --json
+go run -tags no_web ./cmd/wallet-bridge update check --include-preview
+go test ./internal/update ./internal/cli -run 'TestRelease|TestUpdateCheck'
+```
+
+前两条需要能访问 GitHub API。仓库暂无发行版时，第一条返回 `state: no_release`，第二条显示 `No published release available.`。已有候选时，`latest` 为选出的版本，`update_available` 表示比当前版本新，`up_to_date` 表示无需升级。当前为 `dev` 时仍可查看最新版本，状态为 `current_unversioned`。最后一条用模拟发行列表核对分页、版本排序、草稿排除与查询错误。命令退出即结束，无需启动或清理本机服务。
+
 ## 拟实施的切换顺序
 
 1. **准备版本。** 根据发行渠道与本机平台选择目标，校验后置于独立版本目录。确认启用前保留当前版本。校验材料、来源和首次安装方式随对应 PR 设计。

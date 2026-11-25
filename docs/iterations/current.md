@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-6-1 已合并。6-2 候选文件核对与人工发行流程待评审，下一项是查询可升级版本。[本地演练](06-release-upgrade/release.md) · [本轮需求](06-release-upgrade/spec.md) · [PR 计划](06-release-upgrade/plan.md)
+6-2 已合并。6-3 只读版本查询待评审，下一项是下载并校验候选版本。[版本查询测试](06-release-upgrade/design.md#查询可升级版本) · [本轮需求](06-release-upgrade/spec.md) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 
