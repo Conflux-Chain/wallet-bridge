@@ -15,6 +15,7 @@ import (
 
 type Dependencies struct {
 	BuildInfo     buildinfo.Info
+	RunMCP        func() error
 	NewClient     func(dataDir string) (*client.Client, error)
 	RunService    func(dataDir string) error
 	ManageService func(action, dataDir string) (client.Status, error)
@@ -25,7 +26,8 @@ type Dependencies struct {
 }
 
 const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status|stop [--data-dir <absolute path>] [--json]"
-const usage = "Usage: wallet-bridge version [--json]\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
+const mcpUsage = "Usage: wallet-bridge mcp"
+const usage = "Usage: wallet-bridge version [--json]\n" + mcpUsage + "\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
 
 func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
 	info := dependencies.BuildInfo
@@ -35,6 +37,25 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 	}
 	if args[0] == "service" {
 		return runService(args[1:], dependencies, stdout, stderr)
+	}
+	if args[0] == "mcp" {
+		if len(args) == 2 && (args[1] == "--help" || args[1] == "-h") {
+			fmt.Fprintln(stdout, mcpUsage)
+			return 0
+		}
+		if len(args) != 1 {
+			fmt.Fprintln(stderr, mcpUsage)
+			return 2
+		}
+		if dependencies.RunMCP == nil {
+			fmt.Fprintln(stderr, "configuration_error: MCP runner is unavailable")
+			return 1
+		}
+		if err := dependencies.RunMCP(); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 1
+		}
+		return 0
 	}
 	if args[0] == "ui" {
 		return runUI(args[1:], dependencies, stdout, stderr)
