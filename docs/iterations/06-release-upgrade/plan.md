@@ -1,6 +1,8 @@
 # 迭代 6 PR 计划
 
-6-0 为规划 PR，待评审。下列步骤均待开发，按依赖单独交付。验收对应 A-01、A-03、A-19 和 A-20。[本轮需求](spec.md) · [技术设计](design.md) · [验收索引](../../acceptance.md)
+6-0 已合并为 `bbfcc7b`，三平台 CI 通过。[PR #72](https://github.com/Conflux-Chain/wallet-bridge/pull/72) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45569170021)
+
+6-1 待评审。Windows 本机构建已独立核对三份 SHA-256 和目标架构，原生程序报告指定版本及内嵌页面。其余步骤待开发。[复现步骤](design.md#本地发行构建) · [本轮需求](spec.md) · [验收索引](../../acceptance.md)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|
