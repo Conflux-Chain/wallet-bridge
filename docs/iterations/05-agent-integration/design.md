@@ -11,6 +11,8 @@
 
 连接等待由仍在执行任务的 agent 发起。先展示链接，再间隔查询原请求，收到终态后结束等待。请求 ID 可放入对话上下文，服务端记录是恢复依据。
 
+Codex 通过本机程序的绝对路径注册 STDIO 服务。配置、首次连接、恢复原对话和清理见 [Codex 接入指南](../../codex.md)。
+
 ### 首次连接工具
 
 `create_connection` 接受 `requestId`、`chainId` 和可选的 `chainName`、`intent`。ID 沿用 HTTP 的 32 位小写十六进制格式，网络接受十进制或十六进制字符串。`get_connection` 只接受原请求 ID，可跨 MCP 进程查询。两者返回结构化记录及原链接，连接成功时带回 Session ID。

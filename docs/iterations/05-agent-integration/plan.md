@@ -10,7 +10,9 @@
 
 5-4 已合并为 `dfddcf2`，三平台 CI 均通过独立程序的原始交易创建、重试和审阅用例。[PR #69](https://github.com/Conflux-Chain/wallet-bridge/pull/69) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45560131376)
 
-5-5 待评审，覆盖查询、取消与迟到哈希。5-6 待开发。[复现步骤](design.md#验证-mcp-交易)
+5-5 已合并为 `0537a32`。三平台 CI 均通过查询、取消、服务重启和新 MCP 进程查回迟到哈希的模拟钱包用例。[PR #70](https://github.com/Conflux-Chain/wallet-bridge/pull/70) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45563009042)
+
+5-6 待评审。[Codex 配置、复现步骤与清理](../../codex.md)。
 
 | 步骤 | 单一交付 | 验证 |
 |---|---|---|
@@ -21,4 +23,11 @@
 | 5-5 | 查询及取消交易请求 | 区分等待钱包、已发送、拒绝和结果未确定，取消与迟到哈希沿用现有规则 |
 | 5-6 | Codex 配置和真实 agent 验收 | 从配置到展示原链接、自动查询、稍后继续与清理均可复现，记录版本与实测边界 |
 
-各能力 PR 随附本地验证命令。5-6 汇总真实 Codex 使用步骤与 A-18 结果。[验收索引](../../acceptance.md)
+## A-18 验收记录
+
+2026-11-25 在 Windows amd64 使用 Codex CLI `0.171.0-alpha.13`、Bridge MCP `0537a32` 和本机已有服务（API 1.11）。临时配置验证了 `codex mcp add/get/remove`。实际对话以单次配置接入，使用 `codex exec --approve-for-me` 审核工具调用。
+
+- **展示审批链接。** `create_connection` 返回目标网络 `0x47`、调用方 `Codex` 和普通审批链接。Codex 先展示原链接，再两次调用 `get_connection` 得到 `pending`。独立的 Chrome 157 配置打开同一链接，显示浏览器授权提示。
+- **恢复并取得账户。** 新的 `codex exec resume` 进程恢复同一对话，沿用上下文里的原请求 ID 自动查询，先得到 `pending`，随后得到 `succeeded`。Codex 调用 `get_session` 并展示 MetaMask、固定账户和 Conflux eSpace 测试网 71。
+- **重试与清理。** 再次恢复对话，以相同 ID 和原输入调用 `create_connection`。逐项比对工具结果，请求 ID、链接、原期限与已建立的 Session 均相同。`close_session` 返回该 Session 的 `closed` 状态。
+- **覆盖范围。** 本次真实 agent 验收覆盖 Windows 的 MetaMask 连接。macOS、Fluent 的真实 agent 组合及实际钱包广播未在本轮验证。交易中断与迟到哈希的独立程序／模拟钱包证据见 5-5。

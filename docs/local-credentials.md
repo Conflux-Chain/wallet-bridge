@@ -1,6 +1,6 @@
 # 本机服务访问凭据
 
-本机接入采用 D-034 的简化模型，实现进度见[当前迭代](iterations/current.md)。前台／后台启动均自动初始化一份服务凭据；CLI 自动读取并验证服务身份。启动与测试步骤见[本地服务指南](local-service.md)。MCP 接入按后续迭代交付；运行 `version` 或 Vite 预览不会生成正式凭据。
+前台或后台启动服务时会自动初始化一份本机凭据。CLI 和 MCP 读取同一份凭据并验证服务身份，用户无需为 Codex 单独配置令牌。单独运行 `version` 或 Vite 预览不会生成正式凭据。[本地服务指南](local-service.md) · [Codex 接入指南](codex.md) · [D-034](decisions.md)
 
 ## 用途
 

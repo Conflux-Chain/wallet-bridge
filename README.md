@@ -24,6 +24,8 @@
 
 ## 开发命令
 
+使用 Codex 的开发者可按[Codex 接入指南](docs/codex.md)注册 MCP、发起首次连接，并验证中断后的结果查询。
+
 ### 环境准备
 
 先安装 [go.mod](go.mod)、[.node-version](.node-version) 和 [web/package.json](web/package.json) 指定的 Go、Node.js 和 npm。以下命令均在仓库根目录执行。首次检出或依赖锁文件更新后安装前端依赖：
