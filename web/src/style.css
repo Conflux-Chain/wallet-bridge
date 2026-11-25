@@ -68,6 +68,18 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .pending-requests li:last-child { padding-bottom: 0; }
 .pending-requests a { justify-self: start; color: #27665e; font-weight: 600; }
 .pending-requests li span { color: #536275; font-size: 14px; }
+.activity-page h1 { margin-top: 14px; }
+.activity-page section { margin-top: 16px; }
+.activity-page a { color: #27665e; }
+.activity-page ol { margin: 0; padding: 0; list-style: none; }
+.activity-page li { padding: 16px 0; border-bottom: 1px solid #dbe3ed; overflow-wrap: anywhere; color: #536275; font-size: 14px; }
+.activity-heading, .activity-page nav { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.activity-heading a { font-size: 17px; font-weight: 600; }
+.activity-page li p { margin: 4px 0; }
+.activity-page nav:not(:empty) { margin-top: 20px; }
+.activity-state { color: #43566a; }
+.activity-state.sent, .activity-state.succeeded { color: #23654f; }
+.activity-state.uncertain { color: #805b1d; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
 button { border: 1px solid #27665e; border-radius: 8px; padding: 10px 18px; background: #27665e; color: white; font: inherit; font-weight: 600; cursor: pointer; }
 button:hover { background: #1f524c; }

@@ -6,6 +6,7 @@ import { ConnectionPage } from './connection/ConnectionPage';
 import { WalletPicker } from './wallet/WalletPicker';
 import { TransactionPage } from './transaction/TransactionPage';
 import { PendingRequests } from './PendingRequests';
+import { ActivityPage } from './ActivityPage';
 
 const messages = {
   checking: ['正在检查浏览器授权', '正在连接本机 Wallet Bridge。'],
@@ -88,12 +89,19 @@ export function App({ initial }: { initial: Promise<View> }) {
     return /^[0-9a-f]{32}$/.test(connection) ? <ConnectionPage key={connection} id={connection} operation={view.status.activeWalletRequest} refreshStatus={() => perform(checkStatus)} />
       : <main><h1>连接链接无效</h1><p>请从调用方重新打开请求链接。</p></main>;
   }
+  if (authorized && params.get('view') === 'activity') {
+    if (!view.status.info.capabilities.includes('browser.activity')) {
+      return <main><h1>当前服务不支持活动记录</h1><a href="/">返回管理首页</a></main>;
+    }
+    return <ActivityPage key={view.status.browser.id} status={view.status} after={params.get('after')} onUnauthorized={authorizationLost} />;
+  }
   return (
     <main>
       <header>
         <p className="eyebrow"><span className="brand-mark" aria-hidden="true">W</span> 本地钱包桥接</p>
         <h1>Wallet Bridge</h1>
         <p className="intro">连接你的工具，保留你的确认。</p>
+        {authorized && view.status.info.capabilities.includes('browser.activity') && <a href="/?view=activity">查看活动记录</a>}
       </header>
       {authorized && view.status.activeWalletRequest && <WalletOperationNotice operation={view.status.activeWalletRequest} />}
       {authorized && view.status.info.capabilities.includes('browser.pending-requests') &&
