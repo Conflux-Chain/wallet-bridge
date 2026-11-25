@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
@@ -15,6 +16,18 @@ func NewConnectionID() string { return NewRequestID() }
 
 const connectionsPath = "/api/v1/connections"
 const sessionsPath = "/api/v1/sessions/"
+
+// EnsureConnectionApproval starts or reuses a service with browser consent support.
+func (c *Client) EnsureConnectionApproval(ctx context.Context) error {
+	status, err := c.Ensure(ctx)
+	if err != nil {
+		return err
+	}
+	if status.Info == nil || !slices.Contains(status.Info.Capabilities, "browser.connections.decisions") {
+		return &Error{Code: "incompatible_service", Message: "The service does not support browser connection approval"}
+	}
+	return nil
+}
 
 // CreateConnection submits once. Keep input to reconcile a lost response by ID.
 func (c *Client) CreateConnection(ctx context.Context, input api.ConnectionCreateRequest) (api.ConnectionResponse, error) {

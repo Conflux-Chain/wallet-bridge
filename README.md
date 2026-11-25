@@ -52,7 +52,7 @@ npm --prefix web run dev
 
 ### 构建与检查
 
-验证 MCP 接入可直接运行下列 `bundle` 和 `smoke` 两项。[STDIO 握手与工具发现](docs/iterations/05-agent-integration/design.md#验证-stdio-接入)
+验证 MCP 工具发现可运行下列 `bundle` 和 `smoke` 两项。连接创建、重试和浏览器审批可运行独立程序的端到端用例。[STDIO 握手与工具发现](docs/iterations/05-agent-integration/design.md#验证-stdio-接入) · [MCP 首次连接验证](docs/iterations/05-agent-integration/design.md#验证-mcp-连接)
 
 ```sh
 npm --prefix web run bundle

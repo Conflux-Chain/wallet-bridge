@@ -26,10 +26,10 @@ func main() {
 		BuildInfo:   info,
 		NewClient:   client.New,
 		OpenBrowser: platform.OpenBrowser,
-		RunMCP: func() error {
+		RunMCP: func(dir string) error {
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
-			return mcp.Run(ctx, info.Version)
+			return mcp.Run(ctx, info, dir)
 		},
 		BrowserLink: func(dir string) (api.BrowserTicketResponse, error) {
 			c, err := client.New(dir)
