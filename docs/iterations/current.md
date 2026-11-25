@@ -4,7 +4,7 @@
 
 ## 迭代 5 · AI agent 接入
 
-当前步骤 5-5 交付 MCP 单笔交易查询与取消。下一步为 Codex 配置示例和真实 agent 验收。[迭代需求](05-agent-integration/spec.md) · [适配设计](05-agent-integration/design.md) · [PR 计划](05-agent-integration/plan.md)
+5-5 已合并。5-6 已验证真实 Codex 的审批链接、恢复查询和 MetaMask 连接，待 PR 评审。下一步按评审结果收尾迭代 5。[Codex 接入指南](../codex.md) · [迭代需求](05-agent-integration/spec.md) · [适配设计](05-agent-integration/design.md) · [PR 计划与验收记录](05-agent-integration/plan.md)
 
 ## 上轮交接
 
