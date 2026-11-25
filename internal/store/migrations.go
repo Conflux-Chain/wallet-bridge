@@ -199,6 +199,9 @@ SELECT r.id, r.session_id, r.client_name, r.intent, r.from_address, r.to_address
        coalesce(o.outcome, r.state) AS state, coalesce(o.reported_at, r.finished_at) AS finished_at,
        r.handed_off_at, coalesce(o.tx_hash, '') AS tx_hash
 FROM transaction_requests r LEFT JOIN transaction_results o ON o.transaction_id = r.id;
+`, `
+CREATE INDEX connection_requests_by_creation ON connection_requests (created_at, id);
+CREATE INDEX transaction_requests_by_creation ON transaction_requests (created_at, id);
 `}
 
 const closeSessionTransactionsV6 = `

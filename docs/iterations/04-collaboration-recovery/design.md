@@ -6,6 +6,12 @@
 
 SQLite 用一条查询读取两类仍为 pending 且未到期的请求，共用一次读取时间。同毫秒依次按种类与 ID 排序，两种请求可使用同一 ID。复用原请求表和执行槽，无需迁移。执行权仍由用户操作时的领取事务决定。
 
+## 活动记录查询
+
+管理页通过 `browser.activity` 能力发现 `GET /api/v1/browser/activity`，使用浏览器管理 cookie。每条摘要包含请求类型、ID、调用方、网络、创建时间、当前状态，以及已有的 Session ID 和交易哈希。详情沿用原请求入口。
+
+同一次 SQLite 读取合并连接请求和交易状态视图，按创建时间、ID、类型依次倒序。待审批请求越过期限即显示已到期。使用两个创建时间索引和 `limit`／`after` 游标向前翻阅历史，每页默认及最多 50 条。读取沿用原始记录，旧数据和后续回报均可查询。
+
 ## 本地验证
 
 在装有项目指定 Go 版本的 Windows 或 macOS 仓库根目录执行以下命令。
@@ -15,6 +21,16 @@ go test -tags no_web ./internal/api -run '^TestBrowserPendingRequests' -count=1 
 ```
 
 预期两项测试通过。用例通过 HTTP handler 和临时 SQLite 建立先到连接、后到交易及同 ID 的两类请求，核对顺序、读取权限、期限和交接后移出列表。测试自动清理，无需启动服务或钱包。
+
+### 验证活动记录接口
+
+在 Windows 或 macOS 仓库根目录，使用 [go.mod](../../../go.mod) 指定的 Go 版本执行：
+
+```sh
+go test -tags no_web ./internal/api -run '^TestBrowserActivity' -count=1 -v
+```
+
+预期三个用例通过。测试经 HTTP 接口读取临时 SQLite，验证同毫秒同 ID 的跨页边界、翻页时插入新请求、重试去重、到期显示、读取权限，以及关闭 Session 后补回哈希。测试自动清理，无需占用本机服务端口。
 
 ## 验证管理首页
 

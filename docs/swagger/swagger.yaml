@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 12
+        example: 13
         type: integer
     type: object
   api.ActiveWalletRequestResponse:
@@ -23,6 +23,47 @@ definitions:
         - ready
         - calling
         - interrupted_calling
+        type: string
+    type: object
+  api.ActivityListResponse:
+    properties:
+      activities:
+        items:
+          $ref: '#/definitions/api.ActivityResponse'
+        type: array
+      nextAfter:
+        type: string
+    type: object
+  api.ActivityResponse:
+    properties:
+      chainId:
+        type: string
+      clientName:
+        type: string
+      createdAt:
+        format: date-time
+        type: string
+      id:
+        type: string
+      kind:
+        enum:
+        - connection
+        - transaction
+        type: string
+      sessionId:
+        type: string
+      state:
+        enum:
+        - pending
+        - succeeded
+        - awaiting_wallet
+        - sent
+        - rejected
+        - uncertain
+        - canceled
+        - expired
+        type: string
+      txHash:
         type: string
     type: object
   api.BrowserAuthorizeRequest:
@@ -283,6 +324,7 @@ definitions:
         - browser.transactions.coordination
         - browser.transactions.decisions
         - browser.pending-requests
+        - browser.activity
         items:
           type: string
         type: array
@@ -584,8 +626,54 @@ info:
     and transaction lifecycle, browser execution coordination, wallet handoff and
     connection consent.
   title: Wallet Bridge Local API
-  version: "1.12"
+  version: "1.13"
 paths:
+  /browser/activity:
+    get:
+      description: Lists connection and transaction requests newest first, including
+        pending requests and the latest wallet outcome. Requires a browser management
+        cookie. Reading activity does not renew a Session or claim the wallet.
+      parameters:
+      - description: Page size (default 50)
+        in: query
+        maximum: 50
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Pass nextAfter from the previous page
+        in: query
+        name: after
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ActivityListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BrowserCookie: []
+      summary: List local wallet activity
   /browser/authorize:
     post:
       consumes:

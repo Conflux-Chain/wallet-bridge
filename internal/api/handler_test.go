@@ -158,7 +158,7 @@ func TestInfoProofBindsMetadata(t *testing.T) {
 		t.Fatal("info response invalid", err)
 	}
 	proof := info.Proof
-	data := []byte(`{"name":"wallet-bridge","version":"test","apiVersion":{"major":1,"minor":12},"capabilities":["service.status","service.stop","browser.authorization","service.auth.shared","connections.lifecycle","browser.connections.coordination","browser.connections.decisions","browser.wallet-operation","transactions.lifecycle","browser.transactions.read","browser.transactions.coordination","browser.transactions.decisions","browser.pending-requests"],"ready":true,"challenge":"` + challenge + `"}`)
+	data := []byte(`{"name":"wallet-bridge","version":"test","apiVersion":{"major":1,"minor":13},"capabilities":["service.status","service.stop","browser.authorization","service.auth.shared","connections.lifecycle","browser.connections.coordination","browser.connections.decisions","browser.wallet-operation","transactions.lifecycle","browser.transactions.read","browser.transactions.coordination","browser.transactions.decisions","browser.pending-requests","browser.activity"],"ready":true,"challenge":"` + challenge + `"}`)
 	key, _ := hex.DecodeString(serviceFixture)
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte("wallet-bridge.info.v1\n"))

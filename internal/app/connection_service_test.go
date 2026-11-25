@@ -11,8 +11,7 @@ import (
 )
 
 type connectionStoreStub struct {
-	ConnectionStore
-	ConnectionExecutionStore
+	ConnectionServiceStore
 	create   func(context.Context, ConnectionRequest) error
 	get      func(context.Context, string) (ConnectionRequest, error)
 	finish   func(context.Context, string, ConnectionState, time.Time) (ConnectionRequest, error)
