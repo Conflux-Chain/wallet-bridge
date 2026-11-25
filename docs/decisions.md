@@ -79,6 +79,7 @@
 | D-070 | 用户确认 | 显式包含预览版时，稳定版与预览版按语义化版本一起比较。[版本选择](iterations/06-release-upgrade/spec.md#首次获取与版本选择) | 2026-11-25，用户确认取两者中较新的版本 |
 | D-071 | 用户确认 | 首版信任本仓库的 GitHub Release，下载程序需匹配 GitHub 附件摘要和发行清单。[下载校验](iterations/06-release-upgrade/spec.md#下载校验) | 2026-11-25，用户选择信任官方仓库发布并核对双份摘要 |
 | D-072 | 用户确认 | 下载程序可直接运行，可选的 `install` 命令安装到当前用户目录并打印固定路径，供 CLI 和 Codex 长期引用。[首次获取](iterations/06-release-upgrade/spec.md#首次获取与版本选择) | 2026-11-25，用户选择提供可选安装命令 |
+| D-073 | 用户确认 | 用旧副本显式执行 `service run` 时，提示已启用程序的路径并退出。普通 CLI 和 MCP 自动启动已启用版本。[升级体验](iterations/06-release-upgrade/spec.md#升级时用户看到什么) | 2026-11-25，用户确认前台调试行为 |
 
 ## 新增记录时应包含
 

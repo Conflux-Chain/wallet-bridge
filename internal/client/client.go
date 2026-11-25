@@ -62,7 +62,7 @@ func New(dir string) (*Client, error) {
 		return nil, &Error{"data_unavailable", "The data directory must be absolute", nil}
 	}
 	return &Client{
-		dir: dir, dial: (&net.Dialer{}).DialContext, start: platform.StartBackground,
+		dir: dir, dial: (&net.Dialer{}).DialContext, start: startService,
 		operationTimeout: 2 * time.Second, ensureTimeout: 15 * time.Second, stopTimeout: 5 * time.Second, interval: 100 * time.Millisecond,
 	}, nil
 }

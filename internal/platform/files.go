@@ -39,7 +39,7 @@ func CheckPrivateDir(path string) error {
 	if !filepath.IsAbs(path) {
 		return fmt.Errorf("data directory must be absolute")
 	}
-	f, err := openPrivate(path, true)
+	f, err := openPrivate(path, os.ModeDir|0700)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,11 @@ func CheckPrivateDir(path string) error {
 }
 
 func OpenPrivateFile(path string) (*os.File, error) {
-	return openPrivate(path, false)
+	return openPrivate(path, 0600)
+}
+
+func OpenPrivateExecutable(path string) (*os.File, error) {
+	return openPrivate(path, 0700)
 }
 
 // CreatePrivateFile creates a new file, setting permissions before any data is written.
@@ -57,14 +61,15 @@ func CreatePrivateFile(path string) (*os.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := checkHandle(f, false); err != nil {
+	if err := checkHandle(f, 0600); err != nil {
 		f.Close()
 		return nil, errors.Join(err, os.Remove(path))
 	}
 	return f, nil
 }
 
-func openPrivate(path string, directory bool) (*os.File, error) {
+func openPrivate(path string, mode os.FileMode) (*os.File, error) {
+	directory := mode.IsDir()
 	info, err := os.Lstat(path)
 	if err != nil {
 		return nil, err
@@ -81,7 +86,7 @@ func openPrivate(path string, directory bool) (*os.File, error) {
 		err = fmt.Errorf("%s: %w (file changed while opening)", path, ErrInsecurePath)
 	}
 	if err == nil {
-		err = checkHandle(f, directory)
+		err = checkHandle(f, mode)
 	}
 	if err != nil {
 		f.Close()

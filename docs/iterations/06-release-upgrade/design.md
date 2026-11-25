@@ -4,7 +4,7 @@
 
 现有构建脚本支持三种原生目标，嵌入页面及版本信息。`version --json` 可读取平台、发行版本、源码修订和页面打包状态。每个平台已有独立程序 smoke，可用于检验发行产物。[构建脚本](../../../scripts/build.mjs) · [版本信息](../../../internal/buildinfo/info.go)
 
-HTTP client 已验证服务身份、API 兼容性和所需能力。服务停止时，`Ensure` 会启动当前 client 的配套程序。SQLite 在服务就绪前执行迁移，并拒绝过新的 schema。升级需补充启用版本的选择及跨版本恢复。[服务启动](../../../internal/client/lifecycle.go) · [数据库打开与迁移](../../../internal/store/store.go)
+HTTP client 已验证服务身份、API 兼容性和所需能力。SQLite 在服务就绪前执行迁移，并拒绝过新的 schema。[服务启动](../../../internal/client/lifecycle.go) · [数据库打开与迁移](../../../internal/store/store.go)
 
 ## 本地发行构建
 
@@ -89,6 +89,26 @@ go test ./internal/update -run TestInstall -count=1 -v
 ```
 
 `smoke` 在临时目录安装打包程序、删除原副本，再从固定路径查询版本并通过 STDIO 列出 MCP 工具。预期输出 `Installed CLI and MCP discovery passed`。Go 用例检查默认路径、并发复用与内容冲突。两个测试退出后自动清理临时目录。
+
+## 启动已启用的服务
+
+CLI 和 MCP 先复用兼容的运行中服务。需要启动时，共用同一选择顺序。
+
+1. 有 `active/` 时，从私有文件 `active/selection.json` 读取发行标签和 SHA-256，在 `versions/<标签>/` 校验对应平台的程序。记录或目标损坏时显示错误。
+2. 已执行首次安装时使用 `bin/` 中的固定程序。
+3. 直接运行且从未启用版本时，使用当前程序。仅下载候选文件不会启用它。
+
+服务取得数据目录锁后，在监听端口和打开数据库前复核程序。当前程序与启用程序内容不同时，前台调试显示可执行的正确路径。写入或变更启用记录由 6-8 的切换流程负责。
+
+在 Windows 或 macOS 的仓库根目录完成 [README 环境准备](../../../README.md#环境准备)，确保本机端口 18765 空闲，运行以下命令。
+
+```sh
+npm --prefix web run bundle
+go test ./internal/update -run TestServiceProgramSelection -count=1
+go test -tags integration ./internal/update -run TestPackagedServiceStartup -count=1 -v
+```
+
+集成测试生成第二份带版本号的程序，在临时目录模拟下载和启用记录。`foreground` 检查旧程序给出正确路径且数据库尚未创建，`background` 检查旧 CLI 与固定路径的 MCP 分别启动所选版本。预期两项均为 `PASS`，退出时停止测试服务并清理临时目录。端口已占用时可在最后一条的测试名后追加 `/foreground`，单独验证前台调试。
 
 ## 拟实施的切换顺序
 

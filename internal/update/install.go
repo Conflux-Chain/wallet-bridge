@@ -2,9 +2,7 @@ package update
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -28,10 +26,7 @@ func Install(dir string) (string, error) {
 			return "", err
 		}
 	}
-	path := filepath.Join(bin, "wallet-bridge")
-	if runtime.GOOS == "windows" {
-		path += ".exe"
-	}
+	path := installedPath(dir)
 	exe, err := os.Executable()
 	if err != nil {
 		return "", err
@@ -42,11 +37,10 @@ func Install(dir string) (string, error) {
 	}
 	defer source.Close()
 
-	hash := sha256.New()
-	if _, err := io.Copy(hash, source); err != nil {
+	digest, err := fileDigest(source)
+	if err != nil {
 		return "", err
 	}
-	digest := fmt.Sprintf("%x", hash.Sum(nil))
 	if err := verifyExecutable(path, digest); err == nil {
 		return path, nil
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -70,4 +64,12 @@ func Install(dir string) (string, error) {
 		return "", err
 	}
 	return path, nil
+}
+
+func installedPath(dir string) string {
+	path := filepath.Join(dir, "bin", "wallet-bridge")
+	if runtime.GOOS == "windows" {
+		path += ".exe"
+	}
+	return path
 }

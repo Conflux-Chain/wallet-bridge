@@ -23,11 +23,7 @@ func (p *BackgroundProcess) CloseDiagnostics() {
 	}
 }
 
-func StartBackground(dir string) (*BackgroundProcess, error) {
-	executable, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
+func StartBackground(executable, dir string) (*BackgroundProcess, error) {
 	cmd := exec.Command(executable, "service", "run", "--data-dir", dir)
 	if err := detachProcess(cmd); err != nil {
 		return nil, err

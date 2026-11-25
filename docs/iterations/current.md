@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-6-4b 已合并，6-5a 可选安装命令待评审。下一项是从固定入口和旧 client 启动本机启用版本。[本机安装](06-release-upgrade/design.md#本机安装) · [本轮需求](06-release-upgrade/spec.md) · [PR 计划](06-release-upgrade/plan.md)
+6-5a 已合并，6-5b 启动已启用的服务待评审。下一项是升级前的钱包占用检查与暂停接单。[本机安装](06-release-upgrade/design.md#本机安装) · [双版本启动测试](06-release-upgrade/design.md#启动已启用的服务) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

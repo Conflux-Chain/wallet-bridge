@@ -64,6 +64,8 @@ npm --prefix web run dev
 
 取得发行标签后，使用 `wallet-bridge update download <版本号>` 下载并核对本机候选程序。[下载命令与本地验证](docs/iterations/06-release-upgrade/design.md#下载候选版本) · [下载完整性测试](docs/iterations/06-release-upgrade/design.md#下载字节校验)
 
+要验证旧 CLI 和已配置的 MCP 都能启动本机启用的服务，可运行[双版本隔离测试](docs/iterations/06-release-upgrade/design.md#启动已启用的服务)。
+
 验证 MCP 工具发现可运行下列 `bundle` 和 `smoke` 两项。连接与单笔交易可运行独立程序的端到端用例。[STDIO 握手与工具发现](docs/iterations/05-agent-integration/design.md#验证-stdio-接入) · [MCP 首次连接](docs/iterations/05-agent-integration/design.md#验证-mcp-连接) · [MCP 交易创建、查询与取消](docs/iterations/05-agent-integration/design.md#验证-mcp-交易)
 
 ```sh
