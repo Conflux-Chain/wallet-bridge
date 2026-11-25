@@ -15,6 +15,7 @@
     "bundle": "node ../scripts/build.mjs",
     "bundle:all": "node ../scripts/build.mjs --all",
     "release:build": "node ../scripts/release-build.mjs",
+    "release:review": "node ../scripts/release-review.mjs",
     "swagger": "node ../scripts/swagger.mjs",
     "service:smoke": "node ../scripts/service-smoke.mjs",
     "background:smoke": "node ../scripts/background-smoke.mjs",
