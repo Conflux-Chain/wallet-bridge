@@ -62,15 +62,33 @@ func (t connectionTools) create(ctx context.Context, req *sdk.CallToolRequest, i
 }
 
 func (t connectionTools) get(ctx context.Context, _ *sdk.CallToolRequest, in requestLookup) (*sdk.CallToolResult, connectionResult, error) {
-	c, err := client.New(t.dataDir)
+	c, err := t.readyClient(ctx)
 	if err != nil {
 		return nil, connectionResult{}, err
 	}
-	if _, err := c.Ensure(ctx); err != nil {
+	return connectionReceipt(c.GetConnection(ctx, in.RequestID))
+}
+
+func (t connectionTools) cancel(ctx context.Context, _ *sdk.CallToolRequest, in requestLookup) (*sdk.CallToolResult, connectionResult, error) {
+	c, err := t.readyClient(ctx)
+	if err != nil {
 		return nil, connectionResult{}, err
 	}
-	r, err := c.GetConnection(ctx, in.RequestID)
+	r, err := c.CancelConnection(ctx, in.RequestID)
+	var failure *client.Error
+	if errors.As(err, &failure) && failure.Code == "connection_conflict" {
+		return connectionReceipt(c.GetConnection(ctx, in.RequestID))
+	}
 	return connectionReceipt(r, err)
+}
+
+func (t connectionTools) readyClient(ctx context.Context) (*client.Client, error) {
+	c, err := client.New(t.dataDir)
+	if err != nil {
+		return nil, err
+	}
+	_, err = c.Ensure(ctx)
+	return c, err
 }
 
 func connectionReceipt(r api.ConnectionResponse, err error) (*sdk.CallToolResult, connectionResult, error) {

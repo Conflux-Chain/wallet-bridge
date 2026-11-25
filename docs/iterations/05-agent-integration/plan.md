@@ -4,7 +4,9 @@
 
 5-1 已合并为 `1e6c916`，Windows amd64、macOS amd64／arm64 CI 均通过独立程序握手与工具发现。[PR #66](https://github.com/Conflux-Chain/wallet-bridge/pull/66) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45545457113)
 
-5-2 待评审，Windows 本机通过构建、工具发现、Go 测试及静态检查。本机服务占用 18765，含浏览器同意的组合用例由 CI 执行。5-3～5-6 待开发。[首次连接工具](design.md#首次连接工具) · [复现步骤](design.md#验证-mcp-连接)
+5-2 已合并为 `8ddb439`。三平台 CI 均通过 MCP 重试、浏览器同意与原结果查询。[PR #67](https://github.com/Conflux-Chain/wallet-bridge/pull/67) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45555450734)
+
+5-3 待评审，覆盖连接取消、Session 查询与关闭。5-4～5-6 待开发。[Session 工具](design.md#session-工具) · [复现步骤](design.md#验证-mcp-连接)
 
 | 步骤 | 单一交付 | 验证 |
 |---|---|---|
