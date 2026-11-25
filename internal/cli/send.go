@@ -11,7 +11,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -77,14 +76,8 @@ func runSend(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	if err != nil {
 		return requestCommandError(ctx, stderr, opts.asJSON, "transaction", "", err)
 	}
-	status, err := c.Ensure(ctx)
-	if err != nil {
+	if err := c.EnsureTransactionApproval(ctx); err != nil {
 		return requestCommandError(ctx, stderr, opts.asJSON, "transaction", "", err)
-	}
-	for _, capability := range []string{"browser.transactions.read", "browser.transactions.coordination", "browser.transactions.decisions"} {
-		if status.Info == nil || !slices.Contains(status.Info.Capabilities, capability) {
-			return commandError(stderr, opts.asJSON, &client.Error{Code: "incompatible_service", Message: "The service does not support browser transaction approval"}, "")
-		}
 	}
 	opts.input.ID = client.NewRequestID()
 	return submitTransaction(ctx, c, opts, deps.OpenBrowser, stdout, stderr)

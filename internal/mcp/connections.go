@@ -28,25 +28,18 @@ type connectionResult struct {
 	URL  string `json:"url"`
 }
 
-type connectionTools struct {
+type walletTools struct {
 	dataDir    string
 	uiEmbedded bool
 }
 
-func (t connectionTools) create(ctx context.Context, req *sdk.CallToolRequest, in createConnectionInput) (*sdk.CallToolResult, connectionResult, error) {
+func (t walletTools) create(ctx context.Context, req *sdk.CallToolRequest, in createConnectionInput) (*sdk.CallToolResult, connectionResult, error) {
 	if !t.uiEmbedded {
 		return nil, connectionResult{}, errors.New("ui_unavailable: use a build with the embedded approval page")
 	}
-	params := req.Session.InitializeParams()
-	if params == nil || params.ClientInfo == nil {
-		return nil, connectionResult{}, errors.New("bad_request: MCP initialization must identify the client")
-	}
-	name := strings.TrimSpace(params.ClientInfo.Title)
-	if name == "" {
-		name = strings.TrimSpace(params.ClientInfo.Name)
-	}
-	if name == "" {
-		return nil, connectionResult{}, errors.New("bad_request: supply a client title or name during MCP initialization")
+	name, err := callerName(req)
+	if err != nil {
+		return nil, connectionResult{}, err
 	}
 	c, err := client.New(t.dataDir)
 	if err != nil {
@@ -61,7 +54,19 @@ func (t connectionTools) create(ctx context.Context, req *sdk.CallToolRequest, i
 	return connectionReceipt(r, err)
 }
 
-func (t connectionTools) get(ctx context.Context, _ *sdk.CallToolRequest, in requestLookup) (*sdk.CallToolResult, connectionResult, error) {
+func callerName(req *sdk.CallToolRequest) (string, error) {
+	params := req.Session.InitializeParams()
+	if params != nil && params.ClientInfo != nil {
+		for _, value := range []string{params.ClientInfo.Title, params.ClientInfo.Name} {
+			if name := strings.TrimSpace(value); name != "" {
+				return name, nil
+			}
+		}
+	}
+	return "", errors.New("bad_request: supply a client title or name during MCP initialization")
+}
+
+func (t walletTools) get(ctx context.Context, _ *sdk.CallToolRequest, in requestLookup) (*sdk.CallToolResult, connectionResult, error) {
 	c, err := t.readyClient(ctx)
 	if err != nil {
 		return nil, connectionResult{}, err
@@ -69,7 +74,7 @@ func (t connectionTools) get(ctx context.Context, _ *sdk.CallToolRequest, in req
 	return connectionReceipt(c.GetConnection(ctx, in.RequestID))
 }
 
-func (t connectionTools) cancel(ctx context.Context, _ *sdk.CallToolRequest, in requestLookup) (*sdk.CallToolResult, connectionResult, error) {
+func (t walletTools) cancel(ctx context.Context, _ *sdk.CallToolRequest, in requestLookup) (*sdk.CallToolResult, connectionResult, error) {
 	c, err := t.readyClient(ctx)
 	if err != nil {
 		return nil, connectionResult{}, err
@@ -82,7 +87,7 @@ func (t connectionTools) cancel(ctx context.Context, _ *sdk.CallToolRequest, in 
 	return connectionReceipt(r, err)
 }
 
-func (t connectionTools) readyClient(ctx context.Context) (*client.Client, error) {
+func (t walletTools) readyClient(ctx context.Context) (*client.Client, error) {
 	c, err := client.New(t.dataDir)
 	if err != nil {
 		return nil, err

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json/v2"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
@@ -11,6 +12,20 @@ import (
 )
 
 const transactionsPath = "/api/v1/transactions"
+
+// EnsureTransactionApproval starts or reuses a service with transaction review support.
+func (c *Client) EnsureTransactionApproval(ctx context.Context) error {
+	status, err := c.Ensure(ctx)
+	if err != nil {
+		return err
+	}
+	for _, capability := range []string{"browser.transactions.read", "browser.transactions.coordination", "browser.transactions.decisions"} {
+		if status.Info == nil || !slices.Contains(status.Info.Capabilities, capability) {
+			return &Error{Code: "incompatible_service", Message: "The service does not support browser transaction approval"}
+		}
+	}
+	return nil
+}
 
 // CreateTransaction submits once. Retain the input, including its ID, for a retry.
 func (c *Client) CreateTransaction(ctx context.Context, input api.TransactionCreateRequest) (api.TransactionResponse, error) {

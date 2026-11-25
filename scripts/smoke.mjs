@@ -49,10 +49,14 @@ try {
     assert.equal(init.serverInfo.version, info.version);
     assert.ok(init.capabilities.tools);
     const { tools } = await request('tools/list', {});
-    assert.deepEqual(tools.map(tool => tool.name).sort(), ['cancel_connection', 'close_session', 'create_connection', 'get_connection', 'get_session']);
+    assert.deepEqual(tools.map(tool => tool.name).sort(), ['cancel_connection', 'close_session', 'create_connection', 'create_transaction', 'get_connection', 'get_session']);
     const create = tools.find(tool => tool.name === 'create_connection');
     assert.deepEqual([...create.inputSchema.required].sort(), ['chainId', 'requestId']);
     assert.equal(create.inputSchema.additionalProperties, false);
+    const txSchema = tools.find(tool => tool.name === 'create_transaction').inputSchema;
+    assert.deepEqual([...txSchema.required].sort(), ['requestId', 'sessionId', 'transaction']);
+    assert.deepEqual([...txSchema.properties.transaction.required].sort(), ['chainId', 'from', 'to']);
+    assert.equal(txSchema.properties.transaction.additionalProperties, false);
   });
   assert.deepEqual(readdirSync(profile), [], 'Discovery created local service data');
 } finally {
