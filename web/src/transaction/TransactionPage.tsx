@@ -6,12 +6,8 @@ import { WalletReport } from './WalletReport';
 import type { WalletOperation } from '../api/browser';
 import { WalletOperationNotice } from '../connection/WalletOperationNotice';
 import { useReviewExecution, type ReviewExecution } from './useReviewExecution';
+import { requestStates } from '../requestStates';
 import './review.css';
-
-const states: Record<TransactionReview['state'], string> = {
-  pending: '待审批', awaiting_wallet: '等待钱包', uncertain: '结果未确定', sent: '已发送',
-  rejected: '用户已拒绝', canceled: '已取消', expired: '已到期',
-};
 
 function nativeAmount(units: string, decimals: number) {
   const digits = units.padStart(decimals + 1, '0');
@@ -51,7 +47,7 @@ function ReviewDetails({ review, execution, blocker, canSend }: {
   const bytes = (tx.data.length - 2) / 2;
   return <>
     <section className="review-summary" aria-label="请求与金额">
-      <div className="review-context"><h2>原生币金额</h2><span className={'review-state ' + review.state} role="status">{states[review.state]}</span></div>
+      <div className="review-context"><h2>原生币金额</h2><span className={'review-state ' + review.state} role="status">{requestStates[review.state]}</span></div>
       <p className="review-amount" dir="ltr">{network ? nativeAmount(units, network.decimals) : units}
         <span>{network?.symbol ?? '最小单位'}</span></p>
       {network && <p className="review-units">{units} 最小单位</p>}

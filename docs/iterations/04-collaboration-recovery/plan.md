@@ -13,4 +13,6 @@
 
 4-2 已合并为 `15790c0`。Windows amd64、macOS amd64／arm64 CI 通过，包括同 ID 两种链接、后到交易先取得钱包、取消后刷新、授权失效及旧服务。[PR #60](https://github.com/Conflux-Chain/wallet-bridge/pull/60) · [复现步骤](design.md#验证管理首页)
 
-4-3 待评审。Windows amd64 的 HTTP／SQLite 用例已验证跨页顺序、重试去重、到期显示、访问控制，以及 Session 关闭后补回哈希并保留原排序。[4-3 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Flocal-activity-query) · [复现步骤](design.md#验证活动记录接口)
+4-3 已合并为 `815c35d`，三平台 CI 通过。HTTP／SQLite 用例验证跨页顺序、重试去重、到期显示、访问控制，以及 Session 关闭后补回哈希并保留原排序。[PR #61](https://github.com/Conflux-Chain/wallet-bridge/pull/61) · [复现步骤](design.md#验证活动记录接口)
+
+4-4 待评审。Windows 独立程序已构建，本机 Chrome 在模拟响应下验证了翻页、迟到哈希、窄屏显示、读取失败与授权失效。[4-4 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Fbrowser-activity-page) · [复现步骤](design.md#验证活动记录页面)

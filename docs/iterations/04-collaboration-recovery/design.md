@@ -52,3 +52,17 @@ wallet-bridge connect --chain-id 71 --client-name WorkBuddy --no-open --no-wait
 ```
 
 切回首页可见 Codex 在前、WorkBuddy 在后，两项均可打开。点击第二项，在原审阅页选择「拒绝本次连接」，回到首页点击「重新检查」，第一项仍可打开。用同样方式拒绝第一项。若此次启动了专用测试服务，运行 `wallet-bridge service stop` 收尾。
+
+## 验证活动记录页面
+
+沿用上一节的环境和两个 CLI 请求，在已授权首页点击「查看活动记录」。最近创建的请求排在前面。点击名称可打开原请求，拒绝后返回活动页点击「刷新记录」，应看到同一条记录更新为「用户已拒绝」。另一个请求也可按上述步骤完成和清理。每页最多 20 条，有更早的记录时可翻页，刷新会更新当前页。交易收到钱包回传的哈希后显示「已发送」及完整哈希。
+
+在仓库根目录、端口 18765 空闲时运行：
+
+```sh
+npm --prefix web run bundle
+npm --prefix web run browser:install
+npm --prefix web run test:e2e -- activity.spec.ts
+```
+
+预期三个用例通过。首项使用临时服务创建同 ID 的连接和交易，关闭 Session 后核对状态及原请求链接。其余用例模拟分页、迟到哈希、服务错误和浏览器授权失效。测试自动停止服务并清理临时数据。

@@ -1,10 +1,10 @@
 # 当前迭代与交接
 
-更新时间：2026-11-24。
+更新时间：2026-11-25。
 
 ## 迭代 4 · 协作与恢复
 
-当前步骤 4-3 提供本机活动记录查询，下一步在管理页展示活动与结果。[需求](04-collaboration-recovery/spec.md) · [设计](04-collaboration-recovery/design.md) · [PR 计划](04-collaboration-recovery/plan.md)
+当前步骤 4-4 在管理页展示活动与结果。下一步是确认清理活动时的历史查询和迟到结果保留规则。[需求](04-collaboration-recovery/spec.md) · [设计](04-collaboration-recovery/design.md) · [PR 计划](04-collaboration-recovery/plan.md)
 
 ## 上轮交接
 
