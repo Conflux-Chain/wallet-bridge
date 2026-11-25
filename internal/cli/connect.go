@@ -12,7 +12,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -67,11 +66,7 @@ func runConnect(args []string, deps Dependencies, stdout, stderr io.Writer) int 
 	defer stop()
 	c, err := deps.NewClient(*dir)
 	if err == nil {
-		var status client.Status
-		status, err = c.Ensure(ctx)
-		if err == nil && (status.Info == nil || !slices.Contains(status.Info.Capabilities, "browser.connections.decisions")) {
-			err = &client.Error{Code: "incompatible_service", Message: "The service does not support browser connection approval"}
-		}
+		err = c.EnsureConnectionApproval(ctx)
 	}
 	if err != nil {
 		return connectError(ctx, stderr, opts.asJSON, "", err)

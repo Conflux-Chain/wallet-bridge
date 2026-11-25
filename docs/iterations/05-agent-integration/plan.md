@@ -2,7 +2,9 @@
 
 5-0 规划已合并为 `958cf0b`，三平台 CI 通过。Windows 首次在连接维护测试观察 SQLite 状态时遇到 `SQLITE_BUSY`，本机该用例连续 15 次通过，同一提交重跑通过。[PR #65](https://github.com/Conflux-Chain/wallet-bridge/pull/65) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45543399271)
 
-5-1 待评审，Windows 本机独立程序 smoke 已通过。5-2～5-6 待开发。[需求](spec.md) · [验证方法](design.md#验证-stdio-接入)
+5-1 已合并为 `1e6c916`，Windows amd64、macOS amd64／arm64 CI 均通过独立程序握手与工具发现。[PR #66](https://github.com/Conflux-Chain/wallet-bridge/pull/66) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45545457113)
+
+5-2 待评审，Windows 本机通过构建、工具发现、Go 测试及静态检查。本机服务占用 18765，含浏览器同意的组合用例由 CI 执行。5-3～5-6 待开发。[首次连接工具](design.md#首次连接工具) · [复现步骤](design.md#验证-mcp-连接)
 
 | 步骤 | 单一交付 | 验证 |
 |---|---|---|
