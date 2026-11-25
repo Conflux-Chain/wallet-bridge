@@ -17,6 +17,7 @@ import (
 
 type Dependencies struct {
 	BuildInfo     buildinfo.Info
+	Install       func(dataDir string) (string, error)
 	CheckUpdate   func(context.Context, string, bool) (update.Result, error)
 	StageUpdate   func(context.Context, string, string) (update.Candidate, error)
 	RunMCP        func(dataDir string) error
@@ -31,7 +32,7 @@ type Dependencies struct {
 
 const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status|stop [--data-dir <absolute path>] [--json]"
 const mcpUsage = "Usage: wallet-bridge mcp [--data-dir <absolute path>]"
-const usage = "Usage: wallet-bridge version [--json]\n" + updateUsage + "\n" + mcpUsage + "\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
+const usage = "Usage: wallet-bridge version [--json]\n" + installUsage + "\n" + updateUsage + "\n" + mcpUsage + "\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
 
 func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
 	info := dependencies.BuildInfo
@@ -41,6 +42,9 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 	}
 	if args[0] == "service" {
 		return runService(args[1:], dependencies, stdout, stderr)
+	}
+	if args[0] == "install" {
+		return runInstall(args[1:], dependencies, stdout, stderr)
 	}
 	if args[0] == "update" {
 		return runUpdate(args[1:], dependencies, stdout, stderr)

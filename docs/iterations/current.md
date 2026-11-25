@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-6-4a 已合并，6-4b CLI 下载和候选目录写入待评审。下一项是本机启用版本与启动入口。[候选下载测试](06-release-upgrade/design.md#下载候选版本) · [本轮需求](06-release-upgrade/spec.md) · [PR 计划](06-release-upgrade/plan.md)
+6-4b 已合并，6-5a 可选安装命令待评审。下一项是从固定入口和旧 client 启动本机启用版本。[本机安装](06-release-upgrade/design.md#本机安装) · [本轮需求](06-release-upgrade/spec.md) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 
