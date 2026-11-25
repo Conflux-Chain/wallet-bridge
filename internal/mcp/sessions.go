@@ -11,7 +11,7 @@ type sessionLookup struct {
 	SessionID string `json:"sessionId" jsonschema:"Session ID from a successful connection, as 32 lowercase hexadecimal characters."`
 }
 
-func (t connectionTools) getSession(ctx context.Context, _ *sdk.CallToolRequest, in sessionLookup) (*sdk.CallToolResult, api.SessionResponse, error) {
+func (t walletTools) getSession(ctx context.Context, _ *sdk.CallToolRequest, in sessionLookup) (*sdk.CallToolResult, api.SessionResponse, error) {
 	c, err := t.readyClient(ctx)
 	if err != nil {
 		return nil, api.SessionResponse{}, err
@@ -20,7 +20,7 @@ func (t connectionTools) getSession(ctx context.Context, _ *sdk.CallToolRequest,
 	return nil, session, err
 }
 
-func (t connectionTools) closeSession(ctx context.Context, _ *sdk.CallToolRequest, in sessionLookup) (*sdk.CallToolResult, api.SessionResponse, error) {
+func (t walletTools) closeSession(ctx context.Context, _ *sdk.CallToolRequest, in sessionLookup) (*sdk.CallToolResult, api.SessionResponse, error) {
 	c, err := t.readyClient(ctx)
 	if err != nil {
 		return nil, api.SessionResponse{}, err

@@ -21,6 +21,10 @@
 
 连接成功后，agent 用返回的 `sessionId` 调用一次 `get_session`，向用户展示固定的钱包、账户和网络。显式查询有效 Session 会刷新五分钟空闲计时。轮询连接使用 `get_connection`，保留原空闲期限。`close_session` 返回关闭状态，重复关闭和后续查询保留原绑定与关闭时间。[Session 规则](../02-connection-session/spec.md)
 
+### 创建单笔交易
+
+`create_transaction` 接受 `requestId`、`sessionId`、可选 `intent` 和原始 `transaction` 对象。工具列出支持的交易字段，金额与费用使用最小单位字符串。调用方名称取自 MCP 握手。服务核对 Session 绑定、冻结交易，返回规范化字段、状态、期限和原审阅链接。重试携带原 ID 和原内容，每笔新交易分配新 ID。[输入及幂等规则](../03-single-transaction/spec.md#创建请求)
+
 ## 验证 STDIO 接入
 
 在 Windows 或 macOS 按 [README 环境准备](../../../README.md#环境准备)安装依赖，从仓库根目录运行：
@@ -42,3 +46,7 @@ npm --prefix web run test:e2e -- mcp-connection.spec.ts
 ```
 
 预期 `2 passed`。第一项使用临时服务和模拟钱包核对重试、用户同意、Session 绑定、重复关闭和历史查询。第二项验证服务重启后取消待审批连接，重复取消仍返回同一结果。测试结束会停止临时服务并清理数据。真实 Codex 验收见[迭代计划](plan.md)。
+
+## 验证 MCP 交易创建
+
+沿用上一节的构建、浏览器安装及空闲端口条件，在仓库根目录运行 `npm --prefix web run test:e2e -- mcp-transaction.spec.ts`。预期 `1 passed`。用例从 STDIO 提交含 calldata 的请求，在模拟钱包页面核对原数据与缺省意图，验证账户／网络不符、重复创建、内容冲突及关闭 Session 后取回原结果。测试自动停止临时服务并清理数据。

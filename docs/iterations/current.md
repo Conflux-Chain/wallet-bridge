@@ -4,7 +4,7 @@
 
 ## 迭代 5 · AI agent 接入
 
-当前步骤 5-3 交付 MCP 连接取消和 Session 管理。下一步细化 agent 提交单笔交易时的输入与意图说明。[迭代需求](05-agent-integration/spec.md) · [适配设计](05-agent-integration/design.md) · [PR 计划](05-agent-integration/plan.md)
+当前步骤 5-4 交付 MCP 单笔交易创建。下一步为交易查询与取消，细化 agent 对等待钱包及结果未确定的提示。[迭代需求](05-agent-integration/spec.md) · [适配设计](05-agent-integration/design.md) · [PR 计划](05-agent-integration/plan.md)
 
 ## 上轮交接
 

@@ -6,7 +6,9 @@
 
 5-2 已合并为 `8ddb439`。三平台 CI 均通过 MCP 重试、浏览器同意与原结果查询。[PR #67](https://github.com/Conflux-Chain/wallet-bridge/pull/67) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45555450734)
 
-5-3 待评审，覆盖连接取消、Session 查询与关闭。5-4～5-6 待开发。[Session 工具](design.md#session-工具) · [复现步骤](design.md#验证-mcp-连接)
+5-3 已合并为 `f40b396`。三平台 CI 均通过服务重启后取消连接、Session 查询与重复关闭。[PR #68](https://github.com/Conflux-Chain/wallet-bridge/pull/68) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45556987685)
+
+5-4 待评审，覆盖创建原始交易审阅请求。5-5～5-6 待开发。[创建单笔交易](design.md#创建单笔交易) · [复现步骤](design.md#验证-mcp-交易创建)
 
 | 步骤 | 单一交付 | 验证 |
 |---|---|---|

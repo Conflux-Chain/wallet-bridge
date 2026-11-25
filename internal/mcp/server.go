@@ -3,7 +3,9 @@ package mcp
 import (
 	"context"
 
+	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/buildinfo"
+	"github.com/google/jsonschema-go/jsonschema"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -11,7 +13,7 @@ func Run(ctx context.Context, info buildinfo.Info, dataDir string) error {
 	server := sdk.NewServer(&sdk.Implementation{Name: "wallet-bridge", Version: info.Version}, &sdk.ServerOptions{
 		Capabilities: &sdk.ServerCapabilities{Tools: &sdk.ToolCapabilities{}},
 	})
-	tools := connectionTools{dataDir: dataDir, uiEmbedded: info.UIEmbedded}
+	tools := walletTools{dataDir: dataDir, uiEmbedded: info.UIEmbedded}
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        "create_connection",
 		Description: "Request a wallet connection on the specified EVM network. Generate a fresh random requestId before calling. Keep it and all input unchanged for retries. Show the returned approval link to the user immediately, then poll get_connection while the task is active.",
@@ -35,5 +37,15 @@ func Run(ctx context.Context, info buildinfo.Info, dataDir string) error {
 		Description: "Close this Session and cancel its pending requests that have not reached the wallet. Returns the closed Session, including on repeat calls. A transaction already handed to the wallet may still return a hash.",
 		Annotations: &sdk.ToolAnnotations{IdempotentHint: true},
 	}, tools.closeSession)
+	// Advertise the supported fields while preserving which fields were supplied to HTTP.
+	input, err := jsonschema.For[transactionInput[api.TransactionPayload]](nil)
+	if err != nil {
+		return err
+	}
+	sdk.AddTool(server, &sdk.Tool{
+		Name: "create_transaction", InputSchema: input,
+		Description: "Create one transaction for browser review. Generate a fresh random requestId per intended transaction. Retry with the original ID and inputs. Provide the fixed Session sender and chain. Show the returned review link immediately. The user confirms sending in the browser wallet.",
+		Annotations: &sdk.ToolAnnotations{IdempotentHint: true, DestructiveHint: new(false)},
+	}, tools.createTransaction)
 	return server.Run(ctx, &sdk.StdioTransport{})
 }
