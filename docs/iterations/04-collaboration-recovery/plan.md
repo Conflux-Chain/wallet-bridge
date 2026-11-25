@@ -17,4 +17,6 @@
 
 4-4 已合并为 `5a8a45a`。三平台 CI 通过，覆盖打开原请求、翻页、迟到哈希、读取失败及授权失效。[PR #62](https://github.com/Conflux-Chain/wallet-bridge/pull/62) · [复现步骤](design.md#验证活动记录页面)
 
-4-5 待评审。Windows HTTP／SQLite 测试已验证逐条移除、未决交易保护、同 ID 隔离、重启后幂等重试及原结果查询，本机 Chrome 已用模拟响应验证移除反馈。[4-5 PR](https://github.com/Conflux-Chain/wallet-bridge/pulls?q=is%3Apr+head%3Acodex%2Fremove-finished-activity) · [复现步骤](design.md#验证活动记录页面)
+4-5 已合并为 `578627a`，三平台 CI 通过。Windows 首次运行在 Session 并发访问测试遇到 SQLite 锁等待超时，本机连续 30 次通过，同一提交重跑通过。[PR #63](https://github.com/Conflux-Chain/wallet-bridge/pull/63) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45538845989)
+
+4-6 验收 PR 覆盖两份 Session 共享钱包、服务重启、用户手动放行、迟到哈希及移除后的 CLI 查询。[验收与复现](acceptance.md)
