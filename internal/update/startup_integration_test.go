@@ -114,3 +114,57 @@ func TestPackagedServiceStartup(t *testing.T) {
 		}
 	})
 }
+
+func TestPackagedServiceStartupDuringUpgrade(t *testing.T) {
+	name, err := nativeAssetName()
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err := filepath.Abs(filepath.Join("..", "..", "dist", name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(t.TempDir(), "data")
+	check := func(want UpgradeBlock) {
+		t.Helper()
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+		for _, args := range [][]string{{"connect", "--chain-id", "71", "--no-open"}, {"service", "run"}} {
+			out, err := exec.CommandContext(ctx, program, append(args, "--data-dir", dir)...).CombinedOutput()
+			var failure *exec.ExitError
+			if !errors.As(err, &failure) || failure.ExitCode() != 1 || !bytes.Contains(out, []byte(string(want))) || !bytes.Contains(out, []byte(want.Error())) {
+				t.Fatalf("%v: %s %v", args, out, err)
+			}
+		}
+		agent := mcp.NewClient(&mcp.Implementation{Name: "upgrade-test", Version: "1"}, nil)
+		s, err := agent.Connect(ctx, &mcp.CommandTransport{Command: exec.CommandContext(ctx, program, "mcp", "--data-dir", dir)}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer s.Close()
+		res, err := s.CallTool(ctx, &mcp.CallToolParams{Name: "create_connection", Arguments: map[string]string{
+			"chainId": "71", "requestId": strings.Repeat("a", 32),
+		}})
+		if err != nil || !res.IsError || len(res.Content) == 0 {
+			t.Fatal("missing MCP tool error", res, err)
+		}
+		msg, ok := res.Content[0].(*mcp.TextContent)
+		if !ok || !strings.Contains(msg.Text, string(want)) || !strings.Contains(msg.Text, want.Error()) {
+			t.Fatal("unexpected MCP diagnostic", res.Content)
+		}
+		if _, err := os.Stat(filepath.Join(dir, "bridge.db")); !errors.Is(err, os.ErrNotExist) {
+			t.Fatal("ordinary startup opened the database", err)
+		}
+	}
+	err = withUpgradeWriter(t.Context(), dir, func(w *upgradeWriter) error {
+		if err := w.begin(testUpgradeID, releaseSelection{"dev", strings.Repeat("1", 64)}, releaseSelection{stagedVersion, strings.Repeat("2", 64)}); err != nil {
+			return err
+		}
+		check(UpgradeInProgress)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(UpgradeRecoveryRequired)
+}

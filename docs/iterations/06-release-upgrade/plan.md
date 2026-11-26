@@ -24,7 +24,9 @@
 
 6-7b 已合并为 `4d3dc19`。三平台 CI 通过。Windows 首轮在既有服务协调用例遇到 `SQLITE_BUSY`，该用例本机通过 20 次，同一提交重跑通过。[PR #83](https://github.com/Conflux-Chain/wallet-bridge/pull/83) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45750416381) · [复现步骤](design.md#恢复与清理升级备份)
 
-6-8a 待评审。Windows 版本选择用例连续通过 10 次，全量 Go 测试、`go vet` 和双版本前台启动检查通过。本机端口 18765 已占用，后台 CLI／MCP 打包用例交由三平台 CI 执行。[复现步骤](design.md#写入启用版本记录)
+6-8a 已合并为 `b1934c2`。Windows 和两种 macOS 均通过双版本 CLI／MCP 打包测试。[PR #84](https://github.com/Conflux-Chain/wallet-bridge/pull/84) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45763497778) · [复现步骤](design.md#写入启用版本记录)
+
+6-8b 待评审。Windows 子进程退出与恢复用例连续通过 20 次，打包 CLI／STDIO MCP、全量 Go 测试与 `go vet` 通过。[复现步骤](design.md#接单前的升级协调)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|

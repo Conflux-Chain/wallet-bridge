@@ -55,6 +55,11 @@ func (c *Client) Ensure(ctx context.Context) (Status, error) {
 	var process *platform.BackgroundProcess
 	var done <-chan platform.ProcessResult
 	for {
+		if blocked, err := update.CheckUpgrade(c.dir); err != nil {
+			return Status{}, &Error{"upgrade_state_error", "Cannot verify the local upgrade state", err}
+		} else if blocked != "" {
+			return Status{}, &Error{string(blocked), blocked.Error(), blocked}
+		}
 		status, err := c.Status(ctx)
 		if ctx.Err() != nil {
 			return Status{}, startupDeadline(parent, ctx)
@@ -85,6 +90,11 @@ func (c *Client) Ensure(ctx context.Context) (Status, error) {
 			done = nil
 			code, _, _ := strings.Cut(result.Diagnostic, ":")
 			switch code {
+			case string(update.UpgradeInProgress), string(update.UpgradeRecoveryRequired):
+				blocked := update.UpgradeBlock(code)
+				return Status{}, &Error{code, blocked.Error(), blocked}
+			case "upgrade_state_error":
+				return Status{}, &Error{code, "Cannot verify the local upgrade state", result.Err}
 			case "already_running": // Wait for the candidate holding the directory lock.
 			case "port_in_use":
 				winner, err := c.Status(ctx)
