@@ -42,7 +42,9 @@
 
 6-8f 已合并为 `296cb18`。三平台 CI 均通过升级、旧 CLI 识别启用版本、恢复旧服务及退出码验证。[PR #92](https://github.com/Conflux-Chain/wallet-bridge/pull/92) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45789065165) · [复现步骤](design.md#运行升级命令)
 
-6-9a 待评审。三平台 CI 使用独立程序、持续运行的 STDIO MCP 和 Chromium 模拟钱包执行跨版本重连测试。[复现步骤](design.md#跨版本重连验收)
+6-9a 已合并为 `b80f843`。三平台 CI 验证旧 CLI、持续运行的 STDIO MCP 和原 Chromium 交易页跨版本读回同一迟到哈希，模拟钱包仅发送一次。[PR #93](https://github.com/Conflux-Chain/wallet-bridge/pull/93) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45792134347) · [复现步骤](design.md#跨版本重连验收)
+
+6-9b 待评审。用户选定 `v0.1.0` 作为首个稳定版候选，源提交 `b80f8438978b639c8a0ea97f34546bee40726cfb`，干净构建。清单 SHA-256 为 `b68ae442c573fd9fc9e47d3d6a26f055cc1bfd089a3baea5446ca900d5882f88`。已在 Windows 复算三份程序摘要、运行 Windows 候选并核对两个 macOS 文件的构建信息，另备两份隔离恢复目录。候选的真实钱包、Codex 和用户整体验收待反馈，真实发行附件下载待首次发布后验证。[用户体验指南](../../v0.1.0-user-trial.md) · [用户验收与发布流程](release.md)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|
