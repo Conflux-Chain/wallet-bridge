@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -20,10 +21,11 @@ import (
 )
 
 type Config struct {
-	DataDir string
-	Version string
-	Assets  fs.FS
-	Ready   func() error
+	DataDir          string
+	Version          string
+	VerifyingUpgrade string
+	Assets           fs.FS
+	Ready            func() error
 }
 
 type Error struct {
@@ -64,7 +66,14 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 	if err != nil {
 		return &Error{"upgrade_state_error", "Cannot verify the local upgrade state", err}
 	}
-	if !checkService {
+	if config.VerifyingUpgrade != "" {
+		if checkService {
+			return &Error{"upgrade_state_error", "Conflicting upgrade startup modes", nil}
+		}
+		if err := update.CheckCandidate(config.DataDir, config.VerifyingUpgrade, config.Version); err != nil {
+			return &Error{"upgrade_state_error", "Cannot verify the candidate program", err}
+		}
+	} else if !checkService {
 		if blocked, err := update.CheckUpgrade(config.DataDir); err != nil {
 			return &Error{"upgrade_state_error", "Cannot verify the local upgrade state", err}
 		} else if blocked != "" {
@@ -82,8 +91,20 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 		return &Error{"listen_failed", "Cannot listen on the fixed loopback address", err}
 	}
 	defer listener.Close()
-	if err := credentials.Ensure(config.DataDir); err != nil {
-		return &Error{"credential_error", "Cannot initialize or validate local credentials", err}
+	if config.VerifyingUpgrade == "" {
+		if err := credentials.Ensure(config.DataDir); err != nil {
+			return &Error{"credential_error", "Cannot initialize or validate local credentials", err}
+		}
+	} else {
+		// A missing or empty live database must not be replaced by a new store.
+		file, err := platform.OpenPrivateFile(filepath.Join(config.DataDir, store.DatabaseName))
+		if err != nil {
+			return &Error{"storage_error", "Cannot open the previous database", err}
+		}
+		info, err := file.Stat()
+		if err := errors.Join(err, file.Close()); err != nil || info.Size() == 0 {
+			return &Error{"storage_error", "Cannot verify the previous database", err}
+		}
 	}
 	token, err := credentials.Read(config.DataDir)
 	if err != nil {
@@ -110,7 +131,7 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 	stop := make(chan struct{})
 	var once sync.Once
 	handler, err := api.New(api.Config{
-		Version: config.Version, ServiceToken: token, Assets: config.Assets,
+		Version: config.Version, VerifyingUpgrade: config.VerifyingUpgrade, ServiceToken: token, Assets: config.Assets,
 		StartedAt: time.Now(), Stop: func() { once.Do(func() { close(stop) }) },
 		BrowserAuthorization: browserAuthorization,
 		Connections:          connections,
@@ -133,6 +154,12 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 		}
 	}
 	var maintenanceErr error
+	var verifyOwner <-chan time.Time
+	if config.VerifyingUpgrade != "" {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		verifyOwner = ticker.C
+	}
 running:
 	for {
 		select {
@@ -142,6 +169,10 @@ running:
 			break running
 		case <-stop:
 			break running
+		case <-verifyOwner:
+			if err := update.CheckCandidateOwner(config.DataDir, config.VerifyingUpgrade); err != nil {
+				break running
+			}
 		case <-maintenance:
 			if maintenanceErr = maintainConnections(ctx, connections, false); maintenanceErr != nil {
 				if ctx.Err() != nil {

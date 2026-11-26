@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 15
+        example: 16
         type: integer
     type: object
   api.ActiveWalletRequestResponse:
@@ -331,6 +331,7 @@ definitions:
         - browser.activity
         - browser.activity.remove
         - service.upgrade-stop
+        - service.upgrade-verify
         items:
           type: string
         type: array
@@ -344,6 +345,8 @@ definitions:
       ready:
         example: true
         type: boolean
+      verifyingUpgrade:
+        type: string
       version:
         example: dev
         type: string
@@ -643,7 +646,7 @@ info:
     and transaction lifecycle, browser execution coordination, wallet handoff and
     connection consent.
   title: Wallet Bridge Local API
-  version: "1.15"
+  version: "1.16"
 paths:
   /browser/activity:
     get:

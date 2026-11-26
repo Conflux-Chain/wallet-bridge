@@ -26,7 +26,7 @@ func TestServiceCommandParsing(t *testing.T) {
 	} {
 		var stdout, stderr bytes.Buffer
 		called := false
-		code := Run(tc.args, Dependencies{RunService: func(dir string) error {
+		code := Run(tc.args, Dependencies{RunService: func(dir, _ string) error {
 			called = true
 			if dir != "" && !filepath.IsAbs(dir) {
 				t.Fatal("runner received relative data path")
@@ -38,7 +38,7 @@ func TestServiceCommandParsing(t *testing.T) {
 		}
 	}
 	var stdout, stderr bytes.Buffer
-	if code := Run([]string{"service", "run"}, Dependencies{RunService: func(string) error { return errors.New("port_in_use: occupied") }}, &stdout, &stderr); code != 1 || stdout.Len() != 0 {
+	if code := Run([]string{"service", "run"}, Dependencies{RunService: func(string, string) error { return errors.New("port_in_use: occupied") }}, &stdout, &stderr); code != 1 || stdout.Len() != 0 {
 		t.Fatal("service failure not reported on stderr")
 	}
 }

@@ -23,6 +23,7 @@ import (
 
 type Config struct {
 	Version              string
+	VerifyingUpgrade     string
 	ServiceToken         string
 	Assets               fs.FS
 	StartedAt            time.Time
@@ -40,6 +41,10 @@ type handler struct {
 	key                []byte
 }
 
+func ServiceCapabilities() []string {
+	return []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation", "transactions.lifecycle", "browser.transactions.read", "browser.transactions.coordination", "browser.transactions.decisions", "browser.pending-requests", "browser.activity", "browser.activity.remove", "service.upgrade-stop", "service.upgrade-verify"}
+}
+
 func New(config Config) (http.Handler, error) {
 	key, err := hex.DecodeString(config.ServiceToken)
 	if err != nil || len(key) != 32 || hex.EncodeToString(key) != config.ServiceToken ||
@@ -47,8 +52,8 @@ func New(config Config) (http.Handler, error) {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 15},
-		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation", "transactions.lifecycle", "browser.transactions.read", "browser.transactions.coordination", "browser.transactions.decisions", "browser.pending-requests", "browser.activity", "browser.activity.remove", "service.upgrade-stop"}, Ready: true,
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 16},
+		Capabilities: ServiceCapabilities(), Ready: config.VerifyingUpgrade == "", VerifyingUpgrade: config.VerifyingUpgrade,
 	}}, nil
 }
 
@@ -63,6 +68,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if origins := r.Header.Values("Origin"); len(origins) != 0 && (len(origins) != 1 || origins[0] != Origin) {
 		failure(w, http.StatusForbidden, "invalid_origin", "Origin must match the local service")
+		return
+	}
+	if h.config.VerifyingUpgrade != "" && r.URL.Path != "/api/v1/info" && r.URL.Path != "/api/v1/control/stop" {
+		failure(w, http.StatusServiceUnavailable, "upgrade_in_progress", "The candidate is being verified. Retry after the upgrade.")
 		return
 	}
 	switch r.URL.Path {

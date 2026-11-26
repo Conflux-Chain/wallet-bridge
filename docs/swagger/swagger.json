@@ -7,7 +7,7 @@
         "description": "Local service access, browser authorization, client connection/Session and transaction lifecycle, browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.15"
+        "version": "1.16"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -3148,7 +3148,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 15
+                    "example": 16
                 }
             }
         },
@@ -3611,7 +3611,8 @@
                         "browser.pending-requests",
                         "browser.activity",
                         "browser.activity.remove",
-                        "service.upgrade-stop"
+                        "service.upgrade-stop",
+                        "service.upgrade-verify"
                     ]
                 },
                 "challenge": {
@@ -3627,6 +3628,9 @@
                 "ready": {
                     "type": "boolean",
                     "example": true
+                },
+                "verifyingUpgrade": {
+                    "type": "string"
                 },
                 "version": {
                     "type": "string",

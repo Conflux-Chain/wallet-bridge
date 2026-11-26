@@ -6,10 +6,37 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/update"
 )
+
+// ProbeCandidate polls only the public, signed identity challenge.
+func (c *Client) ProbeCandidate(ctx context.Context, id, version string) (bool, error) {
+	if !validHex(id, 16) || version == "" {
+		return false, errors.New("invalid candidate probe")
+	}
+	_, _, err := c.request(ctx, "", "", requestOptions{verifyingUpgrade: id, serviceVersion: version})
+	var failure *Error
+	if errors.Is(err, errNotRunning) || errors.As(err, &failure) && failure.Code == "service_unavailable" {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+func verifyCandidateInfo(info api.InfoResponse, id, version string) error {
+	if info.Ready || info.VerifyingUpgrade != id || info.Version != version ||
+		info.APIVersion.Major != 1 || info.APIVersion.Minor < 16 {
+		return &Error{"incompatible_service", "The service does not match the expected upgrade candidate", nil}
+	}
+	for _, capability := range api.ServiceCapabilities() {
+		if !slices.Contains(info.Capabilities, capability) {
+			return &Error{"incompatible_service", "The upgrade candidate lacks capability " + capability, nil}
+		}
+	}
+	return nil
+}
 
 // StopForUpgrade restores the enabled service before asking it to check the wallet.
 func (c *Client) StopForUpgrade(parent context.Context) (Status, error) {

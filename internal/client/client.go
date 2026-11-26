@@ -71,10 +71,11 @@ var errNotRunning = errors.New("service is not listening")
 var errConnectionChanged = errors.New("the verified connection closed")
 
 type requestOptions struct {
-	capability     string
-	serviceVersion string
-	body           []byte
-	expected       int
+	capability       string
+	serviceVersion   string
+	verifyingUpgrade string
+	body             []byte
+	expected         int
 }
 
 // NewRequestID identifies one logical request, including all of its retries.
@@ -149,6 +150,13 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 	var info api.InfoResponse
 	if err != nil || json.Unmarshal(data, &info) != nil || !verify(info, challenge, token) {
 		return nil, empty, &Error{"identity_unverified", "The service identity proof is invalid", err}
+	}
+	if options.verifyingUpgrade != "" {
+		if err := verifyCandidateInfo(info, options.verifyingUpgrade, options.serviceVersion); err != nil {
+			return nil, empty, err
+		}
+		// The signed challenge completes this probe, without sending a Bearer request.
+		return nil, empty, nil
 	}
 	if info.APIVersion.Major != 1 || info.APIVersion.Minor < 2 || !hasCapabilities(info.Capabilities) {
 		return nil, empty, &Error{"incompatible_service", "The service API or required capabilities are incompatible; use its matching program to stop it before changing versions", nil}
