@@ -165,7 +165,7 @@ func TestPackagedServiceStartupDuringUpgrade(t *testing.T) {
 			t.Fatal("ordinary startup opened the database", err)
 		}
 	}
-	err = withUpgradeWriter(t.Context(), dir, func(w *upgradeWriter) error {
+	err = WithUpgrade(t.Context(), dir, func(w *Upgrade) error {
 		if err := w.begin(testUpgradeID, releaseSelection{"dev", strings.Repeat("1", 64)}, releaseSelection{stagedVersion, strings.Repeat("2", 64)}); err != nil {
 			return err
 		}

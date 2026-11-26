@@ -20,7 +20,7 @@ func TestUpgradeCoordination(t *testing.T) {
 	previous := releaseSelection{"dev", strings.Repeat("1", 64)}
 	target := releaseSelection{stagedVersion, strings.Repeat("2", 64)}
 	if dir := os.Getenv(env); dir != "" {
-		t.Fatal(withUpgradeWriter(t.Context(), dir, func(w *upgradeWriter) error {
+		t.Fatal(WithUpgrade(t.Context(), dir, func(w *Upgrade) error {
 			if err := w.begin(testUpgradeID, previous, target); err != nil {
 				return err
 			}
@@ -50,14 +50,14 @@ func TestUpgradeCoordination(t *testing.T) {
 		t.Fatal("lost interrupted upgrade", block, err)
 	}
 	want := upgradeRecord{testUpgradeID, phaseStopped, previous, target}
-	err := withUpgradeWriter(t.Context(), dir, func(w *upgradeWriter) error {
+	err := WithUpgrade(t.Context(), dir, func(w *Upgrade) error {
 		if w.current == nil || *w.current != want {
 			t.Fatal("lost saved versions or phase", w.current)
 		}
 		if block, err := CheckUpgrade(dir); err != nil || block != UpgradeInProgress {
 			t.Fatal("live writer", block, err)
 		}
-		if err := withUpgradeWriter(t.Context(), dir, func(*upgradeWriter) error {
+		if err := WithUpgrade(t.Context(), dir, func(*Upgrade) error {
 			t.Fatal("second writer acquired upgrade lock")
 			return nil
 		}); !errors.Is(err, UpgradeInProgress) {
@@ -85,7 +85,7 @@ func TestUpgradeCoordination(t *testing.T) {
 	if _, err := CheckUpgrade(dir); err == nil {
 		t.Fatal("corrupt record permitted ordinary startup")
 	}
-	if err := withUpgradeWriter(t.Context(), dir, func(*upgradeWriter) error {
+	if err := WithUpgrade(t.Context(), dir, func(*Upgrade) error {
 		t.Fatal("corrupt record accepted as resumable")
 		return nil
 	}); err == nil {
@@ -95,7 +95,7 @@ func TestUpgradeCoordination(t *testing.T) {
 
 func TestUpgradeCoordinationConcurrentObservers(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "data")
-	err := withUpgradeWriter(t.Context(), dir, func(*upgradeWriter) error { return nil })
+	err := WithUpgrade(t.Context(), dir, func(*Upgrade) error { return nil })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestUpgradeCoordinationConcurrentObservers(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Millisecond)
 	defer cancel()
-	err = withUpgradeWriter(ctx, dir, func(*upgradeWriter) error {
+	err = WithUpgrade(ctx, dir, func(*Upgrade) error {
 		t.Fatal("writer entered before shared reader left")
 		return nil
 	})

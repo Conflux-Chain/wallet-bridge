@@ -19,21 +19,28 @@ func RollbackFromBackup(ctx context.Context, dir, id string, restore func(string
 		if err := platform.CheckPrivateDir(backup); err != nil {
 			return err
 		}
-		work := filepath.Join(backup, ".restore")
-		if err := os.RemoveAll(work); err != nil {
+		if err := withVerifiedCopy(ctx, backup, restore); err != nil {
 			return err
-		}
-		if err := platform.EnsurePrivateDir(work); err != nil {
-			return err
-		}
-		if err := prepareRollback(ctx, backup, work); err != nil {
-			return errors.Join(err, os.RemoveAll(work))
-		}
-		if err := restore(work); err != nil {
-			return errors.Join(err, os.RemoveAll(work))
 		}
 		return retireBackup(backup)
 	})
+}
+
+func withVerifiedCopy(ctx context.Context, backup string, use func(string) error) (err error) {
+	work := filepath.Join(backup, ".restore")
+	if err := os.RemoveAll(work); err != nil {
+		return err
+	}
+	if err := platform.EnsurePrivateDir(work); err != nil {
+		return err
+	}
+	if err = prepareRollback(ctx, backup, work); err == nil {
+		err = use(work)
+	}
+	if err != nil {
+		return errors.Join(err, os.RemoveAll(work))
+	}
+	return nil
 }
 
 func prepareRollback(ctx context.Context, backup, work string) error {

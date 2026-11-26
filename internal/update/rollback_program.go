@@ -19,7 +19,7 @@ import (
 
 // The upgrade writer owns a single rollback slot. A new upgrade can replace
 // it only after the previous upgrade's record has been retired.
-func (w *upgradeWriter) preparePrograms(ctx context.Context, id string, target releaseSelection) (Candidate, error) {
+func (w *Upgrade) preparePrograms(ctx context.Context, id string, target releaseSelection) (Candidate, error) {
 	if !upgradeIDPattern.MatchString(id) {
 		return Candidate{}, errors.New("invalid upgrade ID")
 	}

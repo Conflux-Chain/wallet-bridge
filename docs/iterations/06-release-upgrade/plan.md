@@ -28,7 +28,9 @@
 
 6-8b 已合并为 `cf99a11`。三平台 CI 均通过升级中断、并发访问和打包 CLI／STDIO MCP 验证。[PR #85](https://github.com/Conflux-Chain/wallet-bridge/pull/85) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45766326332) · [复现步骤](design.md#接单前的升级协调)
 
-6-8c-1 待评审。Windows 双版本打包用例连续通过三次，默认及 `no_web` Go 测试、`go vet` 通过。[复现步骤](design.md#停机前留存旧程序)
+6-8c-1 已合并为 `b494850`，三平台 CI 通过旧程序留存与恢复用例。[PR #86](https://github.com/Conflux-Chain/wallet-bridge/pull/86) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45768251437) · [复现步骤](design.md#停机前留存旧程序)
+
+6-8c-2 待评审。Windows 本机备份中断用例连续通过三次。固定端口已被占用，打包服务的占用与停机组合由 CI 单独验证。[复现步骤](design.md#从钱包占用检查到备份)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|

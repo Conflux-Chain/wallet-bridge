@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-升级期间的 CLI／MCP 提示已合并。6-8c-1 停机前留存旧程序待评审，下一项接入钱包占用检查、停机和备份。[本地验证](06-release-upgrade/design.md#停机前留存旧程序) · [PR 计划](06-release-upgrade/plan.md)
+旧程序留存已合并。6-8c-2 钱包占用检查、停机和备份待评审，下一项验证新版就绪并控制开放接单时点。[本地验证](06-release-upgrade/design.md#从钱包占用检查到备份) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

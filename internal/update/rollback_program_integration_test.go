@@ -82,7 +82,7 @@ func TestPackagedServiceStartupRollbackProgram(t *testing.T) {
 		}
 		target := releaseSelection{staged.Version, staged.SHA256}
 		var saved Candidate
-		err = withUpgradeWriter(ctx, dir, func(w *upgradeWriter) error {
+		err = WithUpgrade(ctx, dir, func(w *Upgrade) error {
 			bad := target
 			bad.SHA256 = strings.Repeat("0", 64)
 			if _, err := w.preparePrograms(ctx, testUpgradeID, bad); err == nil || w.current != nil {
@@ -101,7 +101,7 @@ func TestPackagedServiceStartupRollbackProgram(t *testing.T) {
 		if err := os.Remove(installed); err != nil {
 			t.Fatal(err)
 		}
-		err = withUpgradeWriter(ctx, dir, func(w *upgradeWriter) error {
+		err = WithUpgrade(ctx, dir, func(w *Upgrade) error {
 			if _, err := w.preparePrograms(ctx, strings.Repeat("b", 32), target); !errors.Is(err, UpgradeRecoveryRequired) {
 				t.Fatal("another upgrade replaced pending recovery", err)
 			}
@@ -140,7 +140,7 @@ func TestPackagedServiceStartupRollbackProgram(t *testing.T) {
 		if err := publishSelection(dir, wrong); err != nil {
 			t.Fatal(err)
 		}
-		err = withUpgradeWriter(ctx, dir, func(w *upgradeWriter) error {
+		err = WithUpgrade(ctx, dir, func(w *Upgrade) error {
 			_, err := w.preparePrograms(ctx, testUpgradeID, releaseSelection{staged.Version, staged.SHA256})
 			if err == nil || w.current != nil {
 				t.Fatal("accepted mismatched version", err)
