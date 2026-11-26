@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-候选服务验证已合并。6-8d-2 持久化接单决定并开放业务待评审，下一项是接单前失败回退和中断恢复。[本地验证](06-release-upgrade/design.md#提交接单决定) · [PR 计划](06-release-upgrade/plan.md)
+接单决定与中断恢复已合并。6-8e-1 候选失败后的数据恢复待评审，下一项恢复旧程序、验证就绪并清理备份。[本地验证](06-release-upgrade/design.md#候选失败后恢复数据) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

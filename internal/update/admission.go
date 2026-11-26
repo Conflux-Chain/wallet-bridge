@@ -14,8 +14,14 @@ func (w *Upgrade) Admit(ctx context.Context, probe func(context.Context, string,
 	if w.current != nil && w.current.Phase == phaseAdmitted {
 		return w.recoverAdmittedSelection()
 	}
+	if w.current != nil && w.current.Failure != "" {
+		return errors.Join(errors.New(w.current.Failure), w.RestorePreviousData(ctx, nil))
+	}
 	if err := w.VerifyCandidate(ctx, probe); err != nil {
-		return err
+		if ctx.Err() != nil || w.current == nil || w.current.Phase != phaseVerifying {
+			return err
+		}
+		return errors.Join(err, w.RestorePreviousData(ctx, err))
 	}
 	if err := publishSelection(w.dir, w.current.Target); err != nil {
 		return err
@@ -56,6 +62,15 @@ func (w *Upgrade) recoverAdmittedSelection() error {
 func CandidateAdmitted(dir, id string) (bool, error) {
 	lock, err := platform.ObserveServiceLock(filepath.Join(dir, upgradeLockDir))
 	if errors.Is(err, platform.ErrLocked) {
+		// During rollback the owner must keep its lock while waiting for the
+		// candidate to release the database. Never admit from this read.
+		r, err := readUpgradeRecord(dir)
+		if err != nil {
+			return false, err
+		}
+		if r == nil || r.ID != id || r.Failure != "" {
+			return false, errors.New("the candidate is no longer being verified")
+		}
 		return false, nil
 	}
 	if err != nil {

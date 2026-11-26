@@ -258,3 +258,17 @@ go test -tags integration ./internal/update -run '^TestPackagedServiceStartupAdm
 ```
 
 第一项使用临时目录模拟写入边界和启用记录丢失。最后一项要求本机 18765 端口空闲，验证运行中的候选开放接单，并在重启新版后按原 ID 查回新建请求及原期限。预期两项均输出 `PASS`，退出时清理测试服务和数据。
+
+## 候选失败后恢复数据
+
+候选验证失败时，升级者重新读取已发布的接单决定。仍可回退时，先保存原失败原因，再等待候选退出并取得数据锁。校验原备份的 SQLite 和摘要后，移除失败数据库的日志，依次替换凭据与数据库。两次替换之间中断，重试从同一备份重新校验、替换。数据恢复后保留备份和升级记录，普通连接继续提示恢复，直到后续步骤核实旧服务就绪。
+
+在 Windows 或 macOS 仓库根目录完成 [README 环境准备](../../../README.md#环境准备)，运行：
+
+```sh
+go test ./internal/update -run '^TestRestorePreviousData' -count=1 -v
+npm --prefix web run bundle
+go test -tags integration ./internal/update -run '^TestPackagedServiceStartupRestoresDataAfterFailure$' -count=1 -v
+```
+
+第一项模拟部分替换、数据锁占用和备份损坏。最后一项要求 18765 端口空闲，启动打包的候选程序，在其身份验证后注入失败，核对候选退出、数据还原和原失败原因。预期两项均输出 `PASS`，测试自行清理进程和临时目录。

@@ -28,6 +28,9 @@ func RollbackFromBackup(ctx context.Context, dir, id string, restore func(string
 		if record != nil && record.ID != id {
 			return errors.New("this backup belongs to another upgrade")
 		}
+		if record != nil && record.Failure != "" {
+			return UpgradeRecoveryRequired
+		}
 		if err := platform.CheckPrivateDir(backup); err != nil {
 			return err
 		}
@@ -78,7 +81,16 @@ func prepareRollback(ctx context.Context, backup, work string) error {
 // CleanupCompletedBackup is also safe to retry while the enabled service is
 // running. Call after a successful upgrade or a durably completed rollback.
 func CleanupCompletedBackup(dir, id string) error {
-	return withBackupLock(dir, id, retireBackup)
+	return withBackupLock(dir, id, func(backup string) error {
+		r, err := readUpgradeRecord(dir)
+		if err != nil {
+			return err
+		}
+		if r != nil && r.ID == id && r.Phase != phaseAdmitted {
+			return UpgradeRecoveryRequired
+		}
+		return retireBackup(backup)
+	})
 }
 
 func retireBackup(backup string) error {
