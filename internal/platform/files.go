@@ -50,6 +50,21 @@ func OpenPrivateFile(path string) (*os.File, error) {
 	return openPrivate(path, 0600)
 }
 
+// OpenPrivateRecord reads one generation of an atomically replaced file. Both
+// platforms open the final component without following links and check the
+// opened handle, so a rename during open can safely yield either generation.
+func OpenPrivateRecord(path string) (*os.File, error) {
+	f, err := openFile(path, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkHandle(f, 0600); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return f, nil
+}
+
 func OpenPrivateExecutable(path string) (*os.File, error) {
 	return openPrivate(path, 0700)
 }

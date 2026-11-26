@@ -83,4 +83,8 @@ func TestSymlinksRejected(t *testing.T) {
 	if _, err := OpenPrivateFile(link); !errors.Is(err, ErrInsecurePath) {
 		t.Fatalf("file symlink accepted: %v", err)
 	}
+	if f, err := OpenPrivateRecord(link); err == nil {
+		f.Close()
+		t.Fatal("replaceable record followed a file symlink")
+	}
 }

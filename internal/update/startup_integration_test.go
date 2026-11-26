@@ -51,7 +51,9 @@ func TestPackagedServiceStartup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeSelection(t, dir, selected)
+	if err := publishSelection(dir, releaseSelection{Version: selected.Version, SHA256: selected.SHA256}); err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("foreground", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
