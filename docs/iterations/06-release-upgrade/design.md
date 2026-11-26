@@ -301,3 +301,17 @@ go test -tags integration ./internal/update -run '^TestPackagedServiceStartupUpg
 ```
 
 首项用例以本地候选代替尚未发布的附件，通过 CLI 完成切换，再从原 CLI 查询到已是最新。第二项在备份后移除候选，运行打包程序的 `upgrade --data-dir <临时目录> --json`，核对回退报告、退出码与旧服务状态。预期两项均为 `PASS`。测试自行停止服务并清理目录。
+
+## 跨版本重连验收
+
+在 Windows 或 macOS 仓库根目录完成 [README 环境准备](../../../README.md#环境准备)，确保本机 18765 端口空闲，运行：
+
+```sh
+npm --prefix web run bundle
+npm --prefix web run browser:install
+go test -tags integration ./internal/update -run '^TestBrowserUpgradeReconnect$' -count=1 -v
+```
+
+用例从同一份源码构建两个不同版本的程序，在临时数据目录启动旧服务。旧 CLI 创建交易，Chromium 里的模拟钱包收到一次发送调用。旧服务重启后请求进入「结果未确定」，管理页显式解除占用。用例准备本地候选和备份，再从旧 CLI 运行 `upgrade`。
+
+升级后，原标签页重新取得新版服务状态，原钱包调用回报迟到哈希。页面、旧 CLI 和持续运行的 STDIO MCP 按原请求 ID 查回该哈希；CLI 与 MCP 同时核对 Session、原始交易、创建时间和期限。预期 Playwright 输出 `1 passed`，Go 输出 `PASS`，钱包发送次数始终为一。测试退出时关闭浏览器和服务并清理临时目录。

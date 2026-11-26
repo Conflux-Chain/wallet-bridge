@@ -72,7 +72,7 @@ npm --prefix web run dev
 
 升级备份的本地验证见[创建备份](docs/iterations/06-release-upgrade/design.md#创建升级备份)和[恢复与清理](docs/iterations/06-release-upgrade/design.md#恢复与清理升级备份)。
 
-运行 `wallet-bridge upgrade` 可升级本机服务，添加 `--include-preview` 可包含预览版。若升级中断，重新运行同一命令即可恢复。[命令输出与隔离验证](docs/iterations/06-release-upgrade/design.md#运行升级命令)
+运行 `wallet-bridge upgrade` 可升级本机服务，添加 `--include-preview` 可包含预览版。若升级中断，重新运行同一命令即可恢复。[命令输出与隔离验证](docs/iterations/06-release-upgrade/design.md#运行升级命令) · [跨版本重连验收](docs/iterations/06-release-upgrade/design.md#跨版本重连验收)
 
 验证 MCP 工具发现可运行下列 `bundle` 和 `smoke` 两项。连接与单笔交易可运行独立程序的端到端用例。[STDIO 握手与工具发现](docs/iterations/05-agent-integration/design.md#验证-stdio-接入) · [MCP 首次连接](docs/iterations/05-agent-integration/design.md#验证-mcp-连接) · [MCP 交易创建、查询与取消](docs/iterations/05-agent-integration/design.md#验证-mcp-交易)
 
