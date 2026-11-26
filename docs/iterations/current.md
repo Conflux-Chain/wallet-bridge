@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-升级客户端停机检查已合并，6-7a 私有升级备份待评审。下一项为 6-7b 备份恢复与清理。[备份验证步骤](06-release-upgrade/design.md#创建升级备份) · [PR 计划](06-release-upgrade/plan.md)
+6-7a 创建备份已合并，6-7b 恢复与清理待评审。下一步细化 6-8 的版本切换、中断恢复及就绪后开放服务的顺序。[恢复验证步骤](06-release-upgrade/design.md#恢复与清理升级备份) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 
