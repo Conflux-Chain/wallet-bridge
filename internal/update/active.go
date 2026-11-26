@@ -33,8 +33,15 @@ func ServiceProgram(dir string) (Candidate, error) {
 	return Candidate{Path: path, SHA256: digest}, err
 }
 
+const selectionFile = "selection.json"
+
+type releaseSelection struct {
+	Version string `json:"version"`
+	SHA256  string `json:"sha256"`
+}
+
 func readSelection(dir, active string) (Candidate, error) {
-	f, err := platform.OpenPrivateFile(filepath.Join(active, "selection.json"))
+	f, err := platform.OpenPrivateRecord(filepath.Join(active, selectionFile))
 	if err != nil {
 		return Candidate{}, err
 	}
@@ -44,11 +51,15 @@ func readSelection(dir, active string) (Candidate, error) {
 	if err != nil {
 		return Candidate{}, err
 	}
-	var state struct {
-		Version string `json:"version"`
-		SHA256  string `json:"sha256"`
+	var state releaseSelection
+	if len(data) > maxSize || json.Unmarshal(data, &state) != nil {
+		return Candidate{}, errors.New("invalid active version record")
 	}
-	if len(data) > maxSize || json.Unmarshal(data, &state) != nil || !ValidReleaseTag(state.Version) || !validSHA256(state.SHA256) {
+	return state.candidate(dir)
+}
+
+func (state releaseSelection) candidate(dir string) (Candidate, error) {
+	if !ValidReleaseTag(state.Version) || !validSHA256(state.SHA256) {
 		return Candidate{}, errors.New("invalid active version record")
 	}
 	versions := filepath.Join(dir, "versions")
