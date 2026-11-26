@@ -82,7 +82,8 @@ func windowsFile(path string, access uint32, attrs *windows.SecurityAttributes, 
 	return os.NewFile(uintptr(handle), path), nil
 }
 
-func checkHandle(f *os.File, directory bool) error {
+func checkHandle(f *os.File, mode os.FileMode) error {
+	directory := mode.IsDir()
 	handle := windows.Handle(f.Fd())
 	var info windows.ByHandleFileInformation
 	if err := windows.GetFileInformationByHandle(handle, &info); err != nil {

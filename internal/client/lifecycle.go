@@ -9,7 +9,16 @@ import (
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
+	"github.com/Conflux-Chain/wallet-bridge/internal/update"
 )
+
+func startService(dir string) (*platform.BackgroundProcess, error) {
+	selected, err := update.ServiceProgram(dir)
+	if err != nil {
+		return nil, &Error{"active_program_error", "Cannot use the enabled service program: " + err.Error(), err}
+	}
+	return platform.StartBackground(selected.Path, dir)
+}
 
 func (c *Client) Status(ctx context.Context) (Status, error) {
 	data, info, err := c.request(ctx, "GET", "/api/v1/status", requestOptions{expected: 200})
@@ -63,6 +72,9 @@ func (c *Client) Ensure(ctx context.Context) (Status, error) {
 			}
 			process, err = c.start(c.dir)
 			if err != nil {
+				if errors.As(err, &failure) {
+					return Status{}, failure
+				}
 				return Status{}, &Error{"startup_failed", "Cannot launch the background service", err}
 			}
 			defer process.CloseDiagnostics()
@@ -89,7 +101,7 @@ func (c *Client) Ensure(ctx context.Context) (Status, error) {
 				if !errors.As(err, &failure) || failure.Code != "service_unavailable" {
 					return Status{}, err
 				}
-			case "credential_error", "data_unavailable", "listen_failed", "configuration_error", "storage_error":
+			case "credential_error", "data_unavailable", "listen_failed", "configuration_error", "storage_error", "active_program_error":
 				return Status{}, &Error{code, "The background service could not initialize; run service run to diagnose locally", result.Err}
 			default:
 				return Status{}, &Error{"startup_failed", "The background service exited before readiness was confirmed; run service run to diagnose locally", result.Err}

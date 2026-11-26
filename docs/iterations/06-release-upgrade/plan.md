@@ -12,7 +12,9 @@
 
 6-4b 已合并为 `49c38de`，三平台 CI 通过。Windows 真实查询不存在的发行标签返回 404。真实附件下载成功路径待首次公开发行后验证。[PR #77](https://github.com/Conflux-Chain/wallet-bridge/pull/77) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45587482667) · [复现步骤](design.md#下载候选版本)
 
-6-5a 待评审。Windows 本机已通过隔离安装、并发复用、冲突保护，以及删除下载副本后的 CLI 版本查询和 MCP 工具发现。[复现步骤](design.md#本机安装)
+6-5a 已合并为 `c74c4fc`。三平台验证删除下载副本后仍可从固定路径运行 CLI 和 MCP。[PR #78](https://github.com/Conflux-Chain/wallet-bridge/pull/78) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45591481978) · [复现步骤](design.md#本机安装)
+
+6-5b 待评审。Windows 本机通过版本选择、损坏记录和两份独立程序的前台调试检查。本机 18765 端口正在使用，CLI 和 MCP 的后台启动组合测试由三平台 CI 执行。[复现步骤](design.md#启动已启用的服务)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|

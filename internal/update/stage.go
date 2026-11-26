@@ -31,16 +31,23 @@ func Stage(ctx context.Context, tag, dir string) (Candidate, error) {
 	return stage(ctx, &http.Client{CheckRedirect: assetRedirect}, tag, dir)
 }
 
-func stage(ctx context.Context, client *http.Client, tag, dir string) (Candidate, error) {
+func nativeAssetName() (string, error) {
 	name := "wallet-bridge-" + runtime.GOOS + "-" + runtime.GOARCH
 	switch name {
 	case "wallet-bridge-windows-amd64":
 		name += ".exe"
 	case "wallet-bridge-darwin-arm64", "wallet-bridge-darwin-amd64":
 	default:
-		return Candidate{}, fmt.Errorf("no release asset for %s/%s", runtime.GOOS, runtime.GOARCH)
+		return "", fmt.Errorf("no release asset for %s/%s", runtime.GOOS, runtime.GOARCH)
 	}
-	var err error
+	return name, nil
+}
+
+func stage(ctx context.Context, client *http.Client, tag, dir string) (Candidate, error) {
+	name, err := nativeAssetName()
+	if err != nil {
+		return Candidate{}, err
+	}
 	if dir == "" {
 		dir, err = platform.DataDir()
 		if err != nil {
@@ -134,34 +141,32 @@ func checkNativeExecutable(f *os.File) error {
 }
 
 func verifyExecutable(path, digest string) error {
-	info, err := os.Lstat(path)
+	actual, err := executableDigest(path)
 	if err != nil {
 		return err
 	}
-	if !info.Mode().IsRegular() {
-		return fmt.Errorf("expected a regular executable: %s", path)
-	}
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	opened, err := f.Stat()
-	if err != nil {
-		return err
-	}
-	if !os.SameFile(info, opened) {
-		return errors.New("program changed while opening")
-	}
-	hash := sha256.New()
-	if _, err := io.Copy(hash, f); err != nil {
-		return err
-	}
-	if fmt.Sprintf("%x", hash.Sum(nil)) != digest {
+	if actual != digest {
 		return fmt.Errorf("existing program checksum differs: %s", path)
 	}
-	if runtime.GOOS == "darwin" && info.Mode().Perm() != 0700 {
-		return errors.New("unexpected executable permissions")
+	return nil
+}
+
+func executableDigest(path string) (string, error) {
+	f, err := platform.OpenPrivateExecutable(path)
+	if err != nil {
+		return "", err
 	}
-	return checkNativeExecutable(f)
+	defer f.Close()
+	if err := checkNativeExecutable(f); err != nil {
+		return "", err
+	}
+	return fileDigest(f)
+}
+
+func fileDigest(f *os.File) (string, error) {
+	hash := sha256.New()
+	if _, err := io.Copy(hash, f); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }

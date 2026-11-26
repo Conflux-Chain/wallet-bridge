@@ -35,19 +35,13 @@ func openFile(path string, directory bool) (*os.File, error) {
 	return os.NewFile(uintptr(fd), path), nil
 }
 
-func checkHandle(f *os.File, directory bool) error {
+func checkHandle(f *os.File, mode os.FileMode) error {
 	info, err := f.Stat()
 	if err != nil {
 		return err
 	}
-	mode := os.FileMode(0600)
-	if directory {
-		mode = 0700
-	}
 	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok || stat.Uid != uint32(os.Geteuid()) || info.Mode().Perm() != mode ||
-		info.IsDir() != directory || (!directory && !info.Mode().IsRegular()) ||
-		info.Mode()&(os.ModeSetuid|os.ModeSetgid|os.ModeSticky) != 0 {
+	if !ok || stat.Uid != uint32(os.Geteuid()) || info.Mode() != mode {
 		return fmt.Errorf("%s: %w", f.Name(), ErrInsecurePath)
 	}
 	return checkNoACL(f)

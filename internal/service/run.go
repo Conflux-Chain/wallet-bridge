@@ -16,6 +16,7 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/credentials"
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
 	"github.com/Conflux-Chain/wallet-bridge/internal/store"
+	"github.com/Conflux-Chain/wallet-bridge/internal/update"
 )
 
 type Config struct {
@@ -59,6 +60,9 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 		return &Error{"data_unavailable", "Cannot establish a private data directory and process lock", err}
 	}
 	defer lock.Close()
+	if err := update.CheckServiceProgram(config.DataDir); err != nil {
+		return &Error{"active_program_error", err.Error(), err}
+	}
 	listener, err := listen("tcp4", api.Address)
 	if err != nil {
 		if platform.IsPortInUse(err) {
