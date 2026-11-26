@@ -86,7 +86,7 @@ func CleanupCompletedBackup(dir, id string) error {
 		if err != nil {
 			return err
 		}
-		if r != nil && r.ID == id && r.Phase != phaseAdmitted {
+		if r != nil && r.ID == id && !r.committed() {
 			return UpgradeRecoveryRequired
 		}
 		return retireBackup(backup)

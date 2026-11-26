@@ -13,10 +13,10 @@ import (
 // VerifyCandidate reuses a matching service or starts it with an explicit CLI
 // option. Older binaries reject the option before opening the live database.
 func (w *Upgrade) VerifyCandidate(ctx context.Context, probe func(context.Context, string, string) (bool, error)) error {
-	if w.current == nil || w.current.Phase != phaseVerifying {
+	if w.current == nil || (w.current.Phase != phaseVerifying && w.current.Phase != phaseDataRestored) {
 		return errors.New("the upgrade is not ready for candidate verification")
 	}
-	target, err := w.current.Target.candidate(w.dir)
+	target, err := w.current.selection().program(w.dir)
 	if err != nil {
 		return err
 	}
@@ -57,16 +57,17 @@ func (w *Upgrade) VerifyCandidate(ctx context.Context, probe func(context.Contex
 
 // CheckCandidate runs under the data lock before listening or migrating.
 func CheckCandidate(dir, id, version string) error {
-	r, err := ownedRecord(dir, id, phaseVerifying)
+	r, err := ownedRecord(dir, id, phaseVerifying, phaseDataRestored)
 	if err != nil {
 		return err
 	}
-	if version != r.Target.Version {
-		return errors.New("the candidate version differs from the upgrade target")
+	expected := r.selection()
+	if version != expected.Version {
+		return errors.New("the program version differs from the version being verified")
 	}
 	exe, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	return verifyExecutable(exe, r.Target.SHA256)
+	return verifyExecutable(exe, expected.SHA256)
 }

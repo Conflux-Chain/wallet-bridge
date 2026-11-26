@@ -28,7 +28,7 @@ func (w *Upgrade) RestorePreviousData(ctx context.Context, cause error) (err err
 	}
 	w.current = record
 	switch record.Phase {
-	case phaseAdmitted:
+	case phaseAdmitted, phaseRolledBack:
 		return ErrRollbackAfterAdmission
 	case phaseDataRestored:
 		return nil

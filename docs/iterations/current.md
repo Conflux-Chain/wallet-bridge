@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-接单决定与中断恢复已合并。6-8e-1 候选失败后的数据恢复待评审，下一项恢复旧程序、验证就绪并清理备份。[本地验证](06-release-upgrade/design.md#候选失败后恢复数据) · [PR 计划](06-release-upgrade/plan.md)
+候选失败后的数据恢复已合并。6-8e-2 恢复旧版服务与备份清理待评审，下一项接入用户可运行的 `upgrade` 命令。[本地验证](06-release-upgrade/design.md#恢复旧版服务) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

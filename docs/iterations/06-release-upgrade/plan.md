@@ -36,7 +36,9 @@
 
 6-8d-2 已合并为 `c9c519a`。三平台 CI 验证了新版开放接单，以及重启后按原 ID 查询新请求。[PR #89](https://github.com/Conflux-Chain/wallet-bridge/pull/89) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45775452516) · [复现步骤](design.md#提交接单决定)
 
-6-8e-1 待评审。Windows 本机部分替换、锁占用、损坏备份和接单决定用例连续通过 10 次。固定端口已被占用，打包进程组合由 CI 验证。[复现步骤](design.md#候选失败后恢复数据)
+6-8e-1 已合并为 `e9295cf`，三平台 CI 通过。Windows 首轮在交易请求并发创建与关闭 Session 的既有测试遇到 `SQLITE_BUSY`，本机连续通过 20 次，同一提交重跑通过。[PR #90](https://github.com/Conflux-Chain/wallet-bridge/pull/90) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45781867294) · [复现步骤](design.md#候选失败后恢复数据)
+
+6-8e-2 待评审。Windows 本机连续 10 次通过接单决定、数据恢复及回退清理中断用例。双版本打包演练由三平台 CI 运行。[复现步骤](design.md#恢复旧版服务)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|

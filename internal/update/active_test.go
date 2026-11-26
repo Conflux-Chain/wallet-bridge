@@ -12,6 +12,10 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
 )
 
+func publishSelection(dir string, state releaseSelection) error {
+	return (activeSelection{releaseSelection: state}).publish(dir)
+}
+
 func writeSelection(t *testing.T, dir string, selected Candidate) string {
 	t.Helper()
 	active := filepath.Join(dir, "active")

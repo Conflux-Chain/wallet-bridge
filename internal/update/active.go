@@ -40,16 +40,42 @@ type releaseSelection struct {
 	SHA256  string `json:"sha256"`
 }
 
+// Retained selects the fixed rollback slot, including for directly run dev builds.
+// Records written before rollback support select the regular version directory.
+type activeSelection struct {
+	releaseSelection
+	Retained bool `json:"retained,omitempty"`
+}
+
+func (s activeSelection) program(dir string) (Candidate, error) {
+	if !s.Retained {
+		return s.candidate(dir)
+	}
+	if s.Version == "" || !validSHA256(s.SHA256) {
+		return Candidate{}, errors.New("invalid retained program record")
+	}
+	slot := filepath.Join(dir, "rollback-program")
+	if err := platform.CheckPrivateDir(slot); err != nil {
+		return Candidate{}, err
+	}
+	name, err := nativeAssetName()
+	if err != nil {
+		return Candidate{}, err
+	}
+	saved := Candidate{Version: s.Version, SHA256: s.SHA256, Path: filepath.Join(slot, name)}
+	return saved, verifyExecutable(saved.Path, saved.SHA256)
+}
+
 func readSelection(dir, active string) (Candidate, error) {
 	state, err := readSelectionRecord(active)
 	if err != nil {
 		return Candidate{}, err
 	}
-	return state.candidate(dir)
+	return state.program(dir)
 }
 
-func readSelectionRecord(active string) (releaseSelection, error) {
-	var state releaseSelection
+func readSelectionRecord(active string) (activeSelection, error) {
+	var state activeSelection
 	f, err := platform.OpenPrivateRecord(filepath.Join(active, selectionFile))
 	if err != nil {
 		return state, err

@@ -10,7 +10,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/client"
 	"github.com/Conflux-Chain/wallet-bridge/internal/credentials"
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
@@ -42,6 +44,9 @@ func TestPackagedServiceStartupRestoresDataAfterFailure(t *testing.T) {
 			return err
 		}
 		return w.Admit(ctx, func(ctx context.Context, id, version string) (bool, error) {
+			if version != target.Version {
+				return false, errors.New("interrupted before starting previous program")
+			}
 			ok, err := c.ProbeCandidate(ctx, id, version)
 			if ok {
 				return false, failure
@@ -73,5 +78,54 @@ func TestPackagedServiceStartupRestoresDataAfterFailure(t *testing.T) {
 	}
 	if b, err := update.CheckUpgrade(dir); err != nil || b != update.UpgradeRecoveryRequired {
 		t.Fatal("ordinary access allowed before old service readiness", b, err)
+	}
+
+	t.Cleanup(func() {
+		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if _, err := c.Stop(shutdown); err != nil {
+			t.Error(err)
+		}
+	})
+	resume := func() error {
+		return update.WithUpgrade(ctx, dir, func(w *update.Upgrade) error { return w.Admit(ctx, c.ProbeCandidate) })
+	}
+	var result *update.RolledBackError
+	if err := resume(); !errors.As(err, &result) || result.Target != target.Version || result.Restored == target.Version || result.Cause.Error() != failure.Error() {
+		t.Fatal("unexpected rollback result", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "backups", id)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("backup remained after rollback", err)
+	}
+	// Status cannot auto-start a service. Observe the retained program opening.
+	wait, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	for {
+		status, err := c.Status(wait)
+		if err == nil && status.Info != nil && status.Info.Ready && status.Info.Version == result.Restored {
+			break
+		}
+		if wait.Err() != nil {
+			t.Fatal("restored service did not open", status, err)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	req, err := c.CreateConnection(ctx, api.ConnectionCreateRequest{ID: client.NewRequestID(), ClientName: "rollback test", ChainID: "71"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := resume(); !errors.As(err, &result) {
+		t.Fatal("retry lost the rollback outcome", err)
+	}
+	status, err := c.Ensure(ctx)
+	if err != nil || status.Info == nil || status.Info.Version != result.Restored {
+		t.Fatal("restart did not select the retained program", status, err)
+	}
+	got, err := c.GetConnection(ctx, req.ID)
+	if err != nil || got.ExpiresAt != req.ExpiresAt || got.ID != req.ID {
+		t.Fatal("rollback retry lost a new request", got, err)
 	}
 }

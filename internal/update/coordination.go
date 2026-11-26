@@ -36,6 +36,7 @@ const (
 	phaseAdmitted     = "admitted"
 	phaseRestoring    = "restoring"
 	phaseDataRestored = "data_restored"
+	phaseRolledBack   = "rolled_back"
 )
 
 type upgradeRecord struct {
@@ -54,11 +55,22 @@ func (r upgradeRecord) valid() bool {
 	switch r.Phase {
 	case phasePreparing, phaseStopped, phaseVerifying, phaseAdmitted:
 		return r.Failure == ""
-	case phaseRestoring, phaseDataRestored:
+	case phaseRestoring, phaseDataRestored, phaseRolledBack:
 		return r.Failure != ""
 	default:
 		return false
 	}
+}
+
+func (r upgradeRecord) committed() bool {
+	return r.Phase == phaseAdmitted || r.Phase == phaseRolledBack
+}
+
+func (r upgradeRecord) selection() activeSelection {
+	if r.Failure != "" {
+		return activeSelection{releaseSelection: r.Previous, Retained: true}
+	}
+	return activeSelection{releaseSelection: r.Target}
 }
 
 // Reserve room for the escaped failure diagnostic when an existing upgrade
@@ -108,8 +120,8 @@ func CheckUpgrade(dir string) (UpgradeBlock, error) {
 	if err != nil || record == nil {
 		return "", err
 	}
-	if record.Phase == phaseAdmitted {
-		if err := checkAdmittedSelection(dir, record.Target); err == nil {
+	if record.committed() {
+		if err := checkAdmittedSelection(dir, record.selection()); err == nil {
 			return "", nil
 		}
 	}
@@ -181,7 +193,8 @@ func (w *Upgrade) advance(next string) error {
 		return nil
 	}
 	if !(record.Phase == phasePreparing && next == phaseStopped || record.Phase == phaseStopped && next == phaseVerifying ||
-		record.Phase == phaseVerifying && next == phaseAdmitted || record.Phase == phaseRestoring && next == phaseDataRestored) {
+		record.Phase == phaseVerifying && next == phaseAdmitted || record.Phase == phaseRestoring && next == phaseDataRestored ||
+		record.Phase == phaseDataRestored && next == phaseRolledBack) {
 		return fmt.Errorf("invalid upgrade transition from %s to %s", record.Phase, next)
 	}
 	record.Phase = next

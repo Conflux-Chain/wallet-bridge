@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
 )
@@ -44,7 +45,7 @@ func (c *WalletCheck) Start(dir string) (*platform.BackgroundProcess, error) {
 	return platform.StartBackground(c.previous.Path, dir, checkEnv+"="+c.id)
 }
 
-func ownedRecord(dir, id, phase string) (*upgradeRecord, error) {
+func ownedRecord(dir, id string, phases ...string) (*upgradeRecord, error) {
 	busy, err := platform.ServiceLocked(filepath.Join(dir, upgradeLockDir))
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func ownedRecord(dir, id, phase string) (*upgradeRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	if r == nil || r.ID != id || r.Phase != phase {
+	if r == nil || r.ID != id || !slices.Contains(phases, r.Phase) {
 		return nil, errors.New("the upgrade ID or phase has changed")
 	}
 	return r, nil

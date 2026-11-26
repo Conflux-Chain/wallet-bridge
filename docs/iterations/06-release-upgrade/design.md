@@ -272,3 +272,17 @@ go test -tags integration ./internal/update -run '^TestPackagedServiceStartupRes
 ```
 
 第一项模拟部分替换、数据锁占用和备份损坏。最后一项要求 18765 端口空闲，启动打包的候选程序，在其身份验证后注入失败，核对候选退出、数据还原和原失败原因。预期两项均输出 `PASS`，测试自行清理进程和临时目录。
+
+## 恢复旧版服务
+
+数据恢复后，升级者按保存的摘要启动旧程序，在原地址核实身份、版本和服务能力。验证期间业务入口保持关闭。升级者将启用记录指向已留存的旧程序，持久记录 `rolled_back` 后清理备份。回退结果包含目标版本、已恢复版本和原失败原因。清理中断后重试可修复启用记录并继续清理，回退后新建的请求可按原 ID 查询。
+
+在 Windows 或 macOS 仓库根目录完成 [README 环境准备](../../../README.md#环境准备)，运行：
+
+```sh
+go test ./internal/update -run '^TestCommittedRollbackRecovery$' -count=1 -v
+npm --prefix web run bundle
+go test -tags integration ./internal/update -run '^TestPackagedServiceStartupRestoresDataAfterFailure$' -count=1 -v
+```
+
+第一项模拟清理失败和启用记录丢失。最后一项要求 18765 端口空闲，自动启动两个打包版本，恢复旧版后创建连接请求，再重启旧版并查回该请求和原期限。预期两项均输出 `PASS`，测试结束时自行停止服务并清理临时数据。
