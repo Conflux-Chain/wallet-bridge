@@ -30,7 +30,7 @@ type Dependencies struct {
 	OpenBrowser   func(url string) error
 }
 
-const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status|stop [--data-dir <absolute path>] [--json]"
+const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status [--data-dir <absolute path>] [--json]\n       wallet-bridge service stop [--for-upgrade] [--data-dir <absolute path>] [--json]"
 const mcpUsage = "Usage: wallet-bridge mcp [--data-dir <absolute path>]"
 const usage = "Usage: wallet-bridge version [--json]\n" + installUsage + "\n" + updateUsage + "\n" + mcpUsage + "\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
 
@@ -132,6 +132,10 @@ func runService(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	flags.SetOutput(io.Discard)
 	dir := flags.String("data-dir", "", "Use an absolute private data directory")
 	var jsonOutput bool
+	var forUpgrade bool
+	if action == "stop" {
+		flags.BoolVar(&forUpgrade, "for-upgrade", false, "Check wallet occupancy before stopping for an upgrade")
+	}
 	if action != "run" {
 		flags.BoolVar(&jsonOutput, "json", false, "Print structured output")
 	}
@@ -153,6 +157,9 @@ func runService(args []string, dependencies Dependencies, stdout, stderr io.Writ
 		if dependencies.ManageService == nil {
 			err = &client.Error{Code: "configuration_error", Message: "Service client is unavailable"}
 		} else {
+			if forUpgrade {
+				action = "stop-for-upgrade"
+			}
 			result, err = dependencies.ManageService(action, *dir)
 		}
 		if err != nil {
@@ -161,7 +168,14 @@ func runService(args []string, dependencies Dependencies, stdout, stderr io.Writ
 				failure = &client.Error{Code: "request_failed", Message: "Service operation failed"}
 			}
 			if jsonOutput {
-				json.NewEncoder(stderr).Encode(failure)
+				var busy *client.UpgradeBusyError
+				if errors.As(err, &busy) {
+					json.NewEncoder(stderr).Encode(api.UpgradeBusyResponse{
+						ErrorResponse: api.ErrorResponse{Code: failure.Code, Message: failure.Message}, ActiveWalletRequest: busy.Request,
+					})
+				} else {
+					json.NewEncoder(stderr).Encode(failure)
+				}
 			} else {
 				fmt.Fprintln(stderr, failure)
 			}

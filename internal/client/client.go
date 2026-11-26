@@ -87,6 +87,7 @@ const (
 	browserCapability     = "browser.authorization"
 	connectionCapability  = "connections.lifecycle"
 	transactionCapability = "transactions.lifecycle"
+	upgradeStopCapability = "service.upgrade-stop"
 	defaultResponseLimit  = 16 << 10
 	// The service may escape each byte of an 8 KiB input as six JSON bytes.
 	connectionResponseLimit = 8 * api.MaxConnectionBody
@@ -151,6 +152,9 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 	if info.APIVersion.Major != 1 || info.APIVersion.Minor < 2 || !hasCapabilities(info.Capabilities) {
 		return nil, empty, &Error{"incompatible_service", "The service API or required capabilities are incompatible; use its matching program to stop it before changing versions", nil}
 	}
+	if options.capability == upgradeStopCapability && (info.APIVersion.Minor < 15 || !slices.Contains(info.Capabilities, upgradeStopCapability)) {
+		return nil, empty, &Error{"incompatible_service", "The running service cannot check the wallet for an upgrade", nil}
+	}
 	if options.capability != "" && !slices.Contains(info.Capabilities, options.capability) ||
 		options.capability == connectionCapability && info.APIVersion.Minor < 3 ||
 		options.capability == transactionCapability && info.APIVersion.Minor < 8 {
@@ -181,6 +185,8 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 	data, err = readResponse(response, options.expected, limit)
 	if err != nil {
 		switch options.capability {
+		case upgradeStopCapability:
+			return nil, empty, upgradeStopError(err)
 		case browserCapability:
 			return nil, empty, browserResponseError(err)
 		case connectionCapability, transactionCapability:

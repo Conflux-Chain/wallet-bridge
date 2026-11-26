@@ -1,0 +1,66 @@
+package client
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+
+	"github.com/Conflux-Chain/wallet-bridge/internal/api"
+)
+
+// StopForUpgrade restores the enabled service before asking it to check the wallet.
+func (c *Client) StopForUpgrade(parent context.Context) (Status, error) {
+	if _, err := c.Ensure(parent); err != nil {
+		var failure *Error
+		if errors.As(err, &failure) && failure.Code == "incompatible_service" {
+			return Status{}, &Error{failure.Code, "The running service cannot check the wallet for an upgrade", err}
+		}
+		return Status{}, err
+	}
+	ctx, cancel := context.WithTimeout(parent, c.stopTimeout)
+	defer cancel()
+	data, _, err := c.request(ctx, "POST", "/api/v1/control/stop-for-upgrade", requestOptions{
+		expected: http.StatusAccepted, capability: upgradeStopCapability,
+	})
+	if ctx.Err() != nil {
+		return Status{}, stopDeadline(parent, ctx)
+	}
+	if errors.Is(err, errNotRunning) {
+		return Status{}, &Error{"service_unavailable", "The service stopped before it confirmed the wallet check", err}
+	}
+	if err != nil {
+		return Status{}, err
+	}
+	return c.confirmStop(parent, ctx, data)
+}
+
+type UpgradeBusyError struct {
+	Request api.ActiveWalletRequestResponse
+}
+
+func (e *UpgradeBusyError) Error() string {
+	r := e.Request
+	return fmt.Sprintf("Handle the %s request %s (%s) at %s/?%s=%s and retry the upgrade", r.Kind, r.ID, r.Phase, api.Origin, r.Kind, r.ID)
+}
+
+func upgradeStopError(err error) error {
+	var response *responseError
+	var failure api.UpgradeBusyResponse
+	if errors.As(err, &response) && json.Unmarshal(response.body, &failure) == nil {
+		r := failure.ActiveWalletRequest
+		switch {
+		case response.status == 409 && failure.Code == "wallet_busy" &&
+			(r.Kind == "connection" || r.Kind == "transaction") && validHex(r.ID, 16) &&
+			(r.Phase == "ready" || r.Phase == "calling" || r.Phase == "interrupted_calling"):
+			busy := &UpgradeBusyError{Request: r}
+			return &Error{failure.Code, busy.Error(), busy}
+		case response.status == 503 && failure.Code == "upgrade_in_progress":
+			return &Error{failure.Code, "An upgrade is already stopping this service", err}
+		case response.status == 500 && failure.Code == "storage_error":
+			return &Error{failure.Code, "The service could not check wallet occupancy", err}
+		}
+	}
+	return &Error{"request_failed", "The service did not confirm the upgrade stop", err}
+}

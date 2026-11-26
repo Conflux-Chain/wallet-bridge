@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-6-5b 已合并。6-6a 服务端升级停机检查待评审，下一项是客户端显示占用请求并确认旧服务退出。[升级停机检查](06-release-upgrade/design.md#升级停机检查) · [PR 计划](06-release-upgrade/plan.md)
+6-6a 已合并，6-6b 升级客户端待评审。下一项是升级期间的本机数据备份与恢复。[客户端检查升级停机](06-release-upgrade/design.md#客户端检查升级停机) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

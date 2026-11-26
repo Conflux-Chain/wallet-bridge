@@ -68,6 +68,8 @@ npm --prefix web run dev
 
 服务端升级前的钱包占用与并发领取可按[升级停机检查](docs/iterations/06-release-upgrade/design.md#升级停机检查)在临时数据库验证。
 
+升级停机命令 `wallet-bridge service stop --for-upgrade` 的输出、重试方式及隔离测试见[客户端检查升级停机](docs/iterations/06-release-upgrade/design.md#客户端检查升级停机)。
+
 验证 MCP 工具发现可运行下列 `bundle` 和 `smoke` 两项。连接与单笔交易可运行独立程序的端到端用例。[STDIO 握手与工具发现](docs/iterations/05-agent-integration/design.md#验证-stdio-接入) · [MCP 首次连接](docs/iterations/05-agent-integration/design.md#验证-mcp-连接) · [MCP 交易创建、查询与取消](docs/iterations/05-agent-integration/design.md#验证-mcp-交易)
 
 ```sh
