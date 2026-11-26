@@ -8,11 +8,26 @@ import (
 	"net/http"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
+	"github.com/Conflux-Chain/wallet-bridge/internal/update"
 )
 
 // StopForUpgrade restores the enabled service before asking it to check the wallet.
 func (c *Client) StopForUpgrade(parent context.Context) (Status, error) {
-	if _, err := c.Ensure(parent); err != nil {
+	return c.stopForUpgrade(parent, nil)
+}
+
+// StopPrevious performs the wallet check for the upgrade holding the writer lock.
+func (c *Client) StopPrevious(ctx context.Context, check update.WalletCheck) error {
+	_, err := c.stopForUpgrade(ctx, &check)
+	var failure *Error
+	if errors.As(err, &failure) && (failure.Code == "wallet_busy" || failure.Code == "incompatible_service") {
+		return errors.Join(err, update.ErrStopRefused)
+	}
+	return err
+}
+
+func (c *Client) stopForUpgrade(parent context.Context, check *update.WalletCheck) (Status, error) {
+	if _, err := c.ensure(parent, check); err != nil {
 		var failure *Error
 		if errors.As(err, &failure) && failure.Code == "incompatible_service" {
 			return Status{}, &Error{failure.Code, "The running service cannot check the wallet for an upgrade", err}
@@ -22,7 +37,7 @@ func (c *Client) StopForUpgrade(parent context.Context) (Status, error) {
 	ctx, cancel := context.WithTimeout(parent, c.stopTimeout)
 	defer cancel()
 	data, _, err := c.request(ctx, "POST", "/api/v1/control/stop-for-upgrade", requestOptions{
-		expected: http.StatusAccepted, capability: upgradeStopCapability,
+		expected: http.StatusAccepted, capability: upgradeStopCapability, serviceVersion: check.Version(),
 	})
 	if ctx.Err() != nil {
 		return Status{}, stopDeadline(parent, ctx)

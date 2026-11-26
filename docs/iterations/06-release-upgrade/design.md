@@ -210,3 +210,19 @@ go test -tags integration ./internal/update -run '^TestPackagedServiceStartupRol
 ```
 
 预期三组用例均为 `PASS`。测试删除临时下载文件后执行保留的副本，使用两个版本核对中断恢复，并检查损坏副本和错误版本标签。测试自行清理临时目录，无需启动钱包服务或关闭已打开的钱包。
+
+## 从钱包占用检查到备份
+
+升级者在准备停机阶段可启动留存的旧程序。子进程取得数据锁后复核升级锁、升级 ID、阶段及自身摘要。客户端在已验证身份的同一连接上核对服务版本，再请求检查钱包。钱包占用或服务不兼容时结束本次升级，普通客户端恢复访问。停机应答丢失时保留准备阶段，显式重试会重新检查钱包。
+
+确认停机后记录已停机阶段，持数据锁创建备份。备份已写完而阶段更新中断时，恢复会校验同一 ID 的原备份，成功后才进入验证新版阶段。
+
+在 Windows 或 macOS 仓库根目录完成 [README 环境准备](../../../README.md#环境准备)，运行：
+
+```sh
+npm --prefix web run bundle
+go test -tags integration ./internal/update -run '^TestPackagedServiceStartupBackupResume$' -count=1 -v
+go test -tags integration ./internal/update -run '^TestPackagedServiceStartupWalletCheckAndBackup$' -count=1 -v
+```
+
+第一项 Go 测试模拟停机应答丢失和备份发布后中断。第二项要求本机 18765 端口空闲，在临时目录启动打包服务，恢复一笔模拟钱包占用，再验证用户重试后停机并保存备份。预期两项均输出 `PASS`，退出时清理测试服务及临时数据。

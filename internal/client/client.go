@@ -71,9 +71,10 @@ var errNotRunning = errors.New("service is not listening")
 var errConnectionChanged = errors.New("the verified connection closed")
 
 type requestOptions struct {
-	capability string
-	body       []byte
-	expected   int
+	capability     string
+	serviceVersion string
+	body           []byte
+	expected       int
 }
 
 // NewRequestID identifies one logical request, including all of its retries.
@@ -154,6 +155,9 @@ func (c *Client) request(ctx context.Context, method, path string, options reque
 	}
 	if options.capability == upgradeStopCapability && (info.APIVersion.Minor < 15 || !slices.Contains(info.Capabilities, upgradeStopCapability)) {
 		return nil, empty, &Error{"incompatible_service", "The running service cannot check the wallet for an upgrade", nil}
+	}
+	if options.serviceVersion != "" && info.Version != options.serviceVersion {
+		return nil, empty, &Error{"incompatible_service", "The running service version differs from the saved rollback program", nil}
 	}
 	if options.capability != "" && !slices.Contains(info.Capabilities, options.capability) ||
 		options.capability == connectionCapability && info.APIVersion.Minor < 3 ||

@@ -96,14 +96,14 @@ func CheckUpgrade(dir string) (UpgradeBlock, error) {
 	return UpgradeRecoveryRequired, nil
 }
 
-type upgradeWriter struct {
+type Upgrade struct {
 	dir     string
 	current *upgradeRecord
 }
 
 // The command holds this kernel lock across the whole switch, including
 // service restarts. A new owner reloads the last published phase.
-func withUpgradeWriter(ctx context.Context, dir string, run func(*upgradeWriter) error) (err error) {
+func WithUpgrade(ctx context.Context, dir string, run func(*Upgrade) error) (err error) {
 	if err := platform.EnsurePrivateDir(dir); err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func withUpgradeWriter(ctx context.Context, dir string, run func(*upgradeWriter)
 	if err != nil {
 		return err
 	}
-	return run(&upgradeWriter{dir: dir, current: current})
+	return run(&Upgrade{dir: dir, current: current})
 }
 
 func acquireUpgradeLock(ctx context.Context, dir string) (*platform.ServiceLock, error) {
@@ -145,14 +145,14 @@ func acquireUpgradeLock(ctx context.Context, dir string) (*platform.ServiceLock,
 	}
 }
 
-func (w *upgradeWriter) begin(id string, previous, target releaseSelection) error {
+func (w *Upgrade) begin(id string, previous, target releaseSelection) error {
 	if w.current != nil {
 		return UpgradeRecoveryRequired
 	}
 	return w.save(upgradeRecord{ID: id, Phase: phasePreparing, Previous: previous, Target: target})
 }
 
-func (w *upgradeWriter) advance(next string) error {
+func (w *Upgrade) advance(next string) error {
 	if w.current == nil {
 		return errors.New("no upgrade to advance")
 	}
@@ -167,7 +167,7 @@ func (w *upgradeWriter) advance(next string) error {
 	return w.save(record)
 }
 
-func (w *upgradeWriter) save(record upgradeRecord) error {
+func (w *Upgrade) save(record upgradeRecord) error {
 	data, err := json.Marshal(record)
 	if err != nil || len(data) > maxUpgradeRecord || !record.valid() {
 		return errors.New("invalid upgrade record")

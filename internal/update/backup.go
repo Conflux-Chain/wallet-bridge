@@ -19,6 +19,10 @@ var upgradeIDPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
 // CreateBackup saves one complete pre-upgrade snapshot after the service stops.
 // An existing snapshot is left for recovery to inspect, even on a retry.
 func CreateBackup(ctx context.Context, dir, upgradeID string) (err error) {
+	return backupStoppedService(ctx, dir, upgradeID, false)
+}
+
+func backupStoppedService(ctx context.Context, dir, upgradeID string, reuse bool) (err error) {
 	if !upgradeIDPattern.MatchString(upgradeID) {
 		return errors.New("invalid upgrade ID")
 	}
@@ -32,6 +36,13 @@ func CreateBackup(ctx context.Context, dir, upgradeID string) (err error) {
 	defer func() { err = errors.Join(err, lock.Close()) }()
 
 	return withBackupLock(dir, upgradeID, func(final string) error {
+		if reuse {
+			if err := platform.CheckPrivateDir(final); err == nil {
+				return withVerifiedCopy(ctx, final, os.RemoveAll)
+			} else if !errors.Is(err, os.ErrNotExist) {
+				return err
+			}
+		}
 		return stageBackup(ctx, dir, final)
 	})
 }

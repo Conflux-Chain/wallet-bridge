@@ -49,13 +49,17 @@ func (c *Client) Status(ctx context.Context) (Status, error) {
 }
 
 func (c *Client) Ensure(ctx context.Context) (Status, error) {
+	return c.ensure(ctx, nil)
+}
+
+func (c *Client) ensure(ctx context.Context, check *update.WalletCheck) (Status, error) {
 	parent := ctx
 	ctx, cancel := context.WithTimeout(ctx, c.ensureTimeout)
 	defer cancel()
 	var process *platform.BackgroundProcess
 	var done <-chan platform.ProcessResult
 	for {
-		if blocked, err := update.CheckUpgrade(c.dir); err != nil {
+		if blocked, err := check.CheckAccess(c.dir); err != nil {
 			return Status{}, &Error{"upgrade_state_error", "Cannot verify the local upgrade state", err}
 		} else if blocked != "" {
 			return Status{}, &Error{string(blocked), blocked.Error(), blocked}
@@ -75,7 +79,11 @@ func (c *Client) Ensure(ctx context.Context) (Status, error) {
 			if err := platform.EnsurePrivateDir(c.dir); err != nil {
 				return Status{}, &Error{"data_unavailable", "Cannot establish a private data directory", err}
 			}
-			process, err = c.start(c.dir)
+			if check != nil {
+				process, err = check.Start(c.dir)
+			} else {
+				process, err = c.start(c.dir)
+			}
 			if err != nil {
 				if errors.As(err, &failure) {
 					return Status{}, failure
