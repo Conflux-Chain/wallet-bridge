@@ -72,7 +72,7 @@ npm --prefix web run dev
 
 升级备份的本地验证见[创建备份](docs/iterations/06-release-upgrade/design.md#创建升级备份)和[恢复与清理](docs/iterations/06-release-upgrade/design.md#恢复与清理升级备份)。
 
-版本切换的本地验证见[写入启用版本记录](docs/iterations/06-release-upgrade/design.md#写入启用版本记录)、[升级期间的 CLI／MCP 提示](docs/iterations/06-release-upgrade/design.md#接单前的升级协调)、[停机前留存旧程序](docs/iterations/06-release-upgrade/design.md#停机前留存旧程序)、[从钱包占用检查到备份](docs/iterations/06-release-upgrade/design.md#从钱包占用检查到备份)和[验证候选服务](docs/iterations/06-release-upgrade/design.md#验证候选服务)。
+版本切换的各阶段与本地测试命令见[升级设计与复现步骤](docs/iterations/06-release-upgrade/design.md#版本切换与中断恢复)，最新用例见[提交接单决定](docs/iterations/06-release-upgrade/design.md#提交接单决定)。
 
 验证 MCP 工具发现可运行下列 `bundle` 和 `smoke` 两项。连接与单笔交易可运行独立程序的端到端用例。[STDIO 握手与工具发现](docs/iterations/05-agent-integration/design.md#验证-stdio-接入) · [MCP 首次连接](docs/iterations/05-agent-integration/design.md#验证-mcp-连接) · [MCP 交易创建、查询与取消](docs/iterations/05-agent-integration/design.md#验证-mcp-交易)
 

@@ -32,7 +32,9 @@
 
 6-8c-2 已合并为 `a8e5a74`。三平台 CI 验证了打包服务的占用、停机和备份恢复。[PR #87](https://github.com/Conflux-Chain/wallet-bridge/pull/87) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45770259229) · [复现步骤](design.md#从钱包占用检查到备份)
 
-6-8d-1 待评审。Windows 本机身份核对与请求阻止用例连续通过 20 次，固定端口已被占用，双版本进程用例由 CI 验证。[复现步骤](design.md#验证候选服务)
+6-8d-1 已合并为 `c62b8c1`。三平台 CI 通过候选启动、重复验证、结果回报拦截及升级者退出场景。[PR #88](https://github.com/Conflux-Chain/wallet-bridge/pull/88) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45772931182) · [复现步骤](design.md#验证候选服务)
+
+6-8d-2 待评审。Windows 本机的接单决定与恢复测试连续通过 10 次。固定端口上的双版本进程验证交由 CI 执行。[复现步骤](design.md#提交接单决定)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|

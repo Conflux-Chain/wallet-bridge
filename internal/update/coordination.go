@@ -33,6 +33,7 @@ const (
 	phasePreparing    = "preparing"
 	phaseStopped      = "stopped"
 	phaseVerifying    = "verifying"
+	phaseAdmitted     = "admitted"
 )
 
 type upgradeRecord struct {
@@ -45,7 +46,7 @@ type upgradeRecord struct {
 func (r upgradeRecord) valid() bool {
 	return upgradeIDPattern.MatchString(r.ID) && r.Previous.Version != "" && validSHA256(r.Previous.SHA256) &&
 		ValidReleaseTag(r.Target.Version) && validSHA256(r.Target.SHA256) &&
-		(r.Phase == phasePreparing || r.Phase == phaseStopped || r.Phase == phaseVerifying)
+		(r.Phase == phasePreparing || r.Phase == phaseStopped || r.Phase == phaseVerifying || r.Phase == phaseAdmitted)
 }
 
 const maxUpgradeRecord = 4096
@@ -92,6 +93,11 @@ func CheckUpgrade(dir string) (UpgradeBlock, error) {
 	record, err := readUpgradeRecord(dir)
 	if err != nil || record == nil {
 		return "", err
+	}
+	if record.Phase == phaseAdmitted {
+		if err := checkAdmittedSelection(dir, record.Target); err == nil {
+			return "", nil
+		}
 	}
 	return UpgradeRecoveryRequired, nil
 }
@@ -160,7 +166,7 @@ func (w *Upgrade) advance(next string) error {
 	if record.Phase == next {
 		return nil
 	}
-	if !(record.Phase == phasePreparing && next == phaseStopped || record.Phase == phaseStopped && next == phaseVerifying) {
+	if !(record.Phase == phasePreparing && next == phaseStopped || record.Phase == phaseStopped && next == phaseVerifying || record.Phase == phaseVerifying && next == phaseAdmitted) {
 		return fmt.Errorf("invalid upgrade transition from %s to %s", record.Phase, next)
 	}
 	record.Phase = next

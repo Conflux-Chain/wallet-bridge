@@ -41,21 +41,29 @@ type releaseSelection struct {
 }
 
 func readSelection(dir, active string) (Candidate, error) {
-	f, err := platform.OpenPrivateRecord(filepath.Join(active, selectionFile))
+	state, err := readSelectionRecord(active)
 	if err != nil {
 		return Candidate{}, err
+	}
+	return state.candidate(dir)
+}
+
+func readSelectionRecord(active string) (releaseSelection, error) {
+	var state releaseSelection
+	f, err := platform.OpenPrivateRecord(filepath.Join(active, selectionFile))
+	if err != nil {
+		return state, err
 	}
 	defer f.Close()
 	const maxSize = 4096
 	data, err := io.ReadAll(io.LimitReader(f, maxSize+1))
 	if err != nil {
-		return Candidate{}, err
+		return state, err
 	}
-	var state releaseSelection
 	if len(data) > maxSize || json.Unmarshal(data, &state) != nil {
-		return Candidate{}, errors.New("invalid active version record")
+		return state, errors.New("invalid active version record")
 	}
-	return state.candidate(dir)
+	return state, nil
 }
 
 func (state releaseSelection) candidate(dir string) (Candidate, error) {

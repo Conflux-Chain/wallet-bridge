@@ -55,11 +55,6 @@ func (w *Upgrade) VerifyCandidate(ctx context.Context, probe func(context.Contex
 	}
 }
 
-func CheckCandidateOwner(dir, id string) error {
-	_, err := ownedRecord(dir, id, phaseVerifying)
-	return err
-}
-
 // CheckCandidate runs under the data lock before listening or migrating.
 func CheckCandidate(dir, id, version string) error {
 	r, err := ownedRecord(dir, id, phaseVerifying)
