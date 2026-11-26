@@ -26,11 +26,11 @@ func (w *Upgrade) preparePrograms(ctx context.Context, id string, target release
 	if w.current != nil && (w.current.ID != id || w.current.Target != target) {
 		return Candidate{}, UpgradeRecoveryRequired
 	}
-	if _, err := target.candidate(w.dir); err != nil {
-		return Candidate{}, fmt.Errorf("verify target program: %w", err)
-	}
 	if w.current != nil {
 		return (activeSelection{releaseSelection: w.current.Previous, Retained: true}).program(w.dir)
+	}
+	if _, err := target.candidate(w.dir); err != nil {
+		return Candidate{}, fmt.Errorf("verify target program: %w", err)
 	}
 	name, err := nativeAssetName()
 	if err != nil {
@@ -95,18 +95,26 @@ func retainProgram(ctx context.Context, source Candidate, path string) (Candidat
 			return Candidate{}, err
 		}
 	}
+	version, err := programVersion(ctx, path)
+	if err != nil {
+		return Candidate{}, err
+	}
+	if source.Version != "" && source.Version != version {
+		return Candidate{}, errors.New("rollback program version differs from the enabled version")
+	}
+	return Candidate{Version: version, SHA256: digest, Path: path}, nil
+}
+
+func programVersion(ctx context.Context, path string) (string, error) {
 	check, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	out, err := exec.CommandContext(check, path, "version", "--json").Output()
 	if err != nil {
-		return Candidate{}, fmt.Errorf("read saved program version: %w", err)
+		return "", fmt.Errorf("read program version: %w", err)
 	}
 	var info buildinfo.Info
 	if json.Unmarshal(out, &info) != nil || info.Version == "" || info.Platform != runtime.GOOS+"/"+runtime.GOARCH {
-		return Candidate{}, errors.New("invalid rollback program version response")
+		return "", errors.New("invalid program version response")
 	}
-	if source.Version != "" && source.Version != info.Version {
-		return Candidate{}, errors.New("rollback program version differs from the enabled version")
-	}
-	return Candidate{Version: info.Version, SHA256: digest, Path: path}, nil
+	return info.Version, nil
 }

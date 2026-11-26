@@ -92,11 +92,15 @@ func (w *Upgrade) Prepare(ctx context.Context, id string, target Candidate, stop
 		}
 		return w.recoverAdmittedSelection()
 	}
-	old, err := w.preparePrograms(ctx, id, releaseSelection{target.Version, target.SHA256})
-	if err != nil {
-		return err
+	selected := releaseSelection{target.Version, target.SHA256}
+	if w.current != nil && (w.current.ID != id || w.current.Target != selected) {
+		return UpgradeRecoveryRequired
 	}
-	if w.current.Phase == phasePreparing {
+	if w.current == nil || w.current.Phase == phasePreparing {
+		old, err := w.preparePrograms(ctx, id, selected)
+		if err != nil {
+			return err
+		}
 		if err := stop(ctx, WalletCheck{id: id, dir: w.dir, previous: old}); err != nil {
 			if errors.Is(err, ErrStopRefused) {
 				if removeErr := os.Remove(filepath.Join(w.dir, upgradeRecordName)); removeErr != nil {
@@ -111,15 +115,19 @@ func (w *Upgrade) Prepare(ctx context.Context, id string, target Candidate, stop
 		}
 	}
 	if w.current.Phase == phaseVerifying {
-		return withBackupLock(w.dir, id, func(backup string) error {
-			if err := platform.CheckPrivateDir(backup); err != nil {
-				return err
-			}
-			return withVerifiedCopy(ctx, backup, os.RemoveAll)
-		})
+		return w.checkBackup(ctx)
 	}
 	if err := backupStoppedService(ctx, w.dir, id, true); err != nil {
 		return err
 	}
 	return w.advance(phaseVerifying)
+}
+
+func (w *Upgrade) checkBackup(ctx context.Context) error {
+	return withBackupLock(w.dir, w.current.ID, func(backup string) error {
+		if err := platform.CheckPrivateDir(backup); err != nil {
+			return err
+		}
+		return withVerifiedCopy(ctx, backup, os.RemoveAll)
+	})
 }

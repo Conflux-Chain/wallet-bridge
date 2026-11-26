@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-候选失败后的数据恢复已合并。6-8e-2 恢复旧版服务与备份清理待评审，下一项接入用户可运行的 `upgrade` 命令。[本地验证](06-release-upgrade/design.md#恢复旧版服务) · [PR 计划](06-release-upgrade/plan.md)
+旧版服务恢复已合并。6-8f 用户升级命令待评审，下一项是跨版本重连与首版候选验收。[本地验证](06-release-upgrade/design.md#运行升级命令) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 
