@@ -133,6 +133,18 @@ npm --prefix web run background:smoke
 
 用例模拟一次尚未返回的连接钱包调用，停止测试服务，再让升级命令恢复服务。预期能按原请求 ID 找到占用，回报原调用结束后主动重试可停机。成功输出 `Background smoke passed`，最后清理测试服务及数据目录。
 
+## 创建升级备份
+
+备份期间持有服务数据目录锁。确认回滚日志已失效或不存在后，将原凭据和数据库逐字节复制到本次升级的私有临时目录。用 SQLite 校验副本的应用标识、schema 版本、完整性和外键，写入 `SHA256SUMS` 后将目录改名为 `backups/<升级 ID>/`。发现 WAL、SHM 或待恢复的回滚日志时终止。重试可重建同一 ID 的临时目录，已有完整备份始终保留。
+
+在 Windows 或 macOS 仓库根目录使用 `go.mod` 指定的 Go 版本运行：
+
+```sh
+go test ./internal/store ./internal/update -run 'TestUpgradeBackup|TestCrashRecoversUncommittedAuthorizationChanges' -count=1 -v
+```
+
+预期两个包均为 `ok`。用例从副本查询浏览器授权、Session 和已记录的交易哈希，比较旧 schema 的原始字节，并检查锁占用、写入中断、损坏数据与重复备份。所有文件均在测试临时目录内，退出时自动清理。
+
 ## 拟实施的切换顺序
 
 1. **准备版本。** 根据发行渠道与本机平台选择目标，按 D-071 校验后置于独立版本目录。确认启用前保留当前版本。

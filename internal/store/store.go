@@ -37,12 +37,8 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 		return nil, err
 	}
 	path := filepath.Join(dir, DatabaseName)
-	for _, suffix := range []string{"-wal", "-shm"} {
-		if _, err := os.Lstat(path + suffix); err == nil {
-			return nil, ErrUnsupportedJournal
-		} else if !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
+	if err := rejectWALFiles(path); err != nil {
+		return nil, err
 	}
 	for _, name := range []string{path, path + "-journal"} {
 		if err := protectFile(name); err != nil {
@@ -119,16 +115,30 @@ func protectFile(path string) error {
 	return f.Close()
 }
 
-func dataSource(path string) string {
+func rejectWALFiles(path string) error {
+	for _, suffix := range []string{"-wal", "-shm"} {
+		if _, err := os.Lstat(path + suffix); err == nil {
+			return ErrUnsupportedJournal
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+	return nil
+}
+
+func databaseURI(path string, query url.Values) string {
 	name := filepath.ToSlash(path)
 	if filepath.VolumeName(path) != "" {
 		name = "/" + name
 	}
-	u := url.URL{Scheme: "file", Path: name}
+	u := url.URL{Scheme: "file", Path: name, RawQuery: query.Encode()}
+	return u.String()
+}
+
+func dataSource(path string) string {
 	query := url.Values{"mode": {"rw"}, "_txlock": {"immediate"}}
 	for _, pragma := range []string{"busy_timeout(1000)", "journal_mode(PERSIST)", "synchronous(FULL)", "foreign_keys(ON)", "temp_store(MEMORY)"} {
 		query.Add("_pragma", pragma)
 	}
-	u.RawQuery = query.Encode()
-	return u.String()
+	return databaseURI(path, query)
 }
