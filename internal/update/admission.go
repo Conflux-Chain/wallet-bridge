@@ -11,30 +11,34 @@ import (
 // Admit publishes the selected executable before committing the decision that
 // makes the old snapshot ineligible for rollback.
 func (w *Upgrade) Admit(ctx context.Context, probe func(context.Context, string, string) (bool, error)) error {
+	if w.current != nil && w.current.Failure != "" {
+		return w.finishRollback(ctx, errors.New(w.current.Failure), probe)
+	}
 	if w.current != nil && w.current.Phase == phaseAdmitted {
 		return w.recoverAdmittedSelection()
-	}
-	if w.current != nil && w.current.Failure != "" {
-		return errors.Join(errors.New(w.current.Failure), w.RestorePreviousData(ctx, nil))
 	}
 	if err := w.VerifyCandidate(ctx, probe); err != nil {
 		if ctx.Err() != nil || w.current == nil || w.current.Phase != phaseVerifying {
 			return err
 		}
-		return errors.Join(err, w.RestorePreviousData(ctx, err))
+		return w.finishRollback(ctx, err, probe)
 	}
-	if err := publishSelection(w.dir, w.current.Target); err != nil {
+	return w.commitAdmission(ctx, phaseAdmitted)
+}
+
+func (w *Upgrade) commitAdmission(ctx context.Context, phase string) error {
+	if err := w.current.selection().publish(w.dir); err != nil {
 		return err
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	return withBackupLock(w.dir, w.current.ID, func(_ string) error {
-		return w.advance(phaseAdmitted)
+		return w.advance(phase)
 	})
 }
 
-func checkAdmittedSelection(dir string, target releaseSelection) error {
+func checkAdmittedSelection(dir string, target activeSelection) error {
 	active := filepath.Join(dir, "active")
 	if err := platform.CheckPrivateDir(active); err != nil {
 		return err
@@ -50,11 +54,12 @@ func checkAdmittedSelection(dir string, target releaseSelection) error {
 }
 
 func (w *Upgrade) recoverAdmittedSelection() error {
-	if err := checkAdmittedSelection(w.dir, w.current.Target); err == nil {
-		_, err = w.current.Target.candidate(w.dir)
+	selection := w.current.selection()
+	if err := checkAdmittedSelection(w.dir, selection); err == nil {
+		_, err = selection.program(w.dir)
 		return err
 	}
-	return publishSelection(w.dir, w.current.Target)
+	return selection.publish(w.dir)
 }
 
 // CandidateAdmitted observes the writer's decision under a shared lock. It
@@ -68,7 +73,7 @@ func CandidateAdmitted(dir, id string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if r == nil || r.ID != id || r.Failure != "" {
+		if r == nil || r.ID != id || r.Phase == phaseRestoring {
 			return false, errors.New("the candidate is no longer being verified")
 		}
 		return false, nil
@@ -83,8 +88,8 @@ func CandidateAdmitted(dir, id string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if r == nil || r.ID != id || r.Phase != phaseAdmitted {
+	if r == nil || r.ID != id || !r.committed() {
 		return false, errors.New("upgrade owner exited before committing admission")
 	}
-	return true, checkAdmittedSelection(dir, r.Target)
+	return true, checkAdmittedSelection(dir, r.selection())
 }

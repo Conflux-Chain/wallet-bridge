@@ -9,13 +9,12 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
 )
 
-// publishSelection is called by the sole upgrade writer with a verified
-// release digest. Only canonical files in the version store can be selected.
-func publishSelection(dir string, state releaseSelection) (err error) {
+// The sole upgrade writer publishes a fixed location and verified digest.
+func (state activeSelection) publish(dir string) (err error) {
 	if err := platform.CheckPrivateDir(dir); err != nil {
 		return err
 	}
-	if _, err := state.candidate(dir); err != nil {
+	if _, err := state.program(dir); err != nil {
 		return err
 	}
 	active := filepath.Join(dir, "active")

@@ -29,22 +29,15 @@ func (w *Upgrade) preparePrograms(ctx context.Context, id string, target release
 	if _, err := target.candidate(w.dir); err != nil {
 		return Candidate{}, fmt.Errorf("verify target program: %w", err)
 	}
+	if w.current != nil {
+		return (activeSelection{releaseSelection: w.current.Previous, Retained: true}).program(w.dir)
+	}
 	name, err := nativeAssetName()
 	if err != nil {
 		return Candidate{}, err
 	}
 	slot := filepath.Join(w.dir, "rollback-program")
 	path := filepath.Join(slot, name)
-	if w.current != nil {
-		if err := platform.CheckPrivateDir(slot); err != nil {
-			return Candidate{}, err
-		}
-		previous := w.current.Previous
-		if err := verifyExecutable(path, previous.SHA256); err != nil {
-			return Candidate{}, fmt.Errorf("verify saved rollback program: %w", err)
-		}
-		return Candidate{Version: previous.Version, SHA256: previous.SHA256, Path: path}, nil
-	}
 	source, err := ServiceProgram(w.dir)
 	if err != nil {
 		return Candidate{}, err
