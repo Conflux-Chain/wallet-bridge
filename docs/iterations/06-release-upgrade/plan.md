@@ -20,7 +20,9 @@
 
 6-6b 已合并为 `c06cf50`。三平台均通过服务重启后找回占用请求、回报原调用结束和主动重试停机的打包程序演练。[PR #81](https://github.com/Conflux-Chain/wallet-bridge/pull/81) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45744076807) · [复现步骤](design.md#客户端检查升级停机)
 
-6-7a 待评审。Windows 隔离备份及写入中断用例连续通过 10 次，全量 Go 测试与 `go vet` 通过。6-7b 将接入备份恢复及成功后的清理。[复现步骤](design.md#创建升级备份)
+6-7a 已合并为 `5f6ce83`。三平台 CI 通过。Windows 首轮在既有浏览器授权撤销用例失败，该用例本地通过 20 次，同一提交重跑 CI 通过。[PR #82](https://github.com/Conflux-Chain/wallet-bridge/pull/82) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45747855172) · [复现步骤](design.md#创建升级备份)
+
+6-7b 待评审。Windows 隔离恢复、子进程中断、摘要不符与清理重试用例连续通过 10 次，全量 Go 测试与 `go vet` 通过。[复现步骤](design.md#恢复与清理升级备份)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|

@@ -39,7 +39,7 @@ func TestUpgradeBackup(t *testing.T) {
 	if err := CreateBackup(ctx, dir, testUpgradeID); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("snapshot of missing database", err)
 	}
-	if entries, err := os.ReadDir(root); err != nil || len(entries) != 0 {
+	if entries, err := os.ReadDir(root); err != nil || len(entries) != 1 || entries[0].Name() != "service.lock" {
 		t.Fatal("failed snapshot left files", entries, err)
 	}
 	s, err := store.Open(ctx, dir)
@@ -60,7 +60,7 @@ func TestUpgradeBackup(t *testing.T) {
 	if err := CreateBackup(ctx, dir, testUpgradeID); err != nil {
 		t.Fatal(err)
 	}
-	if entries, err := os.ReadDir(root); err != nil || len(entries) != 1 || entries[0].Name() != testUpgradeID {
+	if entries, err := os.ReadDir(root); err != nil || len(entries) != 2 || entries[0].Name() != testUpgradeID || entries[1].Name() != "service.lock" {
 		t.Fatal("unexpected backup directories", entries, err)
 	}
 	if err := platform.CheckPrivateDir(final); err != nil {
