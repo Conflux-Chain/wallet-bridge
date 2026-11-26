@@ -6,7 +6,7 @@ definitions:
         example: 1
         type: integer
       minor:
-        example: 14
+        example: 15
         type: integer
     type: object
   api.ActiveWalletRequestResponse:
@@ -330,6 +330,7 @@ definitions:
         - browser.pending-requests
         - browser.activity
         - browser.activity.remove
+        - service.upgrade-stop
         items:
           type: string
         type: array
@@ -601,6 +602,17 @@ definitions:
     - callId
     - id
     type: object
+  api.UpgradeBusyResponse:
+    properties:
+      activeWalletRequest:
+        $ref: '#/definitions/api.ActiveWalletRequestResponse'
+      code:
+        example: unauthenticated
+        type: string
+      message:
+        example: A valid Bearer token is required
+        type: string
+    type: object
   api.WalletOperationResponse:
     properties:
       connectionId:
@@ -631,7 +643,7 @@ info:
     and transaction lifecycle, browser execution coordination, wallet handoff and
     connection consent.
   title: Wallet Bridge Local API
-  version: "1.14"
+  version: "1.15"
 paths:
   /browser/activity:
     get:
@@ -1050,6 +1062,10 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
       security:
       - BrowserCookie: []
       summary: Claim the connection execution
@@ -1337,6 +1353,10 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
         "500":
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "503":
+          description: Service Unavailable
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
@@ -1803,6 +1823,10 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
       security:
       - BrowserCookie: []
       summary: Coordinate a review or a wallet preparation call
@@ -2059,6 +2083,10 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
         "500":
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "503":
+          description: Service Unavailable
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
@@ -2365,6 +2393,59 @@ paths:
       security:
       - ServiceBearer: []
       summary: Request graceful service shutdown
+  /control/stop-for-upgrade:
+    post:
+      consumes:
+      - application/json
+      description: Atomically check the wallet and close admission before requesting
+        shutdown. If busy, handle the identified request and retry explicitly. HTTP
+        202 acknowledges shutdown. Wait for the service to exit before switching versions.
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/api.StopResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.UpgradeBusyResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ServiceBearer: []
+      summary: Stop an idle wallet service for upgrade
   /info:
     get:
       description: A 64-character lowercase hexadecimal challenge produces an HMAC-SHA256
@@ -2595,6 +2676,10 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
         "500":
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "503":
+          description: Service Unavailable
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:

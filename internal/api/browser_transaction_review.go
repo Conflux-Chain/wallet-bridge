@@ -52,7 +52,7 @@ func (h *handler) observeTransactionReview(w http.ResponseWriter, r *http.Reques
 // @Param id path string true "Transaction request ID"
 // @Param request body TransactionReviewCommand true "Review action and identifiers"
 // @Success 200 {object} TransactionReviewCommandResponse
-// @Failure 400,401,403,404,405,409,413,415,500 {object} ErrorResponse
+// @Failure 400,401,403,404,405,409,413,415,500,503 {object} ErrorResponse
 // @Router /browser/transactions/{id}/execution [post]
 func (h *handler) changeTransactionReview(w http.ResponseWriter, r *http.Request, browser app.BrowserGrant) {
 	var input TransactionReviewCommand
@@ -61,6 +61,12 @@ func (h *handler) changeTransactionReview(w http.ResponseWriter, r *http.Request
 	}
 	ref := app.TransactionReviewRef{TransactionID: r.PathValue("id"), ID: input.ID, BrowserGrantID: browser.ID}
 	cmd := app.ReviewCommand{Action: input.Action, PreviousID: input.PreviousID, CallID: input.CallID}
+	if cmd.Action == app.ClaimReview || cmd.Action == app.RecoverReview {
+		if !h.admit(w) {
+			return
+		}
+		defer h.admission.RUnlock()
+	}
 	result, err := h.config.Transactions.ApplyTransactionReview(r.Context(), ref, cmd)
 	if err != nil {
 		transactionFailure(w, err)

@@ -1,10 +1,10 @@
 # 当前迭代与交接
 
-更新时间：2026-11-25。
+更新时间：2026-11-26。
 
 ## 迭代 6 · 发布与升级
 
-6-5a 已合并，6-5b 启动已启用的服务待评审。下一项是升级前的钱包占用检查与暂停接单。[本机安装](06-release-upgrade/design.md#本机安装) · [双版本启动测试](06-release-upgrade/design.md#启动已启用的服务) · [PR 计划](06-release-upgrade/plan.md)
+6-5b 已合并。6-6a 服务端升级停机检查待评审，下一项是客户端显示占用请求并确认旧服务退出。[升级停机检查](06-release-upgrade/design.md#升级停机检查) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

@@ -67,7 +67,7 @@ func (h *handler) routeClientRequests(w http.ResponseWriter, r *http.Request) bo
 // @Security ServiceBearer
 // @Param request body ConnectionCreateRequest true "Immutable connection input"
 // @Success 200 {object} ConnectionResponse
-// @Failure 400,401,403,405,409,413,415,500 {object} ErrorResponse
+// @Failure 400,401,403,405,409,413,415,500,503 {object} ErrorResponse
 // @Router /connections [post]
 func (h *handler) createConnection(w http.ResponseWriter, r *http.Request) {
 	var input ConnectionCreateRequest
@@ -79,6 +79,10 @@ func (h *handler) createConnection(w http.ResponseWriter, r *http.Request) {
 		connectionFailure(w, app.ErrInvalidConnectionRequest)
 		return
 	}
+	if !h.admit(w) {
+		return
+	}
+	defer h.admission.RUnlock()
 	result, err := h.config.Connections.Create(r.Context(), app.ConnectionInput{
 		ID: input.ID, ClientName: input.ClientName, Intent: input.Intent, ChainID: chain, ChainName: input.ChainName,
 	})

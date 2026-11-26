@@ -126,9 +126,13 @@ func (h *handler) getBrowserExecution(w http.ResponseWriter, r *http.Request, br
 // @Param id path string true "32-character lowercase hexadecimal connection ID"
 // @Param request body ConnectionExecutionRequest true "Page execution ID"
 // @Success 200 {object} ConnectionExecutionResponse
-// @Failure 400,401,403,404,405,409,413,415,500 {object} ErrorResponse
+// @Failure 400,401,403,404,405,409,413,415,500,503 {object} ErrorResponse
 // @Router /browser/connections/{id}/execution/claim [post]
 func (h *handler) claimBrowserExecution(w http.ResponseWriter, r *http.Request, browser app.BrowserGrant) {
+	if !h.admit(w) {
+		return
+	}
+	defer h.admission.RUnlock()
 	h.changeBrowserExecution(w, r, browser, h.config.Connections.ClaimExecution)
 }
 
@@ -174,13 +178,17 @@ func (h *handler) interruptBrowserExecution(w http.ResponseWriter, r *http.Reque
 // @Param id path string true "32-character lowercase hexadecimal connection ID"
 // @Param request body ConnectionExecutionRecoverRequest true "Fresh ID and expected previous execution ID"
 // @Success 200 {object} ConnectionExecutionResponse
-// @Failure 400,401,403,404,405,409,413,415,500 {object} ErrorResponse
+// @Failure 400,401,403,404,405,409,413,415,500,503 {object} ErrorResponse
 // @Router /browser/connections/{id}/execution/recover [post]
 func (h *handler) recoverBrowserExecution(w http.ResponseWriter, r *http.Request, browser app.BrowserGrant) {
 	var input ConnectionExecutionRecoverRequest
 	if !decodeBody(w, r, &input, false) {
 		return
 	}
+	if !h.admit(w) {
+		return
+	}
+	defer h.admission.RUnlock()
 	result, err := h.config.Connections.RecoverExecution(r.Context(), browser, input.PreviousID, app.ConnectionExecutionInput{ConnectionID: r.PathValue("id"), ID: input.ID})
 	writeExecution(w, result, err)
 }
