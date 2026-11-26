@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-旧版服务恢复已合并。6-8f 用户升级命令待评审，下一项是跨版本重连与首版候选验收。[本地验证](06-release-upgrade/design.md#运行升级命令) · [PR 计划](06-release-upgrade/plan.md)
+用户升级命令已合并。6-9a 跨版本重连验收待评审，下一项交付首版候选程序与用户体验指南。[本地验证](06-release-upgrade/design.md#跨版本重连验收) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

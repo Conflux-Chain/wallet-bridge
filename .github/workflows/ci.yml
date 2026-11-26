@@ -46,6 +46,7 @@ jobs:
       - run: npm --prefix web run browser:install
       - run: npm --prefix web run test:e2e
       - run: npm --prefix web run test:wallet
+      - run: go test -tags integration ./internal/update -run '^TestBrowserUpgradeReconnect$' -count=1 -v
       - run: npm --prefix web run release:build -- v0.0.0-ci.1
       - run: npm --prefix web run release:review -- v0.0.0-ci.1
       - run: node --test scripts/release-review.test.mjs
