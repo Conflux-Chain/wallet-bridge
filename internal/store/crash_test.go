@@ -97,6 +97,9 @@ func TestCrashRecoversUncommittedAuthorizationChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	cmd.Wait()
+	if err := Snapshot(ctx, dir, snapshotDir(t)); err == nil {
+		t.Fatal("accepted an unrecovered database for upgrade backup")
+	}
 	s = openTestStore(t, dir)
 	if _, err := s.FindActiveBrowserGrant(context.Background(), digest, grant.IssuedAt.Add(2*time.Hour)); err != nil {
 		t.Fatal("crash retained an uncommitted revocation", err)
