@@ -34,6 +34,8 @@ const (
 	phaseStopped      = "stopped"
 	phaseVerifying    = "verifying"
 	phaseAdmitted     = "admitted"
+	phaseRestoring    = "restoring"
+	phaseDataRestored = "data_restored"
 )
 
 type upgradeRecord struct {
@@ -41,15 +43,27 @@ type upgradeRecord struct {
 	Phase    string           `json:"phase"`
 	Previous releaseSelection `json:"previous"`
 	Target   releaseSelection `json:"target"`
+	Failure  string           `json:"failure,omitempty"`
 }
 
 func (r upgradeRecord) valid() bool {
-	return upgradeIDPattern.MatchString(r.ID) && r.Previous.Version != "" && validSHA256(r.Previous.SHA256) &&
-		ValidReleaseTag(r.Target.Version) && validSHA256(r.Target.SHA256) &&
-		(r.Phase == phasePreparing || r.Phase == phaseStopped || r.Phase == phaseVerifying || r.Phase == phaseAdmitted)
+	if !upgradeIDPattern.MatchString(r.ID) || r.Previous.Version == "" || !validSHA256(r.Previous.SHA256) ||
+		!ValidReleaseTag(r.Target.Version) || !validSHA256(r.Target.SHA256) {
+		return false
+	}
+	switch r.Phase {
+	case phasePreparing, phaseStopped, phaseVerifying, phaseAdmitted:
+		return r.Failure == ""
+	case phaseRestoring, phaseDataRestored:
+		return r.Failure != ""
+	default:
+		return false
+	}
 }
 
-const maxUpgradeRecord = 4096
+// Reserve room for the escaped failure diagnostic when an existing upgrade
+// enters recovery. Older records fit within the original 4 KiB limit.
+const maxUpgradeRecord = 16 << 10
 
 func readUpgradeRecord(dir string) (*upgradeRecord, error) {
 	f, err := platform.OpenPrivateRecord(filepath.Join(dir, upgradeRecordName))
@@ -166,7 +180,8 @@ func (w *Upgrade) advance(next string) error {
 	if record.Phase == next {
 		return nil
 	}
-	if !(record.Phase == phasePreparing && next == phaseStopped || record.Phase == phaseStopped && next == phaseVerifying || record.Phase == phaseVerifying && next == phaseAdmitted) {
+	if !(record.Phase == phasePreparing && next == phaseStopped || record.Phase == phaseStopped && next == phaseVerifying ||
+		record.Phase == phaseVerifying && next == phaseAdmitted || record.Phase == phaseRestoring && next == phaseDataRestored) {
 		return fmt.Errorf("invalid upgrade transition from %s to %s", record.Phase, next)
 	}
 	record.Phase = next
@@ -175,7 +190,7 @@ func (w *Upgrade) advance(next string) error {
 
 func (w *Upgrade) save(record upgradeRecord) error {
 	data, err := json.Marshal(record)
-	if err != nil || len(data) > maxUpgradeRecord || !record.valid() {
+	if err != nil || len(data) > maxUpgradeRecord || (record.Failure == "" && len(data) > 4096) || !record.valid() {
 		return errors.New("invalid upgrade record")
 	}
 	temp := filepath.Join(w.dir, ".upgrade.next")

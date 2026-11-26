@@ -49,7 +49,7 @@ func TestUpgradeCoordination(t *testing.T) {
 	if block, err := CheckUpgrade(dir); block != UpgradeRecoveryRequired || err != nil {
 		t.Fatal("lost interrupted upgrade", block, err)
 	}
-	want := upgradeRecord{testUpgradeID, phaseStopped, previous, target}
+	want := upgradeRecord{ID: testUpgradeID, Phase: phaseStopped, Previous: previous, Target: target}
 	err := WithUpgrade(t.Context(), dir, func(w *Upgrade) error {
 		if w.current == nil || *w.current != want {
 			t.Fatal("lost saved versions or phase", w.current)

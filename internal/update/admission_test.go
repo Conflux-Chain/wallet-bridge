@@ -29,7 +29,7 @@ func TestAdmissionRecovery(t *testing.T) {
 	}
 	target := releaseSelection{candidate.Version, candidate.SHA256}
 	err = WithUpgrade(ctx, dir, func(w *Upgrade) error {
-		r := upgradeRecord{testUpgradeID, phaseVerifying, releaseSelection{"dev", strings.Repeat("1", 64)}, target}
+		r := upgradeRecord{ID: testUpgradeID, Phase: phaseVerifying, Previous: releaseSelection{"dev", strings.Repeat("1", 64)}, Target: target}
 		if err := w.save(r); err != nil {
 			return err
 		}
