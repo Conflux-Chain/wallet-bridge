@@ -141,6 +141,10 @@ func (c *Client) Stop(ctx context.Context) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
+	return c.confirmStop(parent, ctx, data)
+}
+
+func (c *Client) confirmStop(parent, ctx context.Context, data []byte) (Status, error) {
 	var response api.StopResponse
 	if json.Unmarshal(data, &response) != nil || response.State != "stopping" {
 		return Status{}, &Error{"request_failed", "The service returned an invalid stop acknowledgement", nil}

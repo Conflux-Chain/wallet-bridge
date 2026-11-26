@@ -118,6 +118,21 @@ go test -tags integration ./internal/update -run TestPackagedServiceStartup -cou
 
 在 Windows 或 macOS 仓库根目录使用项目指定的 Go 版本运行 `go test ./internal/api -run TestUpgradeStop -count=20 -v`。用例使用隔离的 SQLite 和内存 HTTP 请求，核对占用信息、用户主动重试、并发领取与停机，以及停机期间的迟到哈希回报。预期全部通过，退出时自动清理。用户主动升级命令及跨进程切换在 6-8 接入。
 
+## 客户端检查升级停机
+
+`service stop --for-upgrade` 显式执行升级的停机步骤。客户端先确保服务就绪，再验证 API 1.15 和 `service.upgrade-stop` 能力。钱包占用时输出请求类型、ID、阶段和处理链接。停机应答丢失或等待超时时，本次升级检查以错误结束。执行普通停机仍使用 `service stop`。
+
+脚本可加 `--json`。占用时退出 1，stderr 的 `code` 为 `wallet_busy`，`activeWalletRequest` 包含 `kind`、`id` 和 `phase`。处理后使用原命令重试。退出 0 且 `state` 为 `stopped` 表示已收到应答并观察到锁释放。独占整个升级过程由后续切换步骤负责。
+
+在 Windows 或 macOS 的仓库根目录，运行 `go test ./internal/client -run TestUpgradeStop -count=1 -v` 验证旧服务、无效响应和停机超时。测试使用临时目录并自动清理。端口 18765 空闲时，按 [README 环境准备](../../../README.md#环境准备)安装依赖，运行以下打包程序回归。
+
+```sh
+npm --prefix web run bundle
+npm --prefix web run background:smoke
+```
+
+用例模拟一次尚未返回的连接钱包调用，停止测试服务，再让升级命令恢复服务。预期能按原请求 ID 找到占用，回报原调用结束后主动重试可停机。成功输出 `Background smoke passed`，最后清理测试服务及数据目录。
+
 ## 拟实施的切换顺序
 
 1. **准备版本。** 根据发行渠道与本机平台选择目标，按 D-071 校验后置于独立版本目录。确认启用前保留当前版本。

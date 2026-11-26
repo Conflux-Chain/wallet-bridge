@@ -55,11 +55,11 @@ async function authorizationLink() {
   return url.hash.slice('#authorize='.length);
 }
 
-function browserHTTP(path, { ticket, cookie } = {}) {
+function browserHTTP(path, { cookie, body } = {}) {
   return new Promise((resolve, reject) => {
     const req = request({
-      hostname: '127.0.0.1', port: 18765, path, method: ticket === undefined ? 'GET' : 'POST', agent: false,
-      headers: { Origin: 'http://127.0.0.1:18765', ...(cookie ? { Cookie: cookie } : {}), ...(ticket === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      hostname: '127.0.0.1', port: 18765, path, method: body === undefined ? 'GET' : 'POST', agent: false,
+      headers: { Origin: 'http://127.0.0.1:18765', ...(cookie ? { Cookie: cookie } : {}), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
     }, (res) => {
       let body = '';
       res.setEncoding('utf8').on('data', (chunk) => { body += chunk; });
@@ -68,7 +68,7 @@ function browserHTTP(path, { ticket, cookie } = {}) {
     });
     req.setTimeout(3000, () => req.destroy(new Error('Browser HTTP test timed out')));
     req.on('error', reject);
-    req.end(ticket === undefined ? undefined : JSON.stringify({ ticket }));
+    req.end(JSON.stringify(body));
   });
 }
 
@@ -108,7 +108,7 @@ try {
 
   const browsers = [];
   for (const ticket of [firstTicket, await authorizationLink()]) {
-    const response = await browserHTTP('/api/v1/browser/authorize', { ticket });
+    const response = await browserHTTP('/api/v1/browser/authorize', { body: { ticket } });
     assert.equal(response.status, 200, 'CLI link could not be exchanged');
     const cookie = response.headers['set-cookie']?.[0]?.split(';')[0];
     assert.ok(cookie, 'Browser cookie was not set');
@@ -124,7 +124,22 @@ try {
   const table = await runCLI(['browser', 'list', '--data-dir', data], 0, false);
   assert.ok(table.includes('ISSUED AT') && table.includes('active'), 'Readable authorization list is missing');
   assert.ok(!table.includes(firstTicket) && !browsers.some(({ cookie }) => table.includes(cookie.split('=')[1])), 'CLI list disclosed credentials');
+  const connection = await runCLI(['connect', '--chain-id', '71', '--no-wait', '--no-open', '--json', '--data-dir', data]);
+  const execution = '/api/v1/browser/connections/' + connection.id + '/execution/';
+  const id = 'c'.repeat(32), callId = 'e'.repeat(32);
+  const cookie = browsers[0].cookie;
+  assert.equal((await browserHTTP(execution + 'claim', { cookie, body: { id } })).status, 200);
+  assert.equal((await browserHTTP(execution + 'begin', { cookie, body: { id, callId } })).status, 200);
   await run('stop');
+  const upgradeStop = ['service', 'stop', '--for-upgrade', '--data-dir', data, '--json'];
+  const busy = await runCLI(upgradeStop, 1);
+  assert.equal(busy.code, 'wallet_busy');
+  assert.deepEqual(busy.activeWalletRequest, { kind: 'connection', id: connection.id, phase: 'interrupted_calling' });
+  assert.ok(busy.message.includes(connection.url));
+  assert.equal((await browserHTTP(execution + 'return', { cookie, body: { id, callId } })).status, 200);
+  assert.equal((await run('status')).state, 'running');
+  assert.equal((await runCLI(upgradeStop)).state, 'stopped');
+  assert.equal((await run('status')).state, 'stopped');
   await run('ensure');
   const restored = await browserHTTP('/api/v1/status', browsers[0]);
   assert.equal(restored.status, 200);
@@ -135,7 +150,7 @@ try {
   const pendingTicket = await authorizationLink();
   assert.equal((await browserCommand('revoke', ['--all'])).state, 'revoked');
   assert.equal((await browserHTTP('/api/v1/status', browsers[1])).status, 401);
-  assert.equal((await browserHTTP('/api/v1/browser/authorize', { ticket: pendingTicket })).status, 401);
+  assert.equal((await browserHTTP('/api/v1/browser/authorize', { body: { ticket: pendingTicket } })).status, 401);
   assert.ok((await browserCommand('list')).grants.every((grant) => grant.state === 'revoked'), 'CLI revocation history was not retained');
   assert.equal((await browserCommand('revoke', ['f'.repeat(32)], 1)).code, 'browser_grant_not_found');
   assert.equal((await run('stop')).state, 'stopped');

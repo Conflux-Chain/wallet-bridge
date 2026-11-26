@@ -16,7 +16,9 @@
 
 6-5b 已合并为 `156e9cf`，三平台双版本启动通过。macOS Intel 的浏览器授权地址栏检查首轮失败，同一提交重跑通过。[PR #79](https://github.com/Conflux-Chain/wallet-bridge/pull/79) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45598446163) · [复现步骤](design.md#启动已启用的服务)
 
-6-6a 待评审。Windows 本机通过服务端占用、主动重试、晚到哈希及并发检查，定向用例重复 20 次通过。[复现步骤](design.md#升级停机检查)
+6-6a 已合并为 `630d275`，三平台 CI 通过。Windows 的占用、主动重试、晚到哈希及并发用例重复 20 次通过。[PR #80](https://github.com/Conflux-Chain/wallet-bridge/pull/80) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45742034264) · [复现步骤](design.md#升级停机检查)
+
+6-6b 待评审。Windows 本机验证了旧服务拒绝、结构化占用、错误应答及锁释放超时。打包程序的恢复检查使用独立数据目录，本机固定端口已占用，完整停机演练由三平台 CI 执行。[复现步骤](design.md#客户端检查升级停机)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|

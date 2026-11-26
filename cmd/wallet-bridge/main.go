@@ -74,6 +74,8 @@ func main() {
 				return c.Ensure(ctx)
 			case "stop":
 				return c.Stop(ctx)
+			case "stop-for-upgrade":
+				return c.StopForUpgrade(ctx)
 			default:
 				return c.Status(ctx)
 			}
