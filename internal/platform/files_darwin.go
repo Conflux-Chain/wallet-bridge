@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -12,6 +13,19 @@ import (
 )
 
 func dataHome() (string, error) { return os.UserConfigDir() }
+
+// CommitRecord publishes a synced temporary file in the same directory.
+func CommitRecord(from, to string) error {
+	dir, err := os.Open(filepath.Dir(to))
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	if err := os.Rename(from, to); err != nil {
+		return err
+	}
+	return dir.Sync()
+}
 
 func createDirectory(path string) error { return os.Mkdir(path, 0700) }
 

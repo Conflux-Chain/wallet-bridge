@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-升级备份、恢复与清理已合并，6-8a 启用版本记录待评审。下一项为 6-8b 升级阶段记录及普通启动的恢复提示。[版本切换设计](06-release-upgrade/design.md#版本切换与中断恢复) · [PR 计划](06-release-upgrade/plan.md)
+启用版本记录已合并，6-8b 接单前的升级阶段记录和 CLI／MCP 提示待评审。下一项为 6-8c 准备回退程序、停机与备份。[本地验证](06-release-upgrade/design.md#接单前的升级协调) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

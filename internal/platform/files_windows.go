@@ -10,6 +10,19 @@ import (
 
 func dataHome() (string, error) { return os.UserCacheDir() }
 
+// CommitRecord publishes a synced temporary file in the same directory.
+func CommitRecord(from, to string) error {
+	source, err := windows.UTF16PtrFromString(from)
+	if err != nil {
+		return err
+	}
+	dest, err := windows.UTF16PtrFromString(to)
+	if err != nil {
+		return err
+	}
+	return windows.MoveFileEx(source, dest, windows.MOVEFILE_REPLACE_EXISTING|windows.MOVEFILE_WRITE_THROUGH)
+}
+
 func currentSID() (*windows.SID, error) {
 	user, err := windows.GetCurrentProcessToken().GetTokenUser()
 	if err != nil {

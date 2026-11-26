@@ -60,6 +60,11 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 		return &Error{"data_unavailable", "Cannot establish a private data directory and process lock", err}
 	}
 	defer lock.Close()
+	if blocked, err := update.CheckUpgrade(config.DataDir); err != nil {
+		return &Error{"upgrade_state_error", "Cannot verify the local upgrade state", err}
+	} else if blocked != "" {
+		return &Error{string(blocked), blocked.Error(), blocked}
+	}
 	if err := update.CheckServiceProgram(config.DataDir); err != nil {
 		return &Error{"active_program_error", err.Error(), err}
 	}

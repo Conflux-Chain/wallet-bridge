@@ -181,3 +181,19 @@ go test ./internal/update -run 'TestPublishSelection|TestServiceProgramSelection
 ```
 
 预期两项均通过。用例模拟首次写入中断、更换及重复选择版本、校验失败和读取过程中记录被替换。测试退出时自动清理临时目录。[打包 CLI 与 MCP 启动验证](#启动已启用的服务)
+
+## 接单前的升级协调
+
+升级命令持有独立的本机进程锁。停机前写入私有的 `upgrade.json`，保留升级 ID、旧版和目标程序的版本与 SHA-256。记录依次进入准备停机、已停机、验证新版三个阶段，每次替换完整记录后才执行下一阶段。升级进程退出会释放锁，后继升级者先读取原记录。
+
+普通 CLI／MCP 建连在探测服务前检查，前台和后台服务持有数据目录锁后再次检查。正在升级返回 `upgrade_in_progress`，中断且仍有记录返回 `upgrade_recovery_required`。记录损坏时报告读取错误。接单决定和回退结果分别在 6-8d、6-8e 接入。
+
+在 Windows 或 macOS 仓库根目录完成 [README 环境准备](../../../README.md#环境准备)，运行：
+
+```sh
+npm --prefix web run bundle
+go test ./internal/update -run '^TestUpgradeCoordination$' -count=1 -v
+go test -tags integration ./internal/update -run '^TestPackagedServiceStartupDuringUpgrade$' -count=1 -v
+```
+
+预期两项 Go 测试均通过。第一项让写入升级阶段的子进程退出，再核对原 ID、版本与阶段。第二项通过打包程序运行 `connect`、`service run` 及 STDIO MCP 连接工具，检查两种提示。测试在临时数据目录运行，退出时自动清理，无需空出钱包服务端口。

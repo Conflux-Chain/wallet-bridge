@@ -22,7 +22,7 @@ func AcquireServiceLock(dir string) (*ServiceLock, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := lockFile(f); err != nil {
+	if err := lockFile(f, true); err != nil {
 		f.Close()
 		return nil, err
 	}
@@ -36,25 +36,36 @@ func (l *ServiceLock) Close() error {
 
 // ServiceLocked checks an existing lock without creating a directory or file.
 func ServiceLocked(dir string) (bool, error) {
+	lock, err := ObserveServiceLock(dir)
+	if errors.Is(err, ErrLocked) {
+		return true, nil
+	}
+	if err != nil || lock == nil {
+		return false, err
+	}
+	return false, lock.Close()
+}
+
+// ObserveServiceLock takes a shared lock on an existing lock file. A nil
+// handle means no file exists. Concurrent observers can inspect the state
+// without mistaking one another for the exclusive writer.
+func ObserveServiceLock(dir string) (*ServiceLock, error) {
 	if err := CheckPrivateDir(dir); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return false, nil
+			return nil, nil
 		}
-		return false, err
+		return nil, err
 	}
 	f, err := OpenPrivateFile(filepath.Join(dir, "service.lock"))
 	if errors.Is(err, os.ErrNotExist) {
-		return false, nil
+		return nil, nil
 	}
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	defer f.Close()
-	if err := lockFile(f); err != nil {
-		if errors.Is(err, ErrLocked) {
-			return true, nil
-		}
-		return false, err
+	if err := lockFile(f, false); err != nil {
+		f.Close()
+		return nil, err
 	}
-	return false, unlockFile(f)
+	return &ServiceLock{file: f}, nil
 }

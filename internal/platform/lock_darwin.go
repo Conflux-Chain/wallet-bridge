@@ -7,8 +7,12 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func lockFile(f *os.File) error {
-	err := unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB)
+func lockFile(f *os.File, exclusive bool) error {
+	mode := unix.LOCK_SH
+	if exclusive {
+		mode = unix.LOCK_EX
+	}
+	err := unix.Flock(int(f.Fd()), mode|unix.LOCK_NB)
 	if errors.Is(err, unix.EWOULDBLOCK) {
 		return ErrLocked
 	}
