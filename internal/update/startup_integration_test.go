@@ -20,6 +20,19 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+func buildTestVersion(t *testing.T, path, version string) {
+	t.Helper()
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	build := exec.CommandContext(t.Context(), "go", "build", "-ldflags", "-X github.com/Conflux-Chain/wallet-bridge/internal/buildinfo.Version="+version, "-o", path, "./cmd/wallet-bridge")
+	build.Dir = root
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build second version: %v: %s", err, out)
+	}
+}
+
 func TestPackagedServiceStartup(t *testing.T) {
 	root, err := filepath.Abs("../..")
 	if err != nil {
@@ -33,11 +46,7 @@ func TestPackagedServiceStartup(t *testing.T) {
 	work := t.TempDir()
 	dir := filepath.Join(work, "data")
 	newer := filepath.Join(work, name)
-	build := exec.CommandContext(t.Context(), "go", "build", "-ldflags", "-X github.com/Conflux-Chain/wallet-bridge/internal/buildinfo.Version="+stagedVersion, "-o", newer, "./cmd/wallet-bridge")
-	build.Dir = root
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build second version: %v: %s", err, out)
-	}
+	buildTestVersion(t, newer, stagedVersion)
 	raw, err := exec.CommandContext(t.Context(), old, "install", "--data-dir", dir).Output()
 	if err != nil {
 		t.Fatal(err)
