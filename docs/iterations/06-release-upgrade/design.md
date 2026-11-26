@@ -197,3 +197,16 @@ go test -tags integration ./internal/update -run '^TestPackagedServiceStartupDur
 ```
 
 预期两项 Go 测试均通过。第一项让写入升级阶段的子进程退出，再核对原 ID、版本与阶段。第二项通过打包程序运行 `connect`、`service run` 及 STDIO MCP 连接工具，检查两种提示。测试在临时数据目录运行，退出时自动清理，无需空出钱包服务端口。
+
+## 停机前留存旧程序
+
+准备升级时，先按记录摘要校验候选，再按普通启动顺序定位当前程序。将旧程序独立复制到私有的 `rollback-program/`，核对平台和 SHA-256，并运行副本的 `version --json` 取得实际版本。已有启用记录时还须与其版本和摘要一致。两份程序就绪后才记录升级意图。同一次升级恢复时按原 ID 和摘要读取副本，用户可清理原下载文件。
+
+在 Windows 或 macOS 仓库根目录完成 [README 环境准备](../../../README.md#环境准备)，运行：
+
+```sh
+npm --prefix web run bundle
+go test -tags integration ./internal/update -run '^TestPackagedServiceStartupRollbackProgram$' -count=1 -v
+```
+
+预期三组用例均为 `PASS`。测试删除临时下载文件后执行保留的副本，使用两个版本核对中断恢复，并检查损坏副本和错误版本标签。测试自行清理临时目录，无需启动钱包服务或关闭已打开的钱包。
