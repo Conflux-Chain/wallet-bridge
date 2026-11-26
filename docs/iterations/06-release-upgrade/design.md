@@ -286,3 +286,18 @@ go test -tags integration ./internal/update -run '^TestPackagedServiceStartupRes
 ```
 
 第一项模拟清理失败和启用记录丢失。最后一项要求 18765 端口空闲，自动启动两个打包版本，恢复旧版后创建连接请求，再重启旧版并查回该请求和原期限。预期两项均输出 `PASS`，测试结束时自行停止服务并清理临时数据。
+
+## 运行升级命令
+
+运行 `wallet-bridge upgrade` 选择最新稳定版，`--include-preview` 将预览版纳入比较，`--json` 输出脚本结果。命令按启用的服务程序版本比较，开发版遵循 [D-080](../../decisions.md)。存在中断记录时直接按原目标和摘要恢复。
+
+成功切换并确认服务就绪后返回 `upgraded`，`current` 和 `latest` 分别表示切换前后的版本。已是最新或暂无发行版时返回 `up_to_date` 或 `no_release`。三种结果的退出码均为 0。钱包占用时返回 `wallet_busy` 和请求信息，处理后可主动重试。已恢复旧版时返回 `upgrade_rolled_back`、目标版本、恢复版本与原因。运行失败的退出码为 1，用法错误为 2。
+
+在 Windows 或 macOS 仓库根目录完成 [README 环境准备](../../../README.md#环境准备)，确保 18765 端口空闲，运行以下隔离测试。
+
+```sh
+npm --prefix web run bundle
+go test -tags integration ./internal/update -run '^TestPackagedServiceStartupUpgradeCommand' -count=1 -v
+```
+
+首项用例以本地候选代替尚未发布的附件，通过 CLI 完成切换，再从原 CLI 查询到已是最新。第二项在备份后移除候选，运行打包程序的 `upgrade --data-dir <临时目录> --json`，核对回退报告、退出码与旧服务状态。预期两项均为 `PASS`。测试自行停止服务并清理目录。

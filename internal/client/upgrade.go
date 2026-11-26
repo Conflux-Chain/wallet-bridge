@@ -25,6 +25,14 @@ func (c *Client) ProbeCandidate(ctx context.Context, id, version string) (bool, 
 	return err == nil, err
 }
 
+func (c *Client) ReadyVersion(ctx context.Context) (string, error) {
+	status, err := c.Ensure(ctx)
+	if err != nil {
+		return "", err
+	}
+	return status.Info.Version, nil
+}
+
 func verifyCandidateInfo(info api.InfoResponse, id, version string) error {
 	if info.Ready || info.VerifyingUpgrade != id || info.Version != version ||
 		info.APIVersion.Major != 1 || info.APIVersion.Minor < 16 {

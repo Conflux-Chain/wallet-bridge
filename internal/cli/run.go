@@ -32,7 +32,7 @@ type Dependencies struct {
 
 const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status [--data-dir <absolute path>] [--json]\n       wallet-bridge service stop [--for-upgrade] [--data-dir <absolute path>] [--json]"
 const mcpUsage = "Usage: wallet-bridge mcp [--data-dir <absolute path>]"
-const usage = "Usage: wallet-bridge version [--json]\n" + installUsage + "\n" + updateUsage + "\n" + mcpUsage + "\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
+const usage = "Usage: wallet-bridge version [--json]\n" + installUsage + "\n" + updateUsage + "\n" + upgradeUsage + "\n" + mcpUsage + "\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
 
 func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
 	info := dependencies.BuildInfo
@@ -48,6 +48,9 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 	}
 	if args[0] == "update" {
 		return runUpdate(args[1:], dependencies, stdout, stderr)
+	}
+	if args[0] == "upgrade" {
+		return runUpgrade(args[1:], dependencies, stdout, stderr)
 	}
 	if args[0] == "mcp" {
 		flags := flag.NewFlagSet("mcp", flag.ContinueOnError)

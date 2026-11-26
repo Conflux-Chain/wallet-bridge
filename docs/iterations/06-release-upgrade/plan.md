@@ -38,7 +38,9 @@
 
 6-8e-1 已合并为 `e9295cf`，三平台 CI 通过。Windows 首轮在交易请求并发创建与关闭 Session 的既有测试遇到 `SQLITE_BUSY`，本机连续通过 20 次，同一提交重跑通过。[PR #90](https://github.com/Conflux-Chain/wallet-bridge/pull/90) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45781867294) · [复现步骤](design.md#候选失败后恢复数据)
 
-6-8e-2 待评审。Windows 本机连续 10 次通过接单决定、数据恢复及回退清理中断用例。双版本打包演练由三平台 CI 运行。[复现步骤](design.md#恢复旧版服务)
+6-8e-2 已合并为 `dfce2b0`。三平台均验证了回退后重启旧版并查回新请求及原期限。[PR #91](https://github.com/Conflux-Chain/wallet-bridge/pull/91) · [CI](https://github.com/Conflux-Chain/wallet-bridge/actions/runs/45785323317) · [复现步骤](design.md#恢复旧版服务)
+
+6-8f 待评审。Windows 本机打包程序在隔离目录查询官方仓库，返回 `no_release`。三平台 CI 运行两个打包版本的切换与断点恢复用例。[命令与复现步骤](design.md#运行升级命令)
 
 | 步骤 | 单一交付 | 验收场景 |
 |---|---|---|

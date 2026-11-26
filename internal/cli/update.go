@@ -51,13 +51,18 @@ func runUpdate(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	if err != nil {
 		return commandError(stderr, *asJSON, &client.Error{Code: "release_query_failed", Message: err.Error()}, "")
 	}
-	if *asJSON {
+	return printUpdateResult(stdout, stderr, *asJSON, *preview, result)
+}
+
+func printUpdateResult(stdout, stderr io.Writer, asJSON, preview bool, result update.Result) int {
+	var err error
+	if asJSON {
 		err = json.NewEncoder(stdout).Encode(result)
 	} else {
 		switch result.State {
 		case "no_release":
 			message := "No stable release available."
-			if *preview {
+			if preview {
 				message = "No published release available."
 			}
 			_, err = fmt.Fprintln(stdout, message)
@@ -65,12 +70,14 @@ func runUpdate(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 			_, err = fmt.Fprintf(stdout, "Latest release: %s (current build %s has no comparable version).\n", result.Latest, result.Current)
 		case "update_available":
 			_, err = fmt.Fprintf(stdout, "Update available: %s -> %s\n", result.Current, result.Latest)
+		case "upgraded":
+			_, err = fmt.Fprintf(stdout, "Upgraded %s -> %s\n", result.Current, result.Latest)
 		default:
 			_, err = fmt.Fprintf(stdout, "No newer release. Current: %s, latest: %s\n", result.Current, result.Latest)
 		}
 	}
 	if err != nil {
-		return commandError(stderr, *asJSON, &client.Error{Code: "output_error", Message: "Cannot write release check result"}, "")
+		return commandError(stderr, asJSON, &client.Error{Code: "output_error", Message: "Cannot write update result"}, "")
 	}
 	return 0
 }
