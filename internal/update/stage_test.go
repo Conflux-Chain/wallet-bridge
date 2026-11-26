@@ -17,11 +17,17 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	"golang.org/x/mod/semver"
 )
 
 const stagedVersion = "v1.0.0-rc.1"
 
 func stageSource(t *testing.T, program []byte, requests *atomic.Int32) *http.Client {
+	return localReleaseSource(t, stagedVersion, program, requests)
+}
+
+func localReleaseSource(t *testing.T, tag string, program []byte, requests *atomic.Int32) *http.Client {
 	t.Helper()
 	name := "wallet-bridge-" + runtime.GOOS + "-" + runtime.GOARCH
 	if runtime.GOOS == "windows" {
@@ -29,7 +35,7 @@ func stageSource(t *testing.T, program []byte, requests *atomic.Int32) *http.Cli
 	}
 	digest := fmt.Sprintf("%x", sha256.Sum256(program))
 	list := []byte(digest + "  " + name + "\n")
-	releaseJSON, err := json.Marshal(taggedRelease{release: release{Tag: stagedVersion, Prerelease: true}, Assets: []releaseAsset{
+	releaseJSON, err := json.Marshal(taggedRelease{release: release{Tag: tag, Prerelease: semver.Prerelease(tag) != ""}, Assets: []releaseAsset{
 		{ID: 1, Name: "SHA256SUMS", Size: int64(len(list)), State: "uploaded", Digest: fmt.Sprintf("sha256:%x", sha256.Sum256(list))},
 		{ID: 2, Name: name, Size: int64(len(program)), State: "uploaded", Digest: "sha256:" + digest},
 	}})
@@ -39,7 +45,7 @@ func stageSource(t *testing.T, program []byte, requests *atomic.Int32) *http.Cli
 	return &http.Client{Transport: downloadTransport(func(r *http.Request) (*http.Response, error) {
 		var data []byte
 		switch r.URL.String() {
-		case releasesURL + "/tags/" + stagedVersion:
+		case releasesURL + "/tags/" + tag:
 			data = releaseJSON
 		case releasesURL + "/assets/1":
 			data = list

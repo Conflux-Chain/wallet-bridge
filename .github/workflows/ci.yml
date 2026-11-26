@@ -49,6 +49,7 @@ jobs:
       - run: go test -tags integration ./internal/update -run '^TestBrowserUpgradeReconnect$' -count=1 -v
       - run: npm --prefix web run release:build -- v0.0.0-ci.1
       - run: npm --prefix web run release:review -- v0.0.0-ci.1
+      - run: go test -tags integration ./internal/update -run '^TestReleaseTrials$' -count=1 -v -args -trial-version v0.0.0-ci.1
       - run: node --test scripts/release-review.test.mjs
       - name: Verify release checksums
         shell: bash
