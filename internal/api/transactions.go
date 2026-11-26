@@ -32,13 +32,17 @@ type TransactionRequests interface {
 // @Security ServiceBearer
 // @Param request body TransactionCreateRequest{transaction=TransactionPayload} true "Caller metadata and transaction for a fixed Session"
 // @Success 200 {object} TransactionResponse
-// @Failure 400,401,403,404,405,409,413,415,500 {object} ErrorResponse
+// @Failure 400,401,403,404,405,409,413,415,500,503 {object} ErrorResponse
 // @Router /transactions [post]
 func (h *handler) createTransaction(w http.ResponseWriter, r *http.Request) {
 	var input TransactionCreateRequest
 	if !decodeBodyLimit(w, r, &input, false, MaxTransactionBody) {
 		return
 	}
+	if !h.admit(w) {
+		return
+	}
+	defer h.admission.RUnlock()
 	if input.Transaction == nil {
 		failure(w, http.StatusBadRequest, "bad_request", "A transaction object is required")
 		return

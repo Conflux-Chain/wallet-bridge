@@ -7,7 +7,7 @@
         "description": "Local service access, browser authorization, client connection/Session and transaction lifecycle, browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.14"
+        "version": "1.15"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -613,6 +613,12 @@
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
                     }
                 }
             }
@@ -1026,6 +1032,12 @@
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1713,6 +1725,12 @@
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
                     }
                 }
             }
@@ -2088,6 +2106,12 @@
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -2534,6 +2558,85 @@
                 }
             }
         },
+        "/control/stop-for-upgrade": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceBearer": []
+                    }
+                ],
+                "description": "Atomically check the wallet and close admission before requesting shutdown. If busy, handle the identified request and retry explicitly. HTTP 202 acknowledges shutdown. Wait for the service to exit before switching versions.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Stop an idle wallet service for upgrade",
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/api.StopResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.UpgradeBusyResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/info": {
             "get": {
                 "description": "A 64-character lowercase hexadecimal challenge produces an HMAC-SHA256 proof binding the response metadata. No credentials or data directory are returned.",
@@ -2875,6 +2978,12 @@
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
                     }
                 }
             }
@@ -3039,7 +3148,7 @@
                 },
                 "minor": {
                     "type": "integer",
-                    "example": 14
+                    "example": 15
                 }
             }
         },
@@ -3501,7 +3610,8 @@
                         "browser.transactions.decisions",
                         "browser.pending-requests",
                         "browser.activity",
-                        "browser.activity.remove"
+                        "browser.activity.remove",
+                        "service.upgrade-stop"
                     ]
                 },
                 "challenge": {
@@ -3882,6 +3992,22 @@
                 },
                 "txHash": {
                     "type": "string"
+                }
+            }
+        },
+        "api.UpgradeBusyResponse": {
+            "type": "object",
+            "properties": {
+                "activeWalletRequest": {
+                    "$ref": "#/definitions/api.ActiveWalletRequestResponse"
+                },
+                "code": {
+                    "type": "string",
+                    "example": "unauthenticated"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "A valid Bearer token is required"
                 }
             }
         },

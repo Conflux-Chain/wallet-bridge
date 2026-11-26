@@ -51,6 +51,11 @@ func (a *ConnectionService) PendingWalletRequests(ctx context.Context, browser B
 	return a.store.ListPendingWalletRequests(ctx, a.now())
 }
 
+// UpgradeBlocker serves the authenticated local service control endpoint.
+func (a *ConnectionService) UpgradeBlocker(ctx context.Context) (*ActiveWalletRequest, error) {
+	return a.store.GetActiveWalletRequest(ctx)
+}
+
 func (a *ConnectionService) ClaimExecution(ctx context.Context, browser BrowserGrant, input ConnectionExecutionInput) (ConnectionExecution, error) {
 	ref, err := executionRef(browser, input)
 	if err != nil {

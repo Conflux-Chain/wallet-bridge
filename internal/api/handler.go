@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/app"
@@ -32,9 +33,11 @@ type Config struct {
 }
 
 type handler struct {
-	config Config
-	info   InfoResponse
-	key    []byte
+	admission          sync.RWMutex
+	stoppingForUpgrade bool
+	config             Config
+	info               InfoResponse
+	key                []byte
 }
 
 func New(config Config) (http.Handler, error) {
@@ -44,8 +47,8 @@ func New(config Config) (http.Handler, error) {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 14},
-		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation", "transactions.lifecycle", "browser.transactions.read", "browser.transactions.coordination", "browser.transactions.decisions", "browser.pending-requests", "browser.activity", "browser.activity.remove"}, Ready: true,
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 15},
+		Capabilities: []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation", "transactions.lifecycle", "browser.transactions.read", "browser.transactions.coordination", "browser.transactions.decisions", "browser.pending-requests", "browser.activity", "browser.activity.remove", "service.upgrade-stop"}, Ready: true,
 	}}, nil
 }
 
@@ -76,6 +79,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/api/v1/control/stop":
 		if method(w, r, http.MethodPost) && h.authorize(w, r) {
 			h.stop(w, r)
+		}
+	case "/api/v1/control/stop-for-upgrade":
+		if method(w, r, http.MethodPost) && h.authorize(w, r) {
+			h.stopForUpgrade(w, r)
 		}
 	case "/api/v1/control/browser-grants":
 		if r.Method != http.MethodGet && r.Method != http.MethodPost {
