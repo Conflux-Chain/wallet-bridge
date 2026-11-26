@@ -28,6 +28,14 @@ func StartBackground(executable, dir string, env ...string) (*BackgroundProcess,
 	if len(env) != 0 {
 		cmd.Env = append(os.Environ(), env...)
 	}
+	return startDetached(cmd)
+}
+
+func StartUpgradeCandidate(executable, dir, id string) (*BackgroundProcess, error) {
+	return startDetached(exec.Command(executable, "service", "run", "--data-dir", dir, "--verify-upgrade", id))
+}
+
+func startDetached(cmd *exec.Cmd) (*BackgroundProcess, error) {
 	if err := detachProcess(cmd); err != nil {
 		return nil, err
 	}

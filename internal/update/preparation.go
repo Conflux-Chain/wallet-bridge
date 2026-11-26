@@ -30,7 +30,7 @@ func (c *WalletCheck) CheckAccess(dir string) (UpgradeBlock, error) {
 	if c == nil {
 		return CheckUpgrade(dir)
 	}
-	record, err := preparingRecord(dir, c.id)
+	record, err := ownedRecord(dir, c.id, phasePreparing)
 	if err != nil {
 		return "", err
 	}
@@ -44,20 +44,20 @@ func (c *WalletCheck) Start(dir string) (*platform.BackgroundProcess, error) {
 	return platform.StartBackground(c.previous.Path, dir, checkEnv+"="+c.id)
 }
 
-func preparingRecord(dir, id string) (*upgradeRecord, error) {
+func ownedRecord(dir, id, phase string) (*upgradeRecord, error) {
 	busy, err := platform.ServiceLocked(filepath.Join(dir, upgradeLockDir))
 	if err != nil {
 		return nil, err
 	}
 	if !busy {
-		return nil, errors.New("upgrade owner exited before the wallet check")
+		return nil, errors.New("the upgrade owner is no longer running")
 	}
 	r, err := readUpgradeRecord(dir)
 	if err != nil {
 		return nil, err
 	}
-	if r == nil || r.ID != id || r.Phase != phasePreparing {
-		return nil, errors.New("wallet check does not match the preparing upgrade")
+	if r == nil || r.ID != id || r.Phase != phase {
+		return nil, errors.New("the upgrade ID or phase has changed")
 	}
 	return r, nil
 }
@@ -68,7 +68,7 @@ func IsWalletCheckService(dir string) (bool, error) {
 	if id == "" {
 		return false, nil
 	}
-	record, err := preparingRecord(dir, id)
+	record, err := ownedRecord(dir, id, phasePreparing)
 	if err != nil {
 		return false, err
 	}

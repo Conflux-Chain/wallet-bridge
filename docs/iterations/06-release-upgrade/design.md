@@ -226,3 +226,19 @@ go test -tags integration ./internal/update -run '^TestPackagedServiceStartupWal
 ```
 
 第一项 Go 测试模拟停机应答丢失和备份发布后中断。第二项要求本机 18765 端口空闲，在临时目录启动打包服务，恢复一笔模拟钱包占用，再验证用户重试后停机并保存备份。预期两项均输出 `PASS`，退出时清理测试服务及临时数据。
+
+## 验证候选服务
+
+升级者校验目标文件后，用显式启动参数传入升级 ID。候选取得数据锁，核对升级阶段、版本和自身摘要，在固定地址加载原凭据、打开并迁移数据库。API 1.16 的身份应答在验证期间包含 `verifyingUpgrade` 和 `ready: false`。升级者验证签名、原升级 ID、目标版本及所需能力。此时仅允许身份查询和经服务凭据认证的停机请求，业务调用及迟到的交易结果回报均返回 HTTP 503。
+
+升级者在提交接单决定前退出，候选会释放端口和数据锁，原升级记录保留。接单决定的提交与后续开放由 6-8d-2 接入。
+
+在 Windows 或 macOS 仓库根目录完成 [README 环境准备](../../../README.md#环境准备)，运行：
+
+```sh
+go test ./internal/api ./internal/client -run '^TestCandidate(Admission|Probe)$' -count=1 -v
+npm --prefix web run bundle
+go test -tags integration ./internal/update -run '^TestPackagedServiceStartupCandidate$' -count=1 -v
+```
+
+第一条命令使用临时 HTTP 服务。最后一条需本机 18765 端口空闲，测试会启动并重复识别同一候选程序，检查交易结果回报受到阻止，并确认升级者退出后可按原记录恢复。预期均输出 `PASS`，测试自行清理进程和临时数据。

@@ -22,7 +22,7 @@ type Dependencies struct {
 	StageUpdate   func(context.Context, string, string) (update.Candidate, error)
 	RunMCP        func(dataDir string) error
 	NewClient     func(dataDir string) (*client.Client, error)
-	RunService    func(dataDir string) error
+	RunService    func(dataDir, verifyingUpgrade string) error
 	ManageService func(action, dataDir string) (client.Status, error)
 	BrowserLink   func(dataDir string) (api.BrowserTicketResponse, error)
 	ListBrowsers  func(dataDir string, limit int, after string) (api.BrowserGrantListResponse, error)
@@ -133,6 +133,16 @@ func runService(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	dir := flags.String("data-dir", "", "Use an absolute private data directory")
 	var jsonOutput bool
 	var forUpgrade bool
+	var verifyingUpgrade string
+	if action == "run" {
+		flags.Func("verify-upgrade", "Start the candidate for this upgrade", func(id string) error {
+			if id == "" {
+				return errors.New("upgrade ID is required")
+			}
+			verifyingUpgrade = id
+			return nil
+		})
+	}
 	if action == "stop" {
 		flags.BoolVar(&forUpgrade, "for-upgrade", false, "Check wallet occupancy before stopping for an upgrade")
 	}
@@ -196,7 +206,11 @@ func runService(args []string, dependencies Dependencies, stdout, stderr io.Writ
 		fmt.Fprintln(stderr, "configuration_error: service runner is unavailable")
 		return 1
 	}
-	if err := dependencies.RunService(*dir); err != nil {
+	if verifyingUpgrade != "" && *dir == "" {
+		fmt.Fprintln(stderr, "service verification requires an upgrade ID and an absolute data directory")
+		return 2
+	}
+	if err := dependencies.RunService(*dir, verifyingUpgrade); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}

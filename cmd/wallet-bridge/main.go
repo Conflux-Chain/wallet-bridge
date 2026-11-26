@@ -80,11 +80,11 @@ func main() {
 				return c.Status(ctx)
 			}
 		},
-		RunService: func(dir string) error {
+		RunService: func(dir, verifyingUpgrade string) error {
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 			return service.Run(ctx, service.Config{
-				DataDir: dir, Version: info.Version, Assets: web.Assets(),
+				DataDir: dir, Version: info.Version, Assets: web.Assets(), VerifyingUpgrade: verifyingUpgrade,
 				Ready: func() error {
 					_, err := fmt.Fprintf(os.Stdout, "wallet-bridge ready at %s\n", api.Origin)
 					return err
