@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-升级占用检查、停机和备份已合并。6-8d-1 候选服务验证待评审，下一项是持久化接单决定并开放业务。[本地验证](06-release-upgrade/design.md#验证候选服务) · [PR 计划](06-release-upgrade/plan.md)
+候选服务验证已合并。6-8d-2 持久化接单决定并开放业务待评审，下一项是接单前失败回退和中断恢复。[本地验证](06-release-upgrade/design.md#提交接单决定) · [PR 计划](06-release-upgrade/plan.md)
 
 ## 上轮交接
 

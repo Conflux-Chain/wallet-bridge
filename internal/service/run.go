@@ -129,9 +129,13 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 		return &Error{"configuration_error", "Cannot configure browser authorization", err}
 	}
 	stop := make(chan struct{})
+	var admitted chan struct{}
+	if config.VerifyingUpgrade != "" {
+		admitted = make(chan struct{})
+	}
 	var once sync.Once
 	handler, err := api.New(api.Config{
-		Version: config.Version, VerifyingUpgrade: config.VerifyingUpgrade, ServiceToken: token, Assets: config.Assets,
+		Version: config.Version, VerifyingUpgrade: config.VerifyingUpgrade, Admitted: admitted, ServiceToken: token, Assets: config.Assets,
 		StartedAt: time.Now(), Stop: func() { once.Do(func() { close(stop) }) },
 		BrowserAuthorization: browserAuthorization,
 		Connections:          connections,
@@ -155,8 +159,9 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 	}
 	var maintenanceErr error
 	var verifyOwner <-chan time.Time
+	var ticker *time.Ticker
 	if config.VerifyingUpgrade != "" {
-		ticker := time.NewTicker(time.Second)
+		ticker = time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
 		verifyOwner = ticker.C
 	}
@@ -170,8 +175,14 @@ running:
 		case <-stop:
 			break running
 		case <-verifyOwner:
-			if err := update.CheckCandidateOwner(config.DataDir, config.VerifyingUpgrade); err != nil {
+			open, err := update.CandidateAdmitted(config.DataDir, config.VerifyingUpgrade)
+			if err != nil {
 				break running
+			}
+			if open {
+				close(admitted)
+				ticker.Stop()
+				verifyOwner = nil
 			}
 		case <-maintenance:
 			if maintenanceErr = maintainConnections(ctx, connections, false); maintenanceErr != nil {

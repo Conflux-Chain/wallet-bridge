@@ -24,6 +24,7 @@ import (
 type Config struct {
 	Version              string
 	VerifyingUpgrade     string
+	Admitted             <-chan struct{}
 	ServiceToken         string
 	Assets               fs.FS
 	StartedAt            time.Time
@@ -70,7 +71,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		failure(w, http.StatusForbidden, "invalid_origin", "Origin must match the local service")
 		return
 	}
-	if h.config.VerifyingUpgrade != "" && r.URL.Path != "/api/v1/info" && r.URL.Path != "/api/v1/control/stop" {
+	if !h.currentInfo().Ready && r.URL.Path != "/api/v1/info" && r.URL.Path != "/api/v1/control/stop" {
 		failure(w, http.StatusServiceUnavailable, "upgrade_in_progress", "The candidate is being verified. Retry after the upgrade.")
 		return
 	}
@@ -152,6 +153,16 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *handler) currentInfo() InfoResponse {
+	info := h.info
+	select {
+	case <-h.config.Admitted:
+		info.Ready, info.VerifyingUpgrade = true, ""
+	default:
+	}
+	return info
+}
+
 func method(w http.ResponseWriter, r *http.Request, expected string) bool {
 	if r.Method == expected {
 		return true
@@ -190,7 +201,7 @@ func (h *handler) authorize(w http.ResponseWriter, r *http.Request) bool {
 // @Router /info [get]
 func (h *handler) getInfo(w http.ResponseWriter, r *http.Request) {
 	query, err := url.ParseQuery(r.URL.RawQuery)
-	response := h.info
+	response := h.currentInfo()
 	if err != nil || len(query) > 1 || (len(query) == 1 && len(query["challenge"]) != 1) {
 		failure(w, http.StatusBadRequest, "bad_request", "Only a single challenge parameter is accepted")
 		return
@@ -226,7 +237,7 @@ func (h *handler) getInfo(w http.ResponseWriter, r *http.Request) {
 // @Router /status [get]
 func (h *handler) getStatus(w http.ResponseWriter, r *http.Request, browser *app.BrowserGrant) {
 	response := StatusResponse{
-		State: "running", StartedAt: h.config.StartedAt.UTC().Format(time.RFC3339Nano), Info: h.info,
+		State: "running", StartedAt: h.config.StartedAt.UTC().Format(time.RFC3339Nano), Info: h.currentInfo(),
 	}
 	if browser != nil {
 		metadata := browserGrantResponse(*browser, time.Now())

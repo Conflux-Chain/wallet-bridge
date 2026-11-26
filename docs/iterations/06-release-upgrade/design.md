@@ -242,3 +242,19 @@ go test -tags integration ./internal/update -run '^TestPackagedServiceStartupCan
 ```
 
 第一条命令使用临时 HTTP 服务。最后一条需本机 18765 端口空闲，测试会启动并重复识别同一候选程序，检查交易结果回报受到阻止，并确认升级者退出后可按原记录恢复。预期均输出 `PASS`，测试自行清理进程和临时数据。
+
+## 提交接单决定
+
+升级者验证候选后，先发布启用版本，再将同一升级记录写为 `admitted`。候选取得升级锁的共享读锁，检查已提交的决定和启用记录，再开放原地址上的业务入口。升级锁仍被写入者持有时，普通 CLI／MCP 沿用 D-079。
+
+两次写入之间中断，普通启动按 D-077 提示恢复。决定已提交后，重启使用已启用的新版本和现有数据库，旧快照失去回退资格。启用记录丢失或内容不符时，可从已提交的目标版本及摘要重建选择。升级命令的成功收尾与备份清理在后续步骤接入。
+
+在 Windows 或 macOS 仓库根目录完成 [README 环境准备](../../../README.md#环境准备)，运行：
+
+```sh
+go test ./internal/update -run '^TestAdmissionRecovery$' -count=1 -v
+npm --prefix web run bundle
+go test -tags integration ./internal/update -run '^TestPackagedServiceStartupAdmission$' -count=1 -v
+```
+
+第一项使用临时目录模拟写入边界和启用记录丢失。最后一项要求本机 18765 端口空闲，验证运行中的候选开放接单，并在重启新版后按原 ID 查回新建请求及原期限。预期两项均输出 `PASS`，退出时清理测试服务和数据。

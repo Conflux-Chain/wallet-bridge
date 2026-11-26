@@ -11,11 +11,23 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/platform"
 )
 
+var ErrRollbackAfterAdmission = errors.New("the upgrade already committed admission, restoring the snapshot would discard new data")
+
 // RollbackFromBackup supplies a verified, disposable copy to the version
 // switcher. The switcher must allow rollback only before admission and return
 // success only after the old service is ready and that outcome is durable.
 func RollbackFromBackup(ctx context.Context, dir, id string, restore func(string) error) error {
 	return withBackupLock(dir, id, func(backup string) error {
+		record, err := readUpgradeRecord(dir)
+		if err != nil {
+			return err
+		}
+		if record != nil && record.Phase == phaseAdmitted {
+			return ErrRollbackAfterAdmission
+		}
+		if record != nil && record.ID != id {
+			return errors.New("this backup belongs to another upgrade")
+		}
 		if err := platform.CheckPrivateDir(backup); err != nil {
 			return err
 		}

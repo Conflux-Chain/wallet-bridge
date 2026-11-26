@@ -82,6 +82,12 @@ func IsWalletCheckService(dir string) (bool, error) {
 // Prepare checks and stops the old service, then publishes the pre-migration backup.
 // The caller holds the upgrade lock through candidate verification and admission.
 func (w *Upgrade) Prepare(ctx context.Context, id string, target Candidate, stop func(context.Context, WalletCheck) error) error {
+	if w.current != nil && w.current.Phase == phaseAdmitted {
+		if w.current.ID != id || w.current.Target != (releaseSelection{target.Version, target.SHA256}) {
+			return UpgradeRecoveryRequired
+		}
+		return w.recoverAdmittedSelection()
+	}
 	old, err := w.preparePrograms(ctx, id, releaseSelection{target.Version, target.SHA256})
 	if err != nil {
 		return err
