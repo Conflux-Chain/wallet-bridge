@@ -1,0 +1,12 @@
+# 迭代 7 · 第 1 轮反馈处理方案
+
+编号沿用第 1 轮反馈。每项只记录本轮决定和仍待确认的部分，修复 PR 与本地验收结果见[分步计划](plan.md)。
+
+| 原反馈 | 方案与确认范围 |
+|---|---|
+| [1 · Session ID 报错](../../local-trials/v0.1.0/round-01/feedback.md#1-session-id-格式错误时只显示-usage) | 原 CLI 把 ID 校验与其他参数错误合并处理，统一打印用法。用户已同意合并 #96。该修复会区分缺少 ID 和格式错误，指出 `--session-id` 需要 32 位小写十六进制字符，并提示从已批准的 `wallet-bridge connect` 结果取得。 |
+| [2 · 能否省略 Session ID](../../local-trials/v0.1.0/round-01/feedback.md#2-发送交易时需要手动传入-session-id) | **已确认暂缓。** 本轮继续显式传入 `--session-id`。用户已用有效 ID 完成发送，等帮助和报错改进后再体验，届时决定是否简化。 |
+| [3 · 找到 Codex CLI](../../local-trials/v0.1.0/round-01/feedback.md#3-windows-终端找不到指南中的-codex-命令) | 本机桌面版自带的 CLI 目录未加入 PATH。已确认目标是在 Git Bash 找到并调用它。指南采用哪套定位步骤待确认。 |
+| [4 · Git Bash 指南](../../local-trials/v0.1.0/round-01/feedback.md#4-windows-体验指南缺少-git-bash-命令示例) | **已确认验收范围。** Windows 的命令示例以 Git Bash 实测为准，WSL 免测。示例内容待确认。 |
+| [5 · CLI 帮助与报错](../../local-trials/v0.1.0/round-01/feedback.md#5-cli-命令行诸多问题反馈) | **帮助方案待确认。** #97 的提案是顶层按任务列出命令及用途，子命令沿用 Go `flag`，按参数名列出含义、必填项及省略时的行为。其余运行错误的提示另行分析。 |
+| [6 · Codex 首次连接](../../local-trials/v0.1.0/round-01/feedback.md#6-其他用户-codex-首次体验不流畅) | **已确认交互目标。** 用户点击 Codex 审批链接，在系统默认浏览器继续同一请求。如何将链接交给默认浏览器仍待验证和确认。简化首次浏览器授权是另一个待讨论的问题。 |
