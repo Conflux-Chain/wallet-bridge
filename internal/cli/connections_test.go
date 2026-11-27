@@ -50,6 +50,44 @@ func TestResourceCommandErrors(t *testing.T) {
 	}
 }
 
+func TestResourceIDDiagnostics(t *testing.T) {
+	for _, tc := range []struct {
+		args                   []string
+		argument, reason, hint string
+		json                   bool
+	}{
+		{[]string{"transaction", "get"}, "<request-id>", "required", "wallet-bridge transaction send", false},
+		{[]string{"transaction", "cancel", "--json", "private"}, "<request-id>", "invalid format", "wallet-bridge transaction send", true},
+		{[]string{"session", "get", "private", "--json"}, "<session-id>", "invalid format", "after approving wallet-bridge connect", true},
+		{[]string{"session", "close", "first", "second"}, "<session-id>", "Too many IDs", "after approving wallet-bridge connect", false},
+		{[]string{"connection", "get", "first", "second", "--json"}, "<request-id>", "Too many IDs", "wallet-bridge connect", true},
+		{[]string{"connection", "cancel", "--json"}, "<request-id>", "required", "wallet-bridge connect", true},
+	} {
+		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
+			var out, diag bytes.Buffer
+			if code := Run(tc.args, Dependencies{}, &out, &diag); code != 2 || out.Len() != 0 {
+				t.Fatalf("exit %d, stdout %q", code, &out)
+			}
+			message := diag.String()
+			if tc.json {
+				var failure client.Error
+				if err := json.Unmarshal(diag.Bytes(), &failure); err != nil || failure.Code != "bad_request" {
+					t.Fatalf("expected JSON bad_request, got %q", &diag)
+				}
+				message = failure.Message
+			}
+			if strings.Contains(message, "private") {
+				t.Fatal("diagnostic echoed the invalid ID")
+			}
+			for _, want := range []string{tc.argument, tc.reason, tc.hint, "32 lowercase hexadecimal"} {
+				if !strings.Contains(message, want) {
+					t.Errorf("%q lacks %q", message, want)
+				}
+			}
+		})
+	}
+}
+
 func TestResourceTextQuotesDisplayNames(t *testing.T) {
 	var out bytes.Buffer
 	if err := writeConnection(&out, false, api.ConnectionResponse{ClientName: "name\nline", Intent: "\x1b[2J", SessionID: "session-id"}); err != nil {

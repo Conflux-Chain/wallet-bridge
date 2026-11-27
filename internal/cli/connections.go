@@ -45,8 +45,8 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 	// Accept the ID before or after the options, as with browser revoke.
 	remaining := args[2:]
 	var ids []string
-	if len(remaining) > 0 && !strings.HasPrefix(remaining[0], "-") {
-		ids = []string{remaining[0]}
+	for len(remaining) > 0 && !strings.HasPrefix(remaining[0], "-") {
+		ids = append(ids, remaining[0])
 		remaining = remaining[1:]
 	}
 	idArgument := "<request-id>"
@@ -62,7 +62,16 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 		return code
 	}
 	ids = append(ids, flags.Args()...)
-	if len(ids) != 1 || !validResourceID(ids[0]) || (*dir != "" && !filepath.IsAbs(*dir)) {
+	hint := " Expected 32 lowercase hexadecimal characters. " + idHelp
+	switch {
+	case len(ids) == 0:
+		return argumentError(stderr, *asJSON, idArgument+" is required."+hint)
+	case len(ids) > 1:
+		return argumentError(stderr, *asJSON, "Too many IDs. Pass exactly one "+idArgument+"."+hint)
+	case !validResourceID(ids[0]):
+		return argumentError(stderr, *asJSON, idArgument+" has an invalid format."+hint)
+	}
+	if *dir != "" && !filepath.IsAbs(*dir) {
 		fmt.Fprintln(stderr, usage)
 		return 2
 	}
