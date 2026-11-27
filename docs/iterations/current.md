@@ -1,10 +1,10 @@
 # 当前迭代与交接
 
-更新时间：2026-11-26。
+更新时间：2026-11-27。
 
 ## 迭代 6 · 发布与升级
 
-6-9a 跨版本重连验收已合并。首个稳定版候选 v0.1.0 已交付本机体验，等待用户整体验收和单独确认发布。[用户体验指南](../v0.1.0-user-trial.md) · [候选记录与 PR 进度](06-release-upgrade/plan.md)
+v0.1.0 第 1 轮本地体验正在收集 Windows 和 macOS 反馈。下一步按反馈确认修改范围，交付下一轮候选包供复测。[本轮反馈](../local-trials/v0.1.0/round-01/feedback.md) · [历轮体验指南](../local-trials/README.md) · [PR 进度](06-release-upgrade/plan.md)
 
 ## 上轮交接
 
