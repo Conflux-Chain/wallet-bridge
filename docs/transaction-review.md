@@ -34,6 +34,18 @@ npm --prefix web run try:transaction
 
 `--json` 等待模式把初始 ID 和 URL 写入 stderr，最终交易记录写入 stdout。参数用法错误退出 2，服务访问失败退出 1。
 
+### 检查 Session ID 报错
+
+实际发送时，运行 `wallet-bridge connect --chain-id 71` 并在浏览器同意连接。将终端最终打印的 `Session` 行中的 ID 填入 `--session-id`。使用 JSON 时取 `session.id`。
+
+开发者可在仓库根目录运行以下回归。只需 Go，测试自动退出，无需启动服务或清理数据。
+
+```sh
+go test -tags no_web ./internal/cli -run '^TestSendSessionIDDiagnostic$' -count=1 -v
+```
+
+用本次构建的程序将 `--session-id` 设为 `aaa` 或省略该项，预期 stderr 指出格式错误或缺参，说明取得 ID 的方法，退出码为 2。添加 `--json` 时，stderr 返回 `code: bad_request`。
+
 ## 用 CLI 查询和取消示例交易
 
 在仓库根目录运行上面的 `npm --prefix web run try:transaction`，保留该终端。另开一个终端，进入同一仓库，将以下两个占位符替换为示例终端打印的交易请求 ID 和临时数据目录。此流程只需合成交易，无需打开浏览器。
