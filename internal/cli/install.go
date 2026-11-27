@@ -15,8 +15,8 @@ const installUsage = "Usage: wallet-bridge install [--data-dir <absolute path>] 
 func runInstall(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("install", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	dir := flags.String("data-dir", "", "Use an absolute private data directory")
-	asJSON := flags.Bool("json", false, "Print the installed path as JSON")
+	dir := flags.String("data-dir", "", dataDirHelp)
+	asJSON := flags.Bool("json", false, "Write the installed path as JSON. By default, print the path as text.")
 	if code, done := parseFlags(flags, args, installUsage, stdout, stderr); done {
 		return code
 	}

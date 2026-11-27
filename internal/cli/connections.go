@@ -40,8 +40,8 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 	}
 	flags := flag.NewFlagSet(group+" "+action, flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	dir := flags.String("data-dir", "", "Use an absolute private data directory")
-	asJSON := flags.Bool("json", false, "Print structured output")
+	dir := flags.String("data-dir", "", dataDirHelp)
+	asJSON := flags.Bool("json", false, outputJSONHelp)
 	// Accept the ID before or after the options, as with browser revoke.
 	remaining := args[2:]
 	var ids []string
@@ -49,7 +49,16 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 		ids = []string{remaining[0]}
 		remaining = remaining[1:]
 	}
-	if code, done := parseFlags(flags, remaining, usage, stdout, stderr); done {
+	idArgument := "<request-id>"
+	idHelp := "Use the request ID returned by wallet-bridge connect."
+	if group == "session" {
+		idArgument = "<session-id>"
+		idHelp = "Use the Session ID returned after approving wallet-bridge connect."
+	} else if group == "transaction" {
+		idHelp = "Use the request ID returned by wallet-bridge transaction send."
+	}
+	actionUsage := "Usage: wallet-bridge " + flags.Name() + " " + idArgument + " [--data-dir <absolute path>] [--json]\n" + idHelp
+	if code, done := parseFlags(flags, remaining, actionUsage, stdout, stderr); done {
 		return code
 	}
 	ids = append(ids, flags.Args()...)

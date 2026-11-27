@@ -16,8 +16,9 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/update"
 )
 
-const downloadUsage = "Usage: wallet-bridge update download <version> [--data-dir <absolute path>] [--json]"
-const updateUsage = "Usage: wallet-bridge update check [--include-preview] [--json]\n" + downloadUsage
+const downloadUsage = "Usage: wallet-bridge update download <version> [--data-dir <absolute path>] [--json]\nUse a published release tag, for example v1.2.3."
+const checkUpdateUsage = "Usage: wallet-bridge update check [--include-preview] [--json]"
+const updateUsage = checkUpdateUsage + "\n" + downloadUsage
 
 func runUpdate(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	if len(args) == 0 || (len(args) == 1 && (args[0] == "--help" || args[0] == "-h")) {
@@ -33,9 +34,9 @@ func runUpdate(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	}
 	flags := flag.NewFlagSet("update check", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	preview := flags.Bool("include-preview", false, "Include prereleases in the version comparison")
-	asJSON := flags.Bool("json", false, "Print structured output")
-	if code, done := parseFlags(flags, args[1:], updateUsage, stdout, stderr); done {
+	preview := flags.Bool("include-preview", false, "Include prereleases. By default, compare stable versions only.")
+	asJSON := flags.Bool("json", false, outputJSONHelp)
+	if code, done := parseFlags(flags, args[1:], checkUpdateUsage, stdout, stderr); done {
 		return code
 	}
 	if flags.NArg() != 0 {
@@ -85,8 +86,8 @@ func printUpdateResult(stdout, stderr io.Writer, asJSON, preview bool, result up
 func runDownload(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("update download", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	dir := flags.String("data-dir", "", "Use an absolute private data directory")
-	asJSON := flags.Bool("json", false, "Print structured output")
+	dir := flags.String("data-dir", "", dataDirHelp)
+	asJSON := flags.Bool("json", false, outputJSONHelp)
 	var versions []string
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		versions = []string{args[0]}

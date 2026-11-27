@@ -5,10 +5,42 @@ import (
 	"encoding/json"
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/client"
 )
+
+func TestCommandHelp(t *testing.T) {
+	for _, tc := range []struct {
+		command string
+		want    []string
+	}{
+		{"", []string{"Authorize this browser", "transaction send", "obtain a Session ID"}},
+		{"connect --help", []string{"Required target EVM chain ID", "default: Wallet Bridge CLI", "wait for the connection result"}},
+		{"transaction send --help", []string{"Required Session network", "Required recipient", "default: 0)", "default: 0x)", "wallet estimate", "--max-priority-fee-per-gas"}},
+		{"transaction get --help", []string{"<request-id>", "request ID returned by wallet-bridge transaction send"}},
+		{"session close --help", []string{"<session-id>", "after approving wallet-bridge connect"}},
+		{"browser list --help", []string{"default: 50", "first page"}},
+		{"service run --help", []string{"--data-dir", "current user's"}},
+		{"update check --help", []string{"--include-preview", "stable versions only"}},
+	} {
+		t.Run(tc.command, func(t *testing.T) {
+			var out, diag bytes.Buffer
+			if code := Run(strings.Fields(tc.command), Dependencies{}, &out, &diag); code != 0 || diag.Len() != 0 {
+				t.Fatalf("exit %d, stderr %q", code, &diag)
+			}
+			for _, want := range tc.want {
+				if !strings.Contains(out.String(), want) {
+					t.Errorf("help lacks %q: %s", want, &out)
+				}
+			}
+			if strings.Contains(out.String(), "--verify-upgrade") {
+				t.Error("help advertises the internal upgrade option")
+			}
+		})
+	}
+}
 
 func TestServiceCommandParsing(t *testing.T) {
 	for _, tc := range []struct {

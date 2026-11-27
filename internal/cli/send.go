@@ -20,7 +20,10 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/client"
 )
 
-const sendUsage = "Usage: wallet-bridge transaction send --session-id <id> --from <address> --chain-id <decimal|0xhex> --to <address> [--value <amount>] [--data <0xbytes>] [--gas <limit>] [--gas-price <price> | --max-fee-per-gas <price> --max-priority-fee-per-gas <price>] [--client-name <name>] [--intent <text>] [--no-open] [--no-wait] [--json] [--data-dir <absolute path>]\nAmounts and fees use smallest units. Explicit nonce and type are unsupported."
+const sendUsage = `Usage: wallet-bridge transaction send --session-id <id> --from <address> --chain-id <decimal|0xhex> --to <address> [options]
+
+Amounts and fees accept decimal or 0x hex in smallest units. Omit fees to use the wallet estimate.
+The wallet selects the nonce and transaction type.`
 
 const sendSessionIDHelp = "Run wallet-bridge connect --chain-id <chain-id>, approve the connection, then use the Session ID (32 lowercase hexadecimal characters)."
 
@@ -34,20 +37,27 @@ func runSend(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	var opts sendOptions
 	flags := flag.NewFlagSet("transaction send", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	flags.StringVar(&opts.input.SessionID, "session-id", "", sendSessionIDHelp)
+	flags.StringVar(&opts.input.SessionID, "session-id", "", "Required. "+sendSessionIDHelp)
 	flags.StringVar(&opts.input.ClientName, "client-name", "Wallet Bridge CLI", "Name displayed to the user")
-	flags.StringVar(&opts.input.Intent, "intent", "", "Reason for the transaction")
-	flags.StringVar(&opts.dir, "data-dir", "", "Absolute service data directory")
-	flags.BoolVar(&opts.noOpen, "no-open", false, "Print the URL for manual opening")
-	flags.BoolVar(&opts.noWait, "no-wait", false, "Return immediately after creation")
-	flags.BoolVar(&opts.asJSON, "json", false, "Write structured output")
+	flags.StringVar(&opts.input.Intent, "intent", "", "Optional description shown on the transaction review page")
+	flags.StringVar(&opts.dir, "data-dir", "", dataDirHelp)
+	flags.BoolVar(&opts.noOpen, "no-open", false, "Print the link for manual opening. By default, open the browser.")
+	flags.BoolVar(&opts.noWait, "no-wait", false, "Return the request immediately. By default, wait for the wallet result.")
+	flags.BoolVar(&opts.asJSON, "json", false, outputJSONHelp)
 	fields := make(map[string]string)
-	for option, field := range map[string]string{
-		"chain-id": "chainId", "from": "from", "to": "to", "value": "value", "data": "data", "gas": "gas",
-		"gas-price": "gasPrice", "max-fee-per-gas": "maxFeePerGas", "max-priority-fee-per-gas": "maxPriorityFeePerGas",
-		"nonce": "nonce", "type": "type", // Report the specific unsupported field.
+	for _, field := range []struct{ option, key, description string }{
+		{"chain-id", "chainId", "Required Session network, in decimal or 0x hex"},
+		{"from", "from", "Required 0x-prefixed address of the Session account"},
+		{"to", "to", "Required recipient or existing contract address (0x-prefixed)"},
+		{"value", "value", "Native currency amount in smallest units (default: 0)"},
+		{"data", "data", "0x-prefixed calldata in whole bytes (default: 0x)"},
+		{"gas", "gas", "Gas limit in gas units. By default, the wallet estimates it."},
+		{"gas-price", "gasPrice", "Legacy price in smallest units per gas. Omit when using EIP-1559 fees."},
+		{"max-fee-per-gas", "maxFeePerGas", "EIP-1559 fee cap in smallest units per gas. Supply with --max-priority-fee-per-gas."},
+		{"max-priority-fee-per-gas", "maxPriorityFeePerGas", "EIP-1559 tip cap in smallest units per gas. Supply with --max-fee-per-gas."},
+		{"nonce", "nonce", ""}, {"type", "type", ""}, // Recognize these inputs to report the specific unsupported field.
 	} {
-		flags.Func(option, field, func(value string) error { fields[field] = value; return nil })
+		flags.Func(field.option, field.description, func(value string) error { fields[field.key] = value; return nil })
 	}
 	if code, done := parseFlags(flags, args, sendUsage, stdout, stderr); done {
 		return code
