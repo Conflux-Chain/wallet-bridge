@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -53,9 +52,8 @@ func runConnect(args []string, deps Dependencies, stdout, stderr io.Writer) int 
 	case !chainArgument.MatchString(*chain):
 		return argumentError(stderr, opts.asJSON, "--chain-id has an invalid format. "+chainIDHint)
 	}
-	if flags.NArg() != 0 || strings.TrimSpace(opts.input.ClientName) == "" || (*dir != "" && !filepath.IsAbs(*dir)) {
-		fmt.Fprintln(stderr, connectUsage)
-		return 2
+	if flags.NArg() != 0 {
+		return unexpectedArguments(flags, stderr)
 	}
 	base := 10
 	digits, hex := strings.CutPrefix(*chain, "0x")

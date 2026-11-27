@@ -5,11 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
@@ -29,9 +27,8 @@ func runUpgrade(args []string, deps Dependencies, stdout, stderr io.Writer) int 
 	if code, done := parseFlags(flags, args, upgradeUsage, stdout, stderr); done {
 		return code
 	}
-	if flags.NArg() != 0 || (*dir != "" && !filepath.IsAbs(*dir)) {
-		fmt.Fprintln(stderr, upgradeUsage)
-		return 2
+	if flags.NArg() != 0 {
+		return unexpectedArguments(flags, stderr)
 	}
 	if deps.CheckUpdate == nil || deps.StageUpdate == nil || deps.NewClient == nil {
 		return commandError(stderr, *asJSON, &client.Error{Code: "configuration_error", Message: "Upgrade is unavailable"}, "")

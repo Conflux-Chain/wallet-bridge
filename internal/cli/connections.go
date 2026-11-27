@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -35,8 +34,7 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 	}
 	action := args[1]
 	if action != "get" && action != change {
-		fmt.Fprintln(stderr, usage)
-		return 2
+		return unknownCommand(stderr, group, args[2:])
 	}
 	flags := flag.NewFlagSet(group+" "+action, flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -70,10 +68,6 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 		return argumentError(stderr, *asJSON, "Too many IDs. Pass exactly one "+idArgument+"."+hint)
 	case !validResourceID(ids[0]):
 		return argumentError(stderr, *asJSON, idArgument+" has an invalid format."+hint)
-	}
-	if *dir != "" && !filepath.IsAbs(*dir) {
-		fmt.Fprintln(stderr, usage)
-		return 2
 	}
 	if deps.NewClient == nil {
 		return commandError(stderr, *asJSON, nil, "Service client is unavailable")
