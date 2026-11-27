@@ -13,7 +13,7 @@ node --test scripts/release-review.test.mjs
 
 ## 交给用户体验
 
-开发完成后，用干净的提交构建候选版本。维护者保存核对输出，确认 `modified` 为 `false`，将程序、清单和用户指南交给用户。版本号和清单摘要标识这次验收的文件。修复后重新交付并记录对应的复测结果。[用户验收约定](spec.md#首版发布前的用户验收)
+开发完成后，用干净的提交构建候选版本。维护者保存核对输出，确认 `modified` 为 `false`，将程序、清单和用户指南交给用户。版本号和清单摘要标识这次验收的文件。在[本地体验索引](../../local-trials/README.md)登记当轮指南与反馈，修复后交付下一轮候选包并记录复测结果。[用户验收约定](spec.md#首版发布前的用户验收)
 
 ## 准备升级演练目录
 
@@ -23,7 +23,7 @@ node --test scripts/release-review.test.mjs
 go test -tags integration ./internal/update -run '^TestReleaseTrials$' -count=1 -v -args -trial-version v0.1.0 -keep-trials
 ```
 
-输出 `dist/upgrade-trials-v0.1.0/resume` 和 `rollback`。两个目录分别生成本用户的私有凭据、空库及真实备份，第二个故意移除缓存中的目标程序。准备过程离线且无需占用服务端口。已有输出目录时命令会报错，复测前先停止演练服务并移走旧目录。给体验者提供[用户操作步骤](../../v0.1.0-user-trial.md#5-体验升级中断恢复)。自动验证时省略 `-keep-trials` 并释放 18765 端口，命令实际执行两次恢复，检查版本与退出结果后清理临时目录。
+输出 `dist/upgrade-trials-v0.1.0/resume` 和 `rollback`。两个目录分别生成本用户的私有凭据、空库及真实备份，第二个故意移除缓存中的目标程序。准备过程离线且无需占用服务端口。已有输出目录时命令会报错，复测前先停止演练服务并移走旧目录。给体验者提供[用户操作步骤](../../local-trials/v0.1.0/round-01/guide.md#5-体验升级中断恢复)。自动验证时省略 `-keep-trials` 并释放 18765 端口，命令实际执行两次恢复，检查版本与退出结果后清理临时目录。
 
 ## 用户确认可以发布之后
 

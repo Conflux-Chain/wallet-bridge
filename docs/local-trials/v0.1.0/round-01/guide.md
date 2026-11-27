@@ -1,4 +1,4 @@
-# v0.1.0 用户体验指南
+# v0.1.0 第 1 轮用户体验指南
 
 准备一台 Windows 10+ x64 或 macOS 13+ 电脑、装有 MetaMask 或 Fluent（EVM 模式）的 Chrome，以及一个已配置 Conflux eSpace Testnet（链 ID 71）的测试账户。连接和拒绝交易都可以用零余额账户。体验 Codex 时需要已安装 Codex CLI。钱包操作请在同一个 Chrome 测试配置里完成。
 
@@ -121,10 +121,10 @@ trial service status --json
 trial service stop --json
 ```
 
-首条预期提示 `upgrade_recovery_required`。在 `resume` 中，`upgrade` 返回 `upgraded`，随后 `status` 显示 `v0.1.0`。等到 `stopped`，再将上面路径末尾的 `resume` 换为 `rollback` 并重复。该目录预设目标副本缺失，`upgrade` 会退出 1，报告 `upgrade_rolled_back`、原因和已恢复版本。随后 `status` 应显示运行中的 `v0.0.0-trial`。这里验证的是离线恢复；从 GitHub 下载真实附件需等首次公开发行。[演练目录的准备方式](iterations/06-release-upgrade/release.md#准备升级演练目录)
+首条预期提示 `upgrade_recovery_required`。在 `resume` 中，`upgrade` 返回 `upgraded`，随后 `status` 显示 `v0.1.0`。等到 `stopped`，再将上面路径末尾的 `resume` 换为 `rollback` 并重复。该目录预设目标副本缺失，`upgrade` 会退出 1，报告 `upgrade_rolled_back`、原因和已恢复版本。随后 `status` 应显示运行中的 `v0.0.0-trial`。这里验证的是离线恢复；从 GitHub 下载真实附件需等首次公开发行。[演练目录的准备方式](../../../iterations/06-release-upgrade/release.md#准备升级演练目录)
 
 ## 6. 结束并记录反馈
 
 关闭测试标签页。若第 2 步暂停了本仓库的 Windows 开发服务，在候选目录运行 `& ..\..\wallet-bridge-windows-amd64.exe service ensure --json`，应看到 `running`。使用其他旧程序时换成它的路径和原数据目录。需要复查交易时保留 `$trialData`。确认结束后，可在文件管理器中删除该体验目录及已停止的 `upgrade-trials-v0.1.0`。保留候选程序和 `SHA256SUMS` 供发布核对。
 
-请记录操作系统、Chrome 和钱包版本、完成到哪一步及实际结果。发生问题时附错误码或截图，跳过的步骤标记「未测」。一次性浏览器授权链接留在本机。
+请在[本轮体验反馈](feedback.md)中记录操作系统、Chrome 和钱包版本、完成到哪一步及实际结果。发生问题时附错误码或截图，跳过的步骤标记「未测」。一次性浏览器授权链接留在本机。

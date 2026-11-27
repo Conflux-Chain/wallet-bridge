@@ -6,7 +6,7 @@
 
 进度与待办见[当前迭代](docs/iterations/current.md)。
 
-已取得首版候选程序的用户，可按 [v0.1.0 体验指南](docs/v0.1.0-user-trial.md)从独立程序开始测试钱包、Codex 和升级恢复。
+已取得候选程序的用户，可按版本和轮次找到对应的体验指南并填写反馈。[本地候选版本体验](docs/local-trials/README.md)
 
 交付目标为单一可执行程序；运行时自动管理本地数据。[本机服务访问凭据](docs/local-credentials.md)说明令牌用途、自动生成与保存位置，以及用户需要准备的内容。
 
