@@ -31,6 +31,7 @@ test('MCP reconnects by the original ID and reads the browser consent result', a
     const url = origin + '/?connection=' + requestId;
     expect(replay.structuredContent).toEqual({ ...original, kind: 'connection', url });
     expect(replay.content[0].text).toContain('](' + url + ')');
+    expect(replay.content[0].text).toContain('在系统默认浏览器继续');
     const changed = await call('create_connection', { ...input, chainId: '1' });
     expect(changed.isError).toBe(true);
     expect(changed.content[0].text).toContain('connection_conflict');

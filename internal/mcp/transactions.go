@@ -68,7 +68,7 @@ func transactionReceipt(r api.TransactionResponse, err error) (*sdk.CallToolResu
 	text := fmt.Sprintf("Transaction %s (%s), chain %s. [Open the transaction request](%s)", r.ID, r.State, r.Transaction.ChainID, url)
 	switch r.State {
 	case "pending":
-		text += "\nApproval expires at " + r.ExpiresAt
+		text += "\nApproval expires at " + r.ExpiresAt + "\n" + walletBrowserHint
 	case "awaiting_wallet":
 		text += "\nThe wallet is processing the send. Wait for its response and check this request again."
 	case "uncertain":

@@ -351,6 +351,18 @@ definitions:
         example: dev
         type: string
     type: object
+  api.OpenBrowserRequest:
+    properties:
+      id:
+        maxLength: 32
+        minLength: 32
+        type: string
+      kind:
+        enum:
+        - connection
+        - transaction
+        type: string
+    type: object
   api.PendingRequestListResponse:
     properties:
       requests:
@@ -646,7 +658,7 @@ info:
     and transaction lifecycle, browser execution coordination, wallet handoff and
     connection consent.
   title: Wallet Bridge Local API
-  version: "1.16"
+  version: "1.17"
 paths:
   /browser/activity:
     get:
@@ -1560,6 +1572,53 @@ paths:
       security:
       - BrowserCookie: []
       summary: Log out the current browser
+  /browser/open-request:
+    post:
+      consumes:
+      - application/json
+      description: Accepts only a request kind and ID. The service constructs a fixed
+        local URL. No management grant is needed or transferred. The destination page
+        checks its own authorization.
+      parameters:
+      - description: Exact local service origin
+        in: header
+        name: Origin
+        required: true
+        type: string
+      - description: Request from the current approval link
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.OpenBrowserRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Open an approval link in the system default browser
   /browser/pending-requests:
     get:
       description: Returns unexpired requests oldest first, then by kind and ID for
