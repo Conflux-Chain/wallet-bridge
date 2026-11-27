@@ -4,7 +4,7 @@
 
 ## 迭代 6 · 发布与升级
 
-v0.1.0 第 1 轮本地体验正在收集 Windows 和 macOS 反馈。下一步按反馈确认修改范围，交付下一轮候选包供复测。[本轮反馈](../local-trials/v0.1.0/round-01/feedback.md) · [历轮体验指南](../local-trials/README.md) · [PR 进度](06-release-upgrade/plan.md)
+v0.1.0 第 1 轮六项反馈已整理，进入文档评审。评审后按迭代工作流明确修复范围、验收条件和小 PR 拆分。CLI 帮助与错误提示改进后的用户复测，将作为重新讨论可选 Session ID 的依据。[六项反馈与复测要点](../local-trials/v0.1.0/round-01/feedback.md) · [历轮体验指南](../local-trials/README.md) · [迭代工作流](README.md)
 
 ## 上轮交接
 
