@@ -1,11 +1,7 @@
 # 当前迭代与交接
 
-更新时间：2026-11-27。
+## 迭代 7 · 第 1 轮体验反馈
 
-## 迭代 6 · 发布与升级
+先交付交易 CLI 的 Session ID 报错，再完善帮助、其他错误提示与 Git Bash 指南。Codex 审批链接的打开方式需在真实宿主验证。当前 PR 和验证进度见[分步计划](07-round-one-feedback/plan.md)，本轮边界见[验收条件](07-round-one-feedback/spec.md)。
 
-v0.1.0 第 1 轮六项反馈已整理，进入文档评审。评审后按迭代工作流明确修复范围、验收条件和小 PR 拆分。CLI 帮助与错误提示改进后的用户复测，将作为重新讨论可选 Session ID 的依据。[六项反馈与复测要点](../local-trials/v0.1.0/round-01/feedback.md) · [历轮体验指南](../local-trials/README.md) · [迭代工作流](README.md)
-
-## 上轮交接
-
-迭代 5 已合并，Windows 上的真实 Codex 与 MetaMask 已通过连接、恢复查询、同 ID 重试和关闭 Session 验收。[A-18 记录与覆盖范围](05-agent-integration/plan.md#a-18-验收记录) · [Codex 接入指南](../codex.md)
+上一轮 v0.1.0 候选的[体验指南和反馈](../local-trials/README.md)已归档。下一轮候选供用户复测后决定是否发布。

@@ -138,10 +138,22 @@ func parseFlags(flags *flag.FlagSet, args []string, help string, stdout, stderr 
 			return 0, true
 		}
 		// Flag parser errors may contain user-supplied secrets.
+		if name, missing := strings.CutPrefix(err.Error(), "flag needs an argument: -"); missing {
+			if option := flags.Lookup(name); option != nil {
+				jsonFlag := flags.Lookup("json")
+				asJSON := jsonFlag != nil && jsonFlag.Value.String() == "true"
+				return argumentError(stderr, asJSON, "--"+option.Name+" requires a value. "+option.Usage), true
+			}
+		}
 		fmt.Fprintln(stderr, help)
 		return 2, true
 	}
 	return 0, false
+}
+
+func argumentError(stderr io.Writer, asJSON bool, message string) int {
+	commandError(stderr, asJSON, &client.Error{Code: "bad_request", Message: message}, "")
+	return 2
 }
 
 func validResourceID(id string) bool {

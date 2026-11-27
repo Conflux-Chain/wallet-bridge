@@ -22,6 +22,8 @@ import (
 
 const sendUsage = "Usage: wallet-bridge transaction send --session-id <id> --from <address> --chain-id <decimal|0xhex> --to <address> [--value <amount>] [--data <0xbytes>] [--gas <limit>] [--gas-price <price> | --max-fee-per-gas <price> --max-priority-fee-per-gas <price>] [--client-name <name>] [--intent <text>] [--no-open] [--no-wait] [--json] [--data-dir <absolute path>]\nAmounts and fees use smallest units. Explicit nonce and type are unsupported."
 
+const sendSessionIDHelp = "Run wallet-bridge connect --chain-id <chain-id>, approve the connection, then use the Session ID (32 lowercase hexadecimal characters)."
+
 type sendOptions struct {
 	input                  api.TransactionCreateRequest
 	dir                    string
@@ -32,7 +34,7 @@ func runSend(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	var opts sendOptions
 	flags := flag.NewFlagSet("transaction send", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	flags.StringVar(&opts.input.SessionID, "session-id", "", "Existing Session ID")
+	flags.StringVar(&opts.input.SessionID, "session-id", "", sendSessionIDHelp)
 	flags.StringVar(&opts.input.ClientName, "client-name", "Wallet Bridge CLI", "Name displayed to the user")
 	flags.StringVar(&opts.input.Intent, "intent", "", "Reason for the transaction")
 	flags.StringVar(&opts.dir, "data-dir", "", "Absolute service data directory")
@@ -50,15 +52,21 @@ func runSend(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	if code, done := parseFlags(flags, args, sendUsage, stdout, stderr); done {
 		return code
 	}
-	if flags.NArg() != 0 || !validResourceID(opts.input.SessionID) || strings.TrimSpace(opts.input.ClientName) == "" ||
+	if !validResourceID(opts.input.SessionID) {
+		reason := "--session-id has an invalid format. "
+		if opts.input.SessionID == "" {
+			reason = "--session-id is required. "
+		}
+		return argumentError(stderr, opts.asJSON, reason+sendSessionIDHelp)
+	}
+	if flags.NArg() != 0 || strings.TrimSpace(opts.input.ClientName) == "" ||
 		(opts.dir != "" && !filepath.IsAbs(opts.dir)) {
 		fmt.Fprintln(stderr, sendUsage)
 		return 2
 	}
 	// The service checks the actual Session atomically when it creates the request.
 	if _, err := app.ParseTransaction(fields); err != nil {
-		commandError(stderr, opts.asJSON, &client.Error{Code: "bad_request", Message: err.Error()}, "")
-		return 2
+		return argumentError(stderr, opts.asJSON, err.Error())
 	}
 	opts.input.Transaction = make(map[string]json.RawMessage, len(fields))
 	for field, value := range fields {

@@ -102,3 +102,45 @@ func TestSendValidatesFlagsBeforeStartup(t *testing.T) {
 		}
 	}
 }
+
+func TestSendSessionIDDiagnostic(t *testing.T) {
+	const address = "0x69a44e15f5718853e757866d000a98141d49da0d"
+	for _, tc := range []struct {
+		name  string
+		flags []string
+		want  string
+	}{
+		{"omitted", nil, "required"},
+		{"empty", []string{"--session-id="}, "required"},
+		{"missing value", []string{"--session-id"}, "requires a value"},
+		{"short", []string{"--session-id", "aaa"}, "32 lowercase hex"},
+		{"uppercase", []string{"--session-id", strings.Repeat("AB", 16)}, "32 lowercase hex"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, asJSON := range []bool{false, true} {
+				args := []string{"transaction", "send", "--chain-id", "71", "--from", address, "--to", address}
+				if asJSON {
+					args = append(args, "--json")
+				}
+				var out, diag bytes.Buffer
+				code := Run(append(args, tc.flags...), Dependencies{}, &out, &diag)
+				if code != 2 || out.Len() != 0 {
+					t.Fatalf("exit %d, stdout %q, stderr %q", code, &out, &diag)
+				}
+				message := diag.String()
+				if asJSON {
+					var failure client.Error
+					if err := json.Unmarshal(diag.Bytes(), &failure); err != nil || failure.Code != "bad_request" {
+						t.Fatalf("expected JSON bad_request, got %q", &diag)
+					}
+					message = failure.Message
+				}
+				for _, want := range []string{"--session-id", tc.want, "32 lowercase hex", "wallet-bridge connect --chain-id"} {
+					if !strings.Contains(message, want) {
+						t.Errorf("stderr %q lacks %q", message, want)
+					}
+				}
+			}
+		})
+	}
+}
