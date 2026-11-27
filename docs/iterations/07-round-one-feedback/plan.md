@@ -4,7 +4,7 @@
 |---|---|---|---|
 | 7-1 | 交易发送的 Session ID 诊断（反馈 1） | [复测步骤](../../transaction-review.md#检查-session-id-报错)，三平台 CI 通过 | 已合并 [#96](https://github.com/Conflux-Chain/wallet-bridge/pull/96) |
 | 7-2 | CLI 帮助的命令用途、参数与默认行为（反馈 5） | Windows Git Bash 用户本地验收与三平台 CI 通过 | 已合并 [#97](https://github.com/Conflux-Chain/wallet-bridge/pull/97) |
-| 7-3a | `connect --chain-id` 错误提示（反馈 5） | 缺参、非法输入、JSON 错误及退出码 | 待用户本地验收 |
+| 7-3a | `connect --chain-id` 错误提示（反馈 5） | 缺参、非法输入、JSON 错误及退出码 | [#99](https://github.com/Conflux-Chain/wallet-bridge/pull/99) 用户已本地验收 `a62572c` |
 | 7-3b | 其他 CLI 错误提示（反馈 5） | 按具体问题核对失败原因及修正提示 | 待分析 |
 | 7-4a | 在 Windows Git Bash 中找到 Codex CLI（反馈 3） | 定位 CLI、注册并核对 MCP | 待分析 |
 | 7-4b | 用 Git Bash 运行 Windows 候选程序（反馈 4） | 从新终端按示例运行 Bridge，核对程序与数据目录 | 待分析 |
