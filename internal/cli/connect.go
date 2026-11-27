@@ -21,6 +21,7 @@ import (
 )
 
 const connectUsage = "Usage: wallet-bridge connect --chain-id <decimal|0xhex> [--client-name <name>] [--intent <text>] [--chain-name <name>] [--no-wait] [--no-open] [--json] [--data-dir <absolute path>]"
+const chainIDHint = "Use decimal (e.g. 71) or 0x-prefixed hexadecimal (e.g. 0x47)."
 
 type connectOptions struct {
 	input                  api.ConnectionCreateRequest
@@ -33,7 +34,7 @@ func runConnect(args []string, deps Dependencies, stdout, stderr io.Writer) int 
 	var opts connectOptions
 	flags := flag.NewFlagSet("connect", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	chain := flags.String("chain-id", "", "Required target EVM chain ID, in decimal or 0x hex")
+	chain := flags.String("chain-id", "", "Required target EVM chain ID. "+chainIDHint)
 	flags.StringVar(&opts.input.ClientName, "client-name", "Wallet Bridge CLI", "Name displayed to the user")
 	flags.StringVar(&opts.input.Intent, "intent", "", "Optional description shown to the user")
 	flags.StringVar(&opts.input.ChainName, "chain-name", "", "Override the displayed network name. By default, show the known name or chain ID.")
@@ -44,8 +45,15 @@ func runConnect(args []string, deps Dependencies, stdout, stderr io.Writer) int 
 	if code, done := parseFlags(flags, args, connectUsage, stdout, stderr, requiredArgument{flagName: "chain-id"}); done {
 		return code
 	}
-	if flags.NArg() != 0 || strings.TrimSpace(opts.input.ClientName) == "" || (*dir != "" && !filepath.IsAbs(*dir)) ||
-		len(*chain) > api.MaxConnectionBody || !chainArgument.MatchString(*chain) {
+	switch {
+	case *chain == "":
+		return argumentError(stderr, opts.asJSON, "--chain-id is required. "+chainIDHint)
+	case len(*chain) > api.MaxConnectionBody:
+		return argumentError(stderr, opts.asJSON, "--chain-id is too long. "+chainIDHint)
+	case !chainArgument.MatchString(*chain):
+		return argumentError(stderr, opts.asJSON, "--chain-id has an invalid format. "+chainIDHint)
+	}
+	if flags.NArg() != 0 || strings.TrimSpace(opts.input.ClientName) == "" || (*dir != "" && !filepath.IsAbs(*dir)) {
 		fmt.Fprintln(stderr, connectUsage)
 		return 2
 	}

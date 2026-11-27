@@ -75,3 +75,43 @@ func TestConnectValidatesBeforeStartup(t *testing.T) {
 		}
 	}
 }
+
+func TestConnectChainIDDiagnostic(t *testing.T) {
+	for _, tc := range []struct {
+		name, reason string
+		args         []string
+	}{
+		{"omitted", "required", nil},
+		{"empty", "required", []string{"--chain-id="}},
+		{"missing value", "requires a value", []string{"--chain-id"}},
+		{"invalid", "invalid format", []string{"--chain-id", "nope"}},
+		{"incomplete hex", "invalid format", []string{"--chain-id", "0x"}},
+		{"oversized", "too long", []string{"--chain-id", strings.Repeat("1", api.MaxConnectionBody+1)}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, asJSON := range []bool{false, true} {
+				args := []string{"connect"}
+				if asJSON {
+					args = append(args, "--json")
+				}
+				var out, diag bytes.Buffer
+				if code := Run(append(args, tc.args...), Dependencies{}, &out, &diag); code != 2 || out.Len() != 0 {
+					t.Fatalf("exit %d, stdout %q", code, &out)
+				}
+				message := diag.String()
+				if asJSON {
+					var failure client.Error
+					if err := json.Unmarshal(diag.Bytes(), &failure); err != nil || failure.Code != "bad_request" {
+						t.Fatalf("expected JSON bad_request, got %q", &diag)
+					}
+					message = failure.Message
+				}
+				for _, want := range []string{"--chain-id", tc.reason, "71", "0x47"} {
+					if !strings.Contains(message, want) {
+						t.Errorf("%q lacks %q", message, want)
+					}
+				}
+			}
+		})
+	}
+}

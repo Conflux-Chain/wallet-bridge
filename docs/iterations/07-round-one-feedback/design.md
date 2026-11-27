@@ -10,3 +10,7 @@
 | [4 · Git Bash 指南](../../local-trials/v0.1.0/round-01/feedback.md#4-windows-体验指南缺少-git-bash-命令示例) | **已确认验收范围。** Windows 的命令示例以 Git Bash 实测为准，WSL 免测。示例内容待确认。 |
 | [5 · CLI 帮助与报错](../../local-trials/v0.1.0/round-01/feedback.md#5-cli-命令行诸多问题反馈) | **帮助版式已确认。** 顶层按任务列出命令及用途。子命令先以 `Required arguments` 展示必填选项和位置参数，再以 `Options` 展示可选项及默认行为。无必填项时只显示 `Options`。其余运行错误的提示另行分析。 |
 | [6 · Codex 首次连接](../../local-trials/v0.1.0/round-01/feedback.md#6-其他用户-codex-首次体验不流畅) | **已确认交互目标。** 用户点击 Codex 审批链接，在系统默认浏览器继续同一请求。如何将链接交给默认浏览器仍待验证和确认。简化首次浏览器授权是另一个待讨论的问题。 |
+
+### 反馈 5 · 连接时的网络参数
+
+**已确认。** `connect` 曾将链 ID 与其他参数一起校验，失败就打印用法。缺少 `--chain-id` 时指出缺参，格式错误时指出该字段并给出十进制 `71`、十六进制 `0x47` 两个例子。两类错误都在启动服务前写入 stderr，退出 2。使用 `--json` 时返回 `bad_request`。
