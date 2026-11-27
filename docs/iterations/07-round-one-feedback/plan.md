@@ -5,7 +5,7 @@
 | 7-1 | 交易发送的 Session ID 诊断（反馈 1） | [复测步骤](../../transaction-review.md#检查-session-id-报错)，三平台 CI 通过 | 已合并 [#96](https://github.com/Conflux-Chain/wallet-bridge/pull/96) |
 | 7-2 | CLI 帮助的命令用途、参数与默认行为（反馈 5） | Windows Git Bash 用户本地验收与三平台 CI 通过 | 已合并 [#97](https://github.com/Conflux-Chain/wallet-bridge/pull/97) |
 | 7-3a | `connect --chain-id` 错误提示（反馈 5） | 用户已本地验收 `a62572c`，三平台 CI 通过 | 已合并 [#99](https://github.com/Conflux-Chain/wallet-bridge/pull/99) |
-| 7-3b | 连接、Session 和交易管理命令的 ID 报错（反馈 5） | 缺少、多余、无效 ID 及三类 ID 的来源 | 待用户本地验收 |
+| 7-3b | 连接、Session 和交易管理命令的 ID 报错（反馈 5） | 六个命令的参数回归，独立程序验证文本／JSON、退出码和 ID 来源 | [#100](https://github.com/Conflux-Chain/wallet-bridge/pull/100) 由自动化验收 |
 | 7-4a | 在 Windows Git Bash 中找到 Codex CLI（反馈 3） | 定位 CLI、注册并核对 MCP | 待分析 |
 | 7-4b | 用 Git Bash 运行 Windows 候选程序（反馈 4） | 从新终端按示例运行 Bridge，核对程序与数据目录 | 待分析 |
 | 7-5 | Codex 审批链接（反馈 6） | 先验证宿主能力、记录设计，再单独实现。用连接和交易原 ID 验证默认浏览器交接 | 待开发 |
