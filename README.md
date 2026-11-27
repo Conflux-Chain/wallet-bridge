@@ -26,6 +26,8 @@
 
 ## 开发命令
 
+在仓库根目录运行 `go run -tags no_web ./cmd/wallet-bridge --help` 查看各命令用途。将 `--help` 放在子命令之后可查看参数，例如 `go run -tags no_web ./cmd/wallet-bridge transaction send --help` 会列出必填字段、金额单位与费用默认行为。查看帮助只需 Go，命令打印后退出，无需启动服务。
+
 使用 Codex 的开发者可按[Codex 接入指南](docs/codex.md)注册 MCP、发起首次连接，并验证中断后的结果查询。
 
 需要长期使用时，运行下载或构建的程序并加上 `install`，将输出的绝对路径用于 CLI 和 Codex。安装成功后可清理下载副本。[安装位置与隔离测试](docs/iterations/06-release-upgrade/design.md#本机安装)

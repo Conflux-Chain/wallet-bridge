@@ -33,15 +33,15 @@ func runConnect(args []string, deps Dependencies, stdout, stderr io.Writer) int 
 	var opts connectOptions
 	flags := flag.NewFlagSet("connect", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	chain := flags.String("chain-id", "", "Target EVM chain ID")
+	chain := flags.String("chain-id", "", "Required target EVM chain ID, in decimal or 0x hex")
 	flags.StringVar(&opts.input.ClientName, "client-name", "Wallet Bridge CLI", "Name displayed to the user")
-	flags.StringVar(&opts.input.Intent, "intent", "", "Reason for connecting")
-	flags.StringVar(&opts.input.ChainName, "chain-name", "", "Display name for the target chain")
-	flags.BoolVar(&opts.noWait, "no-wait", false, "Return the request immediately")
-	flags.BoolVar(&opts.noOpen, "no-open", false, "Let the user open the request link")
-	flags.BoolVar(&opts.asJSON, "json", false, "Print structured output")
-	dir := flags.String("data-dir", "", "Use an absolute private data directory")
-	if code, done := parseFlags(flags, args, connectUsage, stdout, stderr); done {
+	flags.StringVar(&opts.input.Intent, "intent", "", "Optional description shown to the user")
+	flags.StringVar(&opts.input.ChainName, "chain-name", "", "Override the displayed network name. By default, show the known name or chain ID.")
+	flags.BoolVar(&opts.noWait, "no-wait", false, "Return the request immediately. By default, wait for the connection result.")
+	flags.BoolVar(&opts.noOpen, "no-open", false, "Print the link for manual opening. By default, open the browser.")
+	flags.BoolVar(&opts.asJSON, "json", false, outputJSONHelp)
+	dir := flags.String("data-dir", "", dataDirHelp)
+	if code, done := parseFlags(flags, args, connectUsage, stdout, stderr, requiredArgument{flagName: "chain-id"}); done {
 		return code
 	}
 	if flags.NArg() != 0 || strings.TrimSpace(opts.input.ClientName) == "" || (*dir != "" && !filepath.IsAbs(*dir)) ||

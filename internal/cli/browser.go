@@ -15,12 +15,14 @@ import (
 )
 
 const uiUsage = "Usage: wallet-bridge ui [--data-dir <absolute path>] [--print-url]"
-const browserUsage = "Usage: wallet-bridge browser list [--limit 1..50] [--after <id>] [--data-dir <absolute path>] [--json]\n       wallet-bridge browser revoke <id>|--all [--data-dir <absolute path>] [--json]"
+const listBrowserUsage = "Usage: wallet-bridge browser list [--limit 1..50] [--after <id>] [--data-dir <absolute path>] [--json]"
+const revokeBrowserUsage = "Usage: wallet-bridge browser revoke <id>|--all [--data-dir <absolute path>] [--json]"
+const browserUsage = listBrowserUsage + "\n" + revokeBrowserUsage
 
 func runUI(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("ui", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	dir := flags.String("data-dir", "", "Use an absolute private data directory")
+	dir := flags.String("data-dir", "", dataDirHelp)
 	printURL := flags.Bool("print-url", false, "Print the one-use authorization URL instead of opening it")
 	if code, done := parseFlags(flags, args, uiUsage, stdout, stderr); done {
 		return code
@@ -65,21 +67,25 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	}
 	flags := flag.NewFlagSet("browser "+action, flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	dir := flags.String("data-dir", "", "Use an absolute private data directory")
-	jsonOutput := flags.Bool("json", false, "Print structured output")
+	dir := flags.String("data-dir", "", dataDirHelp)
+	jsonOutput := flags.Bool("json", false, outputJSONHelp)
 	limit, after, all := 50, "", false
+	usage := listBrowserUsage
+	var required []requiredArgument
 	if action == "list" {
-		flags.IntVar(&limit, "limit", 50, "Maximum authorizations per page")
-		flags.StringVar(&after, "after", "", "Grant ID cursor from the previous page")
+		flags.IntVar(&limit, "limit", 50, "Maximum authorizations per page, from 1 to 50")
+		flags.StringVar(&after, "after", "", "Grant ID cursor from the previous page. By default, start at the first page.")
 	} else {
-		flags.BoolVar(&all, "all", false, "Revoke all browser authorizations and pending links")
+		usage = revokeBrowserUsage
+		required = []requiredArgument{{flagName: "all", label: "<id> | --all", description: "Use one grant ID from browser list, or --all to revoke all authorizations and pending links."}}
+		flags.BoolVar(&all, "all", false, "Revoke all browser authorizations and pending links. Otherwise supply one grant ID from browser list.")
 	}
 	remaining := args[1:]
 	id := ""
 	if action == "revoke" && len(remaining) != 0 && !strings.HasPrefix(remaining[0], "-") {
 		id, remaining = remaining[0], remaining[1:]
 	}
-	if code, done := parseFlags(flags, remaining, browserUsage, stdout, stderr); done {
+	if code, done := parseFlags(flags, remaining, usage, stdout, stderr, required...); done {
 		return code
 	}
 	if action == "revoke" && id == "" && flags.NArg() == 1 {
@@ -131,10 +137,10 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	return browserOutputResult(err, *jsonOutput, stderr)
 }
 
-func parseFlags(flags *flag.FlagSet, args []string, help string, stdout, stderr io.Writer) (int, bool) {
+func parseFlags(flags *flag.FlagSet, args []string, help string, stdout, stderr io.Writer, required ...requiredArgument) (int, bool) {
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprintln(stdout, help)
+			writeCommandHelp(stdout, help, flags, required...)
 			return 0, true
 		}
 		// Flag parser errors may contain user-supplied secrets.
@@ -142,7 +148,8 @@ func parseFlags(flags *flag.FlagSet, args []string, help string, stdout, stderr 
 			if option := flags.Lookup(name); option != nil {
 				jsonFlag := flags.Lookup("json")
 				asJSON := jsonFlag != nil && jsonFlag.Value.String() == "true"
-				return argumentError(stderr, asJSON, "--"+option.Name+" requires a value. "+option.Usage), true
+				_, description := flag.UnquoteUsage(option)
+				return argumentError(stderr, asJSON, "--"+option.Name+" requires a value. "+description), true
 			}
 		}
 		fmt.Fprintln(stderr, help)

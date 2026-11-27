@@ -32,7 +32,6 @@ type Dependencies struct {
 
 const serviceUsage = "Usage: wallet-bridge service run [--data-dir <absolute path>]\n       wallet-bridge service ensure|status [--data-dir <absolute path>] [--json]\n       wallet-bridge service stop [--for-upgrade] [--data-dir <absolute path>] [--json]"
 const mcpUsage = "Usage: wallet-bridge mcp [--data-dir <absolute path>]"
-const usage = "Usage: wallet-bridge version [--json]\n" + installUsage + "\n" + updateUsage + "\n" + upgradeUsage + "\n" + mcpUsage + "\n" + serviceUsage + "\n" + uiUsage + "\n" + browserUsage + "\n" + connectUsage + "\n" + connectionUsage + "\n" + sessionUsage + "\n" + transactionUsage
 
 func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int {
 	info := dependencies.BuildInfo
@@ -55,7 +54,7 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 	if args[0] == "mcp" {
 		flags := flag.NewFlagSet("mcp", flag.ContinueOnError)
 		flags.SetOutput(io.Discard)
-		dir := flags.String("data-dir", "", "Use an absolute private data directory")
+		dir := flags.String("data-dir", "", dataDirHelp)
 		if code, done := parseFlags(flags, args[1:], mcpUsage, stdout, stderr); done {
 			return code
 		}
@@ -94,10 +93,10 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 	}
 	flags := flag.NewFlagSet("version", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	jsonOutput := flags.Bool("json", false, "Print version information as JSON")
+	jsonOutput := flags.Bool("json", false, outputJSONHelp)
 	if err := flags.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprintln(stdout, "Usage: wallet-bridge version [--json]")
+			writeCommandHelp(stdout, "Usage: wallet-bridge version [--json]", flags)
 			return 0
 		}
 		fmt.Fprintln(stderr, err)
@@ -133,12 +132,12 @@ func runService(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	}
 	flags := flag.NewFlagSet("service "+action, flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	dir := flags.String("data-dir", "", "Use an absolute private data directory")
+	dir := flags.String("data-dir", "", dataDirHelp)
 	var jsonOutput bool
 	var forUpgrade bool
 	var verifyingUpgrade string
 	if action == "run" {
-		flags.Func("verify-upgrade", "Start the candidate for this upgrade", func(id string) error {
+		flags.Func("verify-upgrade", "", func(id string) error {
 			if id == "" {
 				return errors.New("upgrade ID is required")
 			}
@@ -147,14 +146,14 @@ func runService(args []string, dependencies Dependencies, stdout, stderr io.Writ
 		})
 	}
 	if action == "stop" {
-		flags.BoolVar(&forUpgrade, "for-upgrade", false, "Check wallet occupancy before stopping for an upgrade")
+		flags.BoolVar(&forUpgrade, "for-upgrade", false, "Check for an active wallet operation before stopping. By default, request an ordinary stop.")
 	}
 	if action != "run" {
-		flags.BoolVar(&jsonOutput, "json", false, "Print structured output")
+		flags.BoolVar(&jsonOutput, "json", false, outputJSONHelp)
 	}
 	if err := flags.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprintln(stdout, help)
+			writeCommandHelp(stdout, "Usage: wallet-bridge "+flags.Name()+" [options]", flags)
 			return 0
 		}
 		fmt.Fprintln(stderr, err)

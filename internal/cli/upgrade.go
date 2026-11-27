@@ -23,9 +23,9 @@ const upgradeUsage = "Usage: wallet-bridge upgrade [--include-preview] [--data-d
 func runUpgrade(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("upgrade", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	dir := flags.String("data-dir", "", "Use an absolute private data directory")
-	preview := flags.Bool("include-preview", false, "Include prereleases in the version comparison")
-	asJSON := flags.Bool("json", false, "Print structured output")
+	dir := flags.String("data-dir", "", dataDirHelp)
+	preview := flags.Bool("include-preview", false, "Include prereleases. By default, compare stable versions only.")
+	asJSON := flags.Bool("json", false, outputJSONHelp)
 	if code, done := parseFlags(flags, args, upgradeUsage, stdout, stderr); done {
 		return code
 	}

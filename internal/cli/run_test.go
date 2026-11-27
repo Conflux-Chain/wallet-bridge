@@ -5,10 +5,84 @@ import (
 	"encoding/json"
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/client"
 )
+
+func TestCommandHelp(t *testing.T) {
+	for _, tc := range []struct {
+		command string
+		want    []string
+	}{
+		{"", []string{"Authorize this browser", "transaction send", "obtain a Session ID"}},
+		{"connect --help", []string{"Required target EVM chain ID", "default: Wallet Bridge CLI", "wait for the connection result"}},
+		{"transaction send --help", []string{"Required Session network", "Recipient or existing contract address", "default: 0)", "default: 0x)", "wallet estimate", "--max-priority-fee-per-gas"}},
+		{"transaction get --help", []string{"<request-id>", "request ID returned by wallet-bridge transaction send"}},
+		{"session close --help", []string{"<session-id>", "after approving wallet-bridge connect"}},
+		{"browser list --help", []string{"default: 50", "first page"}},
+		{"service run --help", []string{"--data-dir", "current user's"}},
+		{"update check --help", []string{"--include-preview", "stable versions only"}},
+	} {
+		t.Run(tc.command, func(t *testing.T) {
+			var out, diag bytes.Buffer
+			if code := Run(strings.Fields(tc.command), Dependencies{}, &out, &diag); code != 0 || diag.Len() != 0 {
+				t.Fatalf("exit %d, stderr %q", code, &diag)
+			}
+			for _, want := range tc.want {
+				if !strings.Contains(out.String(), want) {
+					t.Errorf("help lacks %q: %s", want, &out)
+				}
+			}
+			if strings.Contains(out.String(), "--verify-upgrade") {
+				t.Error("help advertises the internal upgrade option")
+			}
+		})
+	}
+}
+
+func TestRequiredHelpArguments(t *testing.T) {
+	for _, tc := range []struct {
+		command string
+		rows    []string
+	}{
+		{"transaction send", []string{"--session-id", "--from", "--chain-id", "--to"}},
+		{"connect", []string{"--chain-id"}},
+		{"connection cancel", []string{"<request-id>"}},
+		{"session get", []string{"<session-id>"}},
+		{"transaction get", []string{"<request-id>"}},
+		{"update download", []string{"<version>"}},
+		{"browser revoke", []string{"<id> | --all"}},
+		{"version", nil},
+	} {
+		t.Run(tc.command, func(t *testing.T) {
+			var out, diag bytes.Buffer
+			if code := Run(append(strings.Fields(tc.command), "--help"), Dependencies{}, &out, &diag); code != 0 || diag.Len() != 0 {
+				t.Fatalf("exit %d, stderr %q", code, &diag)
+			}
+			before, options, foundOptions := strings.Cut(out.String(), "\nOptions:\n")
+			_, required, foundRequired := strings.Cut(before, "\nRequired arguments:\n")
+			if !foundOptions || foundRequired != (len(tc.rows) > 0) || !strings.Contains(options, "  --json ") {
+				t.Fatalf("unexpected sections:\n%s", &out)
+			}
+			var rows []string
+			for line := range strings.Lines(required) {
+				if row := strings.TrimSpace(line); row != "" {
+					rows = append(rows, row)
+				}
+			}
+			if len(rows) != len(tc.rows) {
+				t.Fatalf("required rows: %q", rows)
+			}
+			for i, label := range tc.rows {
+				if !strings.HasPrefix(rows[i], label+" ") || strings.Contains(options, "\n  "+label+" ") {
+					t.Errorf("misplaced %q:\n%s", label, &out)
+				}
+			}
+		})
+	}
+}
 
 func TestServiceCommandParsing(t *testing.T) {
 	for _, tc := range []struct {
