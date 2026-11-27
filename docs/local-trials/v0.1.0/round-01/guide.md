@@ -76,7 +76,9 @@ wb session close "<Session ID>" --json
 
 ## 4. 从 Codex 发起请求
 
-在当前终端注册专用测试名称。若已有同名配置，选一个空闲名称，并在下面的提示词和清理命令中同步替换。两种终端使用相同命令：
+Windows Git Bash 先按 [Codex CLI 定位步骤](../../../codex.md#windows-git-bash-定位-codex-cli)确认版本。下列 `codex mcp` 命令在该终端使用 `"$codex_cli" mcp`，包括结束测试时的 `remove`。
+
+在当前终端注册专用测试名称。若已有同名配置，选一个空闲名称，并在下面的提示词和清理命令中同步替换。注册示例：
 
 ```text
 codex mcp add wallet_bridge_uat -- "$bridge" mcp --data-dir "$trialData"
