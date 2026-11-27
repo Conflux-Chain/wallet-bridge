@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"path/filepath"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/api"
 	"github.com/Conflux-Chain/wallet-bridge/internal/buildinfo"
@@ -58,9 +57,8 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 		if code, done := parseFlags(flags, args[1:], mcpUsage, stdout, stderr); done {
 			return code
 		}
-		if flags.NArg() != 0 || (*dir != "" && !filepath.IsAbs(*dir)) {
-			fmt.Fprintln(stderr, mcpUsage)
-			return 2
+		if flags.NArg() != 0 {
+			return unexpectedArguments(flags, stderr)
 		}
 		if dependencies.RunMCP == nil {
 			fmt.Fprintln(stderr, "configuration_error: MCP runner is unavailable")
@@ -88,23 +86,16 @@ func Run(args []string, dependencies Dependencies, stdout, stderr io.Writer) int
 		return runResource(args, dependencies, stdout, stderr)
 	}
 	if args[0] != "version" {
-		fmt.Fprintf(stderr, "Unknown command: %s\n%s\n", args[0], usage)
-		return 2
+		return unknownCommand(stderr, "", args[1:])
 	}
 	flags := flag.NewFlagSet("version", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	jsonOutput := flags.Bool("json", false, outputJSONHelp)
-	if err := flags.Parse(args[1:]); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			writeCommandHelp(stdout, "Usage: wallet-bridge version [--json]", flags)
-			return 0
-		}
-		fmt.Fprintln(stderr, err)
-		return 2
+	if code, done := parseFlags(flags, args[1:], "Usage: wallet-bridge version [--json]", stdout, stderr); done {
+		return code
 	}
 	if flags.NArg() != 0 {
-		fmt.Fprintln(stderr, "version does not accept positional arguments")
-		return 2
+		return unexpectedArguments(flags, stderr)
 	}
 	var err error
 	if *jsonOutput {
@@ -127,8 +118,7 @@ func runService(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	}
 	action := args[0]
 	if action != "run" && action != "ensure" && action != "status" && action != "stop" {
-		fmt.Fprintln(stderr, help)
-		return 2
+		return unknownCommand(stderr, "service", args[1:])
 	}
 	flags := flag.NewFlagSet("service "+action, flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -151,17 +141,11 @@ func runService(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	if action != "run" {
 		flags.BoolVar(&jsonOutput, "json", false, outputJSONHelp)
 	}
-	if err := flags.Parse(args[1:]); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			writeCommandHelp(stdout, "Usage: wallet-bridge "+flags.Name()+" [options]", flags)
-			return 0
-		}
-		fmt.Fprintln(stderr, err)
-		return 2
+	if code, done := parseFlags(flags, args[1:], "Usage: wallet-bridge "+flags.Name()+" [options]", stdout, stderr); done {
+		return code
 	}
-	if flags.NArg() != 0 || (*dir != "" && !filepath.IsAbs(*dir)) {
-		fmt.Fprintln(stderr, "service commands accept only an absolute --data-dir and no positional arguments")
-		return 2
+	if flags.NArg() != 0 {
+		return unexpectedArguments(flags, stderr)
 	}
 	if action != "run" {
 		var result client.Status

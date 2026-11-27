@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"path/filepath"
 	"strings"
 	"text/tabwriter"
 
@@ -27,9 +26,8 @@ func runUI(args []string, dependencies Dependencies, stdout, stderr io.Writer) i
 	if code, done := parseFlags(flags, args, uiUsage, stdout, stderr); done {
 		return code
 	}
-	if flags.NArg() != 0 || (*dir != "" && !filepath.IsAbs(*dir)) {
-		fmt.Fprintln(stderr, uiUsage)
-		return 2
+	if flags.NArg() != 0 {
+		return unexpectedArguments(flags, stderr)
 	}
 	if !dependencies.BuildInfo.UIEmbedded {
 		return browserError(stderr, false, &client.Error{Code: "ui_unavailable", Message: "This program has no embedded page; use a complete Wallet Bridge build"})
@@ -62,8 +60,7 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	}
 	action := args[0]
 	if action != "list" && action != "revoke" {
-		fmt.Fprintln(stderr, browserUsage)
-		return 2
+		return unknownCommand(stderr, "browser", args[1:])
 	}
 	flags := flag.NewFlagSet("browser "+action, flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -91,13 +88,22 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	if action == "revoke" && id == "" && flags.NArg() == 1 {
 		id = flags.Arg(0)
 	} else if flags.NArg() != 0 {
-		fmt.Fprintln(stderr, browserUsage)
-		return 2
+		if action == "revoke" {
+			return argumentError(stderr, diagnosticJSON(flags), "Pass one grant ID from browser list, or --all.")
+		}
+		return unexpectedArguments(flags, stderr)
 	}
-	if (*dir != "" && !filepath.IsAbs(*dir)) || (action == "list" && (limit < 1 || limit > 50 || (after != "" && !validResourceID(after)))) ||
-		(action == "revoke" && ((id == "" && !all) || (id != "" && (all || !validResourceID(id))))) {
-		fmt.Fprintln(stderr, browserUsage)
-		return 2
+	switch {
+	case limit < 1 || limit > 50:
+		return argumentError(stderr, *jsonOutput, "--limit must be an integer from 1 to 50.")
+	case after != "" && !validResourceID(after):
+		return argumentError(stderr, *jsonOutput, "--after requires the grant ID cursor from the previous browser list page.")
+	case action == "revoke" && id == "" && !all:
+		return argumentError(stderr, *jsonOutput, "browser revoke requires a grant ID from browser list, or --all.")
+	case all && id != "":
+		return argumentError(stderr, *jsonOutput, "Choose either one grant ID or --all for browser revoke.")
+	case id != "" && !validResourceID(id):
+		return argumentError(stderr, *jsonOutput, "Invalid grant ID. Use a 32-character lowercase hexadecimal ID from browser list.")
 	}
 	if action == "list" {
 		if dependencies.ListBrowsers == nil {
@@ -135,27 +141,6 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 		_, err = fmt.Fprintln(stdout, "Browser authorization revoked.")
 	}
 	return browserOutputResult(err, *jsonOutput, stderr)
-}
-
-func parseFlags(flags *flag.FlagSet, args []string, help string, stdout, stderr io.Writer, required ...requiredArgument) (int, bool) {
-	if err := flags.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			writeCommandHelp(stdout, help, flags, required...)
-			return 0, true
-		}
-		// Flag parser errors may contain user-supplied secrets.
-		if name, missing := strings.CutPrefix(err.Error(), "flag needs an argument: -"); missing {
-			if option := flags.Lookup(name); option != nil {
-				jsonFlag := flags.Lookup("json")
-				asJSON := jsonFlag != nil && jsonFlag.Value.String() == "true"
-				_, description := flag.UnquoteUsage(option)
-				return argumentError(stderr, asJSON, "--"+option.Name+" requires a value. "+description), true
-			}
-		}
-		fmt.Fprintln(stderr, help)
-		return 2, true
-	}
-	return 0, false
 }
 
 func argumentError(stderr io.Writer, asJSON bool, message string) int {

@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -29,8 +28,7 @@ func runUpdate(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 		return runDownload(args[1:], deps, stdout, stderr)
 	}
 	if args[0] != "check" {
-		fmt.Fprintln(stderr, updateUsage)
-		return 2
+		return unknownCommand(stderr, "update", args[1:])
 	}
 	flags := flag.NewFlagSet("update check", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -40,8 +38,7 @@ func runUpdate(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 		return code
 	}
 	if flags.NArg() != 0 {
-		fmt.Fprintln(stderr, updateUsage)
-		return 2
+		return unexpectedArguments(flags, stderr)
 	}
 	if deps.CheckUpdate == nil {
 		return commandError(stderr, *asJSON, &client.Error{Code: "configuration_error", Message: "Release checker is unavailable"}, "")
@@ -98,9 +95,13 @@ func runDownload(args []string, deps Dependencies, stdout, stderr io.Writer) int
 		return code
 	}
 	versions = append(versions, flags.Args()...)
-	if len(versions) != 1 || !update.ValidReleaseTag(versions[0]) || (*dir != "" && !filepath.IsAbs(*dir)) {
-		fmt.Fprintln(stderr, downloadUsage)
-		return 2
+	switch {
+	case len(versions) == 0:
+		return argumentError(stderr, *asJSON, "update download requires a release tag, for example v1.2.3.")
+	case len(versions) > 1:
+		return argumentError(stderr, diagnosticJSON(flags), "Pass exactly one release tag to update download, for example v1.2.3.")
+	case !update.ValidReleaseTag(versions[0]):
+		return argumentError(stderr, *asJSON, "Invalid release tag. Use a published version such as v1.2.3.")
 	}
 	if deps.StageUpdate == nil {
 		return commandError(stderr, *asJSON, &client.Error{Code: "configuration_error", Message: "Release downloader is unavailable"}, "")

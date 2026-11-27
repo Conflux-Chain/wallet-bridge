@@ -45,7 +45,33 @@ assert.match(invalidID.message, /<session-id> has an invalid format.*32 lowercas
 assert.match(run(['connection', 'cancel', 'first', 'second'], 2).stderr, /Too many IDs.*wallet-bridge connect/);
 assert.match(run(['mcp', '--help']).stdout, /wallet-bridge mcp/);
 run(['mcp', 'unexpected-argument'], 2);
-run(['install', '--data-dir', 'relative'], 2);
+const argumentCases = [
+  [['install', '--data-dir', 'relative'], /--data-dir.*absolute path/i],
+  [['connect', '--chain-id', '71', '--client-name= '], /--client-name.*display name/i],
+  [['transaction', 'send', '--session-id', 'a'.repeat(32), '--client-name='], /--client-name.*display name/i],
+  [['service', 'status', '--unknown=private-value'], /Unknown option.*--unknown.*service status --help/],
+  [['version', '--json=private-value'], /--json requires true or false/],
+  [['upgrade', 'extra'], /upgrade does not accept positional arguments/],
+  [['session', 'unknown'], /Unknown command.*session --help/],
+  [['browser', 'list', '--limit', 'private-value'], /--limit.*1 to 50/],
+  [['browser', 'list', '--limit', '51'], /--limit.*1 to 50/],
+  [['browser', 'list', '--after', 'private-value'], /--after.*previous browser list page/],
+  [['browser', 'revoke'], /requires a grant ID.*--all/],
+  [['browser', 'revoke', 'a'.repeat(32), '--all'], /either one grant ID or --all/],
+  [['browser', 'revoke', 'private-value'], /Invalid grant ID.*browser list/],
+  [['update', 'download'], /requires a release tag.*v1.2.3/],
+  [['update', 'download', 'private-value'], /Invalid release tag.*v1.2.3/],
+  [['update', 'download', 'v1.2.3', 'extra'], /exactly one release tag/],
+];
+for (const [args, hint] of argumentCases) {
+  const message = run(args, 2).stderr;
+  assert.match(message, hint);
+  assert.doesNotMatch(message, /private-value|Usage:/);
+  const failure = JSON.parse(run([...args, '--json'], 2).stderr);
+  assert.equal(failure.code, 'bad_request');
+  assert.match(failure.message, hint);
+  assert.doesNotMatch(failure.message, /private-value|Usage:/);
+}
 
 // Exercise the packaged STDIO endpoint without using the user's Bridge data.
 const profile = mkdtempSync(join(tmpdir(), 'wallet-bridge-mcp-'));

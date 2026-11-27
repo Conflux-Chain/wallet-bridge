@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -70,10 +69,8 @@ func runSend(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 		}
 		return argumentError(stderr, opts.asJSON, reason+sendSessionIDHelp)
 	}
-	if flags.NArg() != 0 || strings.TrimSpace(opts.input.ClientName) == "" ||
-		(opts.dir != "" && !filepath.IsAbs(opts.dir)) {
-		fmt.Fprintln(stderr, sendUsage)
-		return 2
+	if flags.NArg() != 0 {
+		return unexpectedArguments(flags, stderr)
 	}
 	// The service checks the actual Session atomically when it creates the request.
 	if _, err := app.ParseTransaction(fields); err != nil {

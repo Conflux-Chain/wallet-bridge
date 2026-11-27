@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"path/filepath"
 
 	"github.com/Conflux-Chain/wallet-bridge/internal/client"
 )
@@ -20,9 +19,8 @@ func runInstall(args []string, deps Dependencies, stdout, stderr io.Writer) int 
 	if code, done := parseFlags(flags, args, installUsage, stdout, stderr); done {
 		return code
 	}
-	if flags.NArg() != 0 || (*dir != "" && !filepath.IsAbs(*dir)) {
-		fmt.Fprintln(stderr, installUsage)
-		return 2
+	if flags.NArg() != 0 {
+		return unexpectedArguments(flags, stderr)
 	}
 	if deps.Install == nil {
 		return commandError(stderr, *asJSON, &client.Error{Code: "configuration_error", Message: "Installer is unavailable"}, "")
