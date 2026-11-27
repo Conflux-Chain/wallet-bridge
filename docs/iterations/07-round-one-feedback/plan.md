@@ -7,8 +7,8 @@
 | 7-3a | `connect --chain-id` 错误提示（反馈 5） | 用户已本地验收 `a62572c`，三平台 CI 通过 | 已合并 [#99](https://github.com/Conflux-Chain/wallet-bridge/pull/99) |
 | 7-3b | 连接、Session 和交易管理命令的 ID 报错（反馈 5） | 六个命令的参数回归，独立程序验证文本／JSON、退出码和 ID 来源 | 已合并 [#100](https://github.com/Conflux-Chain/wallet-bridge/pull/100)，三平台 CI 通过 |
 | 7-3c | 其余命令行参数报错（反馈 5） | 打包程序覆盖 16 组输入的文本／JSON 提示、stderr 和退出码 2 | 已合并 [#101](https://github.com/Conflux-Chain/wallet-bridge/pull/101)，三平台 CI 通过 |
-| 7-4a | 在 Windows Git Bash 中找到 Codex CLI（反馈 3） | Windows Git Bash 验证 PATH、桌面版 CLI 和独立配置中的 MCP 注册、查询、移除 | 本地已验证 |
-| 7-4b | 用 Git Bash 运行 Windows 候选程序（反馈 4） | 从新终端按示例运行 Bridge，核对程序与数据目录 | 待分析 |
+| 7-4a | 在 Windows Git Bash 中找到 Codex CLI（反馈 3） | Windows Git Bash 验证 PATH、桌面版 CLI 和独立配置中的 MCP 注册、查询、移除 | 已合并 [#102](https://github.com/Conflux-Chain/wallet-bridge/pull/102) |
+| 7-4b | 用 Git Bash 运行 Windows 候选程序（反馈 4） | Git Bash 核对原候选和清单摘要、版本、独立目录安装、MCP 配置与清理 | 本地已验证 |
 | 7-5 | Codex 审批链接（反馈 6） | 先验证宿主能力、记录设计，再单独实现。用连接和交易原 ID 验证默认浏览器交接 | 待开发 |
 | 7-6 | 首次授权体验（反馈 6） | 结合 7-5 的实测确认交互，再实现并用新浏览器配置复测 | 待确认 |
 | 7-7 | 下一轮本地候选与体验指南 | 记录源码和产物摘要，按原编号收集用户复测结果，回访反馈 2 | 待开发 |
