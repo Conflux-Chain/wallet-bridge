@@ -18,6 +18,19 @@ $trialData = Join-Path $env:LOCALAPPDATA 'WalletBridge-UAT-v0.1.0'
 function wb { & $bridge @args --data-dir $trialData }
 ```
 
+**Windows Git Bash**
+
+```bash
+bridge="$(cygpath -aw ./wallet-bridge-windows-amd64.exe)"
+sha256sum SHA256SUMS ./wallet-bridge-windows-amd64.exe
+cat SHA256SUMS
+"$bridge" version --json
+trialData="$(cygpath -aw "$LOCALAPPDATA/WalletBridge-UAT-v0.1.0")"
+wb() { "$bridge" "$@" --data-dir "$trialData"; }
+```
+
+后续 `wb` 命令均在这个 Git Bash 窗口运行。传给 Windows 程序和 Codex 的路径已转换为 Windows 绝对路径，目录名可以包含空格。
+
 **macOS Terminal（zsh）**
 
 ```sh
@@ -39,6 +52,8 @@ wb() { "$bridge" "$@" --data-dir "$trialData"; }
 ```powershell
 & ..\..\wallet-bridge-windows-amd64.exe service stop --json
 ```
+
+Git Bash 中，从候选目录调用上述旧开发程序的命令是 `../../wallet-bridge-windows-amd64.exe service stop --json`。使用自定义目录的旧服务时，需带上它原来的 `--data-dir`。
 
 可选安装：运行 `wb install` 会在体验目录下安装程序并打印固定路径，可用于长期配置。想体验固定路径，将打印的绝对路径赋给 `bridge` 后继续；直接使用下载文件也可以。
 
@@ -76,9 +91,16 @@ wb session close "<Session ID>" --json
 
 ## 4. 从 Codex 发起请求
 
-Windows Git Bash 先按 [Codex CLI 定位步骤](../../../codex.md#windows-git-bash-定位-codex-cli)确认版本。下列 `codex mcp` 命令在该终端使用 `"$codex_cli" mcp`，包括结束测试时的 `remove`。
+注册专用测试名称。若已有同名配置，选一个空闲名称，并在提示词和清理命令中同步替换。
 
-在当前终端注册专用测试名称。若已有同名配置，选一个空闲名称，并在下面的提示词和清理命令中同步替换。注册示例：
+Windows Git Bash 先按 [Codex CLI 定位步骤](../../../codex.md#windows-git-bash-定位-codex-cli)确认版本，再使用第 1 步取得的 Windows 绝对路径注册。
+
+```bash
+"$codex_cli" mcp add wallet_bridge_uat -- "$bridge" mcp --data-dir "$trialData"
+"$codex_cli" mcp get wallet_bridge_uat --json
+```
+
+PowerShell 或 macOS 终端使用以下命令。
 
 ```text
 codex mcp add wallet_bridge_uat -- "$bridge" mcp --data-dir "$trialData"
@@ -93,20 +115,26 @@ codex mcp get wallet_bridge_uat --json
 
 ## 5. 体验升级中断恢复
 
-先退出测试会话、移除测试 MCP 并停止钱包体验服务，等到 `stopped`：
+先退出测试会话并移除测试 MCP。Git Bash 用 `"$codex_cli" mcp remove wallet_bridge_uat`，PowerShell 和 macOS 用 `codex mcp remove wallet_bridge_uat`。再运行：
 
 ```text
-codex mcp remove wallet_bridge_uat
 wb service stop --json
 ```
 
-首版公开前，正常运行 `wb upgrade --json` 通常返回 `no_release`。要亲自体验切换，使用交付时在本机另行准备的 `dist/upgrade-trials-v0.1.0`。其中两个一次性目录均使用新建的空数据库、测试凭据和标记为 `v0.0.0-trial` 的程序，从旧服务已停止、备份已完成处继续。每个目录分别执行一次下列步骤。
+看到 `stopped` 后继续。首版公开前，正常运行 `wb upgrade --json` 通常返回 `no_release`。要亲自体验切换，使用交付时在本机另行准备的 `dist/upgrade-trials-v0.1.0`。其中两个一次性目录均使用新建的空数据库、测试凭据和标记为 `v0.0.0-trial` 的程序，从旧服务已停止、备份已完成处继续。每个目录分别执行一次下列步骤。
 
 Windows 在当前终端先选 `resume`：
 
 ```powershell
 $scenario = (Resolve-Path ..\..\upgrade-trials-v0.1.0\resume).Path
 function trial { & $bridge @args --data-dir $scenario }
+```
+
+Git Bash 在候选目录使用：
+
+```bash
+scenario="$(cygpath -aw ../../upgrade-trials-v0.1.0/resume)"
+trial() { "$bridge" "$@" --data-dir "$scenario"; }
 ```
 
 macOS 若已在本机准备演练目录，可使用：
@@ -128,5 +156,7 @@ trial service stop --json
 ## 6. 结束并记录反馈
 
 关闭测试标签页。若第 2 步暂停了本仓库的 Windows 开发服务，在候选目录运行 `& ..\..\wallet-bridge-windows-amd64.exe service ensure --json`，应看到 `running`。使用其他旧程序时换成它的路径和原数据目录。需要复查交易时保留 `$trialData`。确认结束后，可在文件管理器中删除该体验目录及已停止的 `upgrade-trials-v0.1.0`。保留候选程序和 `SHA256SUMS` 供发布核对。
+
+Git Bash 可在候选目录用 `../../wallet-bridge-windows-amd64.exe service ensure --json` 恢复第 2 步暂停的默认目录开发服务。用 `printf '%s\n' "$trialData"` 查看本轮数据目录。
 
 请在[本轮体验反馈](feedback.md)中记录操作系统、Chrome 和钱包版本、完成到哪一步及实际结果。发生问题时附错误码或截图，跳过的步骤标记「未测」。一次性浏览器授权链接留在本机。
