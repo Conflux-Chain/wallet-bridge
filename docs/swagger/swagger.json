@@ -7,7 +7,7 @@
         "description": "Local service access, browser authorization, client connection/Session and transaction lifecycle, browser execution coordination, wallet handoff and connection consent.",
         "title": "Wallet Bridge Local API",
         "contact": {},
-        "version": "1.16"
+        "version": "1.17"
     },
     "host": "127.0.0.1:18765",
     "basePath": "/api/v1",
@@ -1328,6 +1328,74 @@
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/browser/open-request": {
+            "post": {
+                "description": "Accepts only a request kind and ID. The service constructs a fixed local URL. No management grant is needed or transferred. The destination page checks its own authorization.",
+                "consumes": [
+                    "application/json"
+                ],
+                "summary": "Open an approval link in the system default browser",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exact local service origin",
+                        "name": "Origin",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Request from the current approval link",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.OpenBrowserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -3635,6 +3703,23 @@
                 "version": {
                     "type": "string",
                     "example": "dev"
+                }
+            }
+        },
+        "api.OpenBrowserRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 32
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "connection",
+                        "transaction"
+                    ]
                 }
             }
         },

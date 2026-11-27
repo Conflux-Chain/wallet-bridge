@@ -16,6 +16,26 @@ test('unauthorized browser sees instructions without management data', async ({ 
   await expect(page.getByRole('heading', { name: '选择浏览器钱包' })).toHaveCount(0);
 });
 
+test('approval links open the original request only after the user clicks', async ({ page }) => {
+  for (const kind of ['connection', 'transaction']) {
+    const id = '1234567890abcdef'.repeat(2);
+    const launches: unknown[] = [];
+    await page.route('**/api/v1/browser/open-request', async route => {
+      launches.push(route.request().postDataJSON());
+      await route.fulfill({ status: 204 });
+    });
+    await page.goto(`/?${kind}=${id}`);
+    const button = page.getByRole('button', { name: '在系统默认浏览器继续' });
+    await expect(button).toBeVisible();
+    expect(launches).toEqual([]);
+    await button.evaluate((el: HTMLButtonElement) => { el.click(); el.click(); });
+    await expect(page.getByText('已请求系统打开原审批链接。', { exact: false })).toBeVisible();
+    expect(launches).toEqual([{ kind, id }]);
+    await expect(page.getByRole('status')).toHaveText('需要浏览器授权');
+    await page.unroute('**/api/v1/browser/open-request');
+  }
+});
+
 test('one exchange clears the fragment before sending and sets an isolated HttpOnly cookie', async ({ page, context }) => {
   let exchanges = 0;
   const requestURLs: string[] = [];

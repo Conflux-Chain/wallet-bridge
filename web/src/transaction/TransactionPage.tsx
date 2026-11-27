@@ -1,3 +1,4 @@
+import { OpenInBrowser } from '../OpenInBrowser';
 import { useCallback, useEffect, useState } from 'react';
 import { readTransaction, rejectTransaction, TransactionReadError, type TransactionReview } from '../api/transactions';
 import { networks } from '../wallet/networks';
@@ -166,6 +167,7 @@ export function TransactionPage({ id, grant, canReject, canCoordinate, operation
   }
   return <main className="transaction-page">
     <header><a className="review-brand" href="/"><span className="brand-mark" aria-hidden="true">W</span>Wallet Bridge</a>
+      <OpenInBrowser />
       <div className="review-title"><h1>交易审阅</h1><div className="actions">
         <button type="button" className="secondary" disabled={rejecting} onClick={() => setAttempt(n => n + 1)}>刷新状态</button>
         {canReject && review?.state === 'pending' &&

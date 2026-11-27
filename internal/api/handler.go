@@ -29,6 +29,7 @@ type Config struct {
 	Assets               fs.FS
 	StartedAt            time.Time
 	Stop                 func()
+	OpenBrowser          func(string) error
 	BrowserAuthorization *app.BrowserAuthorization
 	Connections          *app.ConnectionService
 	Transactions         TransactionRequests
@@ -43,7 +44,7 @@ type handler struct {
 }
 
 func ServiceCapabilities() []string {
-	return []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation", "transactions.lifecycle", "browser.transactions.read", "browser.transactions.coordination", "browser.transactions.decisions", "browser.pending-requests", "browser.activity", "browser.activity.remove", "service.upgrade-stop", "service.upgrade-verify"}
+	return []string{"service.status", "service.stop", "browser.authorization", "service.auth.shared", "connections.lifecycle", "browser.connections.coordination", "browser.connections.decisions", "browser.wallet-operation", "transactions.lifecycle", "browser.transactions.read", "browser.transactions.coordination", "browser.transactions.decisions", "browser.pending-requests", "browser.activity", "browser.activity.remove", "service.upgrade-stop", "service.upgrade-verify", "browser.open-request"}
 }
 
 func New(config Config) (http.Handler, error) {
@@ -53,7 +54,7 @@ func New(config Config) (http.Handler, error) {
 		return nil, errors.New("invalid local API configuration")
 	}
 	return &handler{config: config, key: key, info: InfoResponse{
-		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 16},
+		Name: "wallet-bridge", Version: config.Version, APIVersion: APIVersion{Major: 1, Minor: 17},
 		Capabilities: ServiceCapabilities(), Ready: config.VerifyingUpgrade == "", VerifyingUpgrade: config.VerifyingUpgrade,
 	}}, nil
 }
@@ -126,6 +127,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if grant, ok := h.authenticateBrowser(w, r); ok {
 				h.listPendingRequests(w, r, grant)
 			}
+		}
+	case "/api/v1/browser/open-request":
+		if method(w, r, http.MethodPost) && sameOrigin(w, r) {
+			h.openBrowserRequest(w, r)
 		}
 	case "/api/v1/browser/authorize":
 		if method(w, r, http.MethodPost) && sameOrigin(w, r) {

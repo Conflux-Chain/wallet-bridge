@@ -138,6 +138,7 @@ func run(ctx context.Context, config Config, listen func(string, string) (net.Li
 		Version: config.Version, VerifyingUpgrade: config.VerifyingUpgrade, Admitted: admitted, ServiceToken: token, Assets: config.Assets,
 		StartedAt: time.Now(), Stop: func() { once.Do(func() { close(stop) }) },
 		BrowserAuthorization: browserAuthorization,
+		OpenBrowser:          platform.OpenBrowser,
 		Connections:          connections,
 		Transactions:         database,
 	})

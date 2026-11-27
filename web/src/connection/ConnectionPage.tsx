@@ -1,3 +1,4 @@
+import { OpenInBrowser } from '../OpenInBrowser';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { connectionAPI, ConnectionError, newID, type Connection, type Execution } from '../api/connections';
 import type { WalletOperation } from '../api/browser';
@@ -216,7 +217,7 @@ export function ConnectionPage({ id, operation, refreshStatus }: ConnectionPageP
   const canResume = interrupted || execution?.phase === 'calling' && execution.id === own.current;
   const recoveryAction = pending ? '已处理原钱包弹窗，继续连接' : '已处理原钱包弹窗，解除等待';
   return <main className="connection-page">
-    <header><h1>连接钱包</h1></header>
+    <header><h1>连接钱包</h1><OpenInBrowser /></header>
     {request && <section aria-label="连接请求">
       <dl>
         <div><dt>调用方提供的名称</dt><dd>{request.clientName}</dd></div>

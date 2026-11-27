@@ -103,7 +103,7 @@ func connectionReceipt(r api.ConnectionResponse, err error) (*sdk.CallToolResult
 	url := api.Origin + "/?connection=" + r.ID
 	text := fmt.Sprintf("Connection %s (%s), chain %s. [Open the connection request](%s)", r.ID, r.State, r.ChainID, url)
 	if r.State == "pending" {
-		text += "\nApproval expires at " + r.ExpiresAt
+		text += "\nApproval expires at " + r.ExpiresAt + "\n" + walletBrowserHint
 	}
 	if r.SessionID != "" {
 		text += "\nSession ID: " + r.SessionID

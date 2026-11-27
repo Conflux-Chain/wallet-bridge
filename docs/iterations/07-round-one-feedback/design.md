@@ -9,7 +9,7 @@
 | [3 · 找到 Codex CLI](../../local-trials/v0.1.0/round-01/feedback.md#3-windows-终端找不到指南中的-codex-命令) | **已确认。** Git Bash 优先使用 PATH 中的 Codex CLI。找不到时查询 Windows 桌面应用的安装位置，运行其中的 CLI，用实际版本、MCP 注册和配置查询验收。 |
 | [4 · Git Bash 指南](../../local-trials/v0.1.0/round-01/feedback.md#4-windows-体验指南缺少-git-bash-命令示例) | **已确认。** 体验指南增加 Windows Git Bash 命令，覆盖候选文件校验、独立数据目录、CLI 调用与清理。按本机 Git Bash 实测验收，WSL 免测。 |
 | [5 · CLI 帮助与报错](../../local-trials/v0.1.0/round-01/feedback.md#5-cli-命令行诸多问题反馈) | **帮助版式已确认。** 顶层按任务列出命令及用途。子命令先以 `Required arguments` 展示必填选项和位置参数，再以 `Options` 展示可选项及默认行为。无必填项时只显示 `Options`。参数报错见下文分项方案。 |
-| [6 · Codex 首次连接](../../local-trials/v0.1.0/round-01/feedback.md#6-其他用户-codex-首次体验不流畅) | **已确认交互目标。** 用户点击 Codex 审批链接，在系统默认浏览器继续同一请求。如何将链接交给默认浏览器仍待验证和确认。简化首次浏览器授权是另一个待讨论的问题。 |
+| [6 · Codex 首次连接](../../local-trials/v0.1.0/round-01/feedback.md#6-其他用户-codex-首次体验不流畅) | **已确认。** MCP 在审批链接旁提醒用户使用装有钱包的浏览器。若链接已在 Codex 内置浏览器打开，用户在页面点击「在系统默认浏览器继续」。本机服务仅按请求类别和原 ID 打开固定 Bridge 地址，目标浏览器按自己的授权状态继续。打开链接不建立 Session、不签名、不重复创建请求。首次浏览器授权的简化方式另行讨论。 |
 
 ### 反馈 5 · 连接时的网络参数
 

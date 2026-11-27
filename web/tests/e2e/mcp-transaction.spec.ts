@@ -29,6 +29,7 @@ test('MCP creates one immutable review for raw calldata and replays it after Ses
     expect(receipt).toMatchObject({ id: requestId, sessionId, state: 'pending', intent: '', clientName: options.clientInfo.title, url,
       transaction: { ...transaction, chainId: '0x47', value: '0x0' } });
     expect(result.content[0].text).toContain('](' + url + ')');
+    expect(result.content[0].text).toContain('在系统默认浏览器继续');
     await install(page);
     await page.goto(url);
     await expect(page.getByText(options.clientInfo.title, {exact: true})).toBeVisible();

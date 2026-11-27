@@ -6,11 +6,12 @@ import { ConnectionPage } from './connection/ConnectionPage';
 import { WalletPicker } from './wallet/WalletPicker';
 import { TransactionPage } from './transaction/TransactionPage';
 import { PendingRequests } from './PendingRequests';
+import { OpenInBrowser } from './OpenInBrowser';
 import { ActivityPage } from './ActivityPage';
 
 const messages = {
   checking: ['正在检查浏览器授权', '正在连接本机 Wallet Bridge。'],
-  unauthorized: ['需要浏览器授权', '当前浏览器尚未授权，或授权已到期、已被撤销。请在本机终端运行以下命令。'],
+  unauthorized: ['需要浏览器授权', '当前浏览器尚未获得有效授权。'],
   'logged-out': ['已退出当前浏览器', '当前授权已撤销。需要再次访问时，请在本机终端重新授权。'],
   'link-error': ['授权链接已失效', '链接格式不正确、已过期或已被使用。请重新运行以下命令获取新链接。'],
   'exchange-uncertain': ['暂时无法确认授权结果', '请先重新检查状态；若仍未授权，请获取新链接。此页面不会重试旧链接。'],
@@ -112,6 +113,8 @@ export function App({ initial }: { initial: Promise<View> }) {
           <h2 id="authorization-title" role="status" aria-live="polite">{title}</h2>
         </div>
         <p className="description">{description}</p>
+        {showCommand && <OpenInBrowser />}
+        {view.kind === 'unauthorized' && <p>要授权装有钱包的浏览器，请在本机终端运行以下命令。</p>}
         {showCommand && <pre className="command"><code>wallet-bridge ui</code></pre>}
         {showCommand && transactions.length === 1 && <p>请保留原交易标签页，在同一浏览器配置的新标签页完成授权，再回到此处点击「重新检查」。</p>}
         {view.kind === 'authorized' && (

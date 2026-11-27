@@ -87,6 +87,7 @@ try {
   const env = { ...isolatedEnv, HOME: profile, LOCALAPPDATA: profile };
   await withMCP({ binary: installed, env, clientInfo: { name: 'smoke', version: '1' } }, async (init, request) => {
     assert.equal(init.serverInfo.name, 'wallet-bridge');
+    assert.match(init.instructions, /wallet extension.*在系统默认浏览器继续/);
     assert.equal(init.serverInfo.version, info.version);
     assert.ok(init.capabilities.tools);
     const { tools } = await request('tools/list', {});

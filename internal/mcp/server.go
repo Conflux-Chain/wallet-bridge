@@ -9,8 +9,11 @@ import (
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+const walletBrowserHint = "Open this link in the browser with your wallet extension. In an in-app browser, select 在系统默认浏览器继续 to open the same request in your system default browser. If the button is unavailable, copy the original URL into the wallet browser."
+
 func Run(ctx context.Context, info buildinfo.Info, dataDir string) error {
 	server := sdk.NewServer(&sdk.Implementation{Name: "wallet-bridge", Version: info.Version}, &sdk.ServerOptions{
+		Instructions: "When showing a pending approval link, tell the user in their language to open it in the browser with their wallet extension. If their chat app opens the link internally, point them to the page button 在系统默认浏览器继续 (continue in the system default browser). Keep the original request ID and URL.",
 		Capabilities: &sdk.ServerCapabilities{Tools: &sdk.ToolCapabilities{}},
 	})
 	tools := walletTools{dataDir: dataDir, uiEmbedded: info.UIEmbedded}

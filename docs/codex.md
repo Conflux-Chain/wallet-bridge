@@ -55,7 +55,7 @@ bridge="$(./dist/wallet-bridge-darwin-arm64 install)" &&
 ## 验证连接和恢复
 
 1. 在 Codex 输入「用 wallet_bridge 连接 Conflux eSpace 测试网 71，先给我审批链接，再帮我等结果」。若 Codex 请求工具执行许可，按提示确认。应看到含 `?connection=…` 的可点击链接和原请求 ID。
-2. 在装有 MetaMask 或 Fluent 的 Chrome 配置中打开该链接。若提示「需要浏览器授权」，用上面的程序运行 `ui`，完成授权后再打开**原连接链接**。在页面核对调用方和网络，选择钱包，核对最终账户后点「同意连接」。[浏览器授权步骤](browser-testing.md#手动验证授权页面) · [钱包操作](first-connection.md)
+2. 在装有 MetaMask 或 Fluent 的 Chrome 配置中打开该链接。如果链接进入 Codex 内置浏览器，点击「在系统默认浏览器继续」，核对新页面地址保留原请求 ID。若钱包安装在另一个浏览器配置，可将原链接粘贴到该配置中。若提示「需要浏览器授权」，用上面的程序运行 `ui`，完成授权后再打开**原连接链接**。在页面核对调用方和网络，选择钱包，核对最终账户后点「同意连接」。[浏览器授权步骤](browser-testing.md#手动验证授权页面) · [钱包操作](first-connection.md)
 3. 保持 Codex 任务运行。它会间隔调用 `get_connection`，同意后用返回的 Session ID 调用 `get_session`。核对 Codex 展示的钱包、账户和网络与页面一致。
 4. 要验证稍后继续，可在拿到链接后中断 Codex 等待，在原五分钟期限内处理页面，再回到同一对话输入「继续查询刚才的连接」。应查回同一请求的结果。超过期限且未作决定时应显示已到期。上下文缺失时可直接提供原请求 ID。
 
