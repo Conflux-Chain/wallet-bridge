@@ -71,11 +71,13 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	jsonOutput := flags.Bool("json", false, outputJSONHelp)
 	limit, after, all := 50, "", false
 	usage := listBrowserUsage
+	var required []requiredArgument
 	if action == "list" {
 		flags.IntVar(&limit, "limit", 50, "Maximum authorizations per page, from 1 to 50")
 		flags.StringVar(&after, "after", "", "Grant ID cursor from the previous page. By default, start at the first page.")
 	} else {
 		usage = revokeBrowserUsage
+		required = []requiredArgument{{flagName: "all", label: "<id> | --all", description: "Use one grant ID from browser list, or --all to revoke all authorizations and pending links."}}
 		flags.BoolVar(&all, "all", false, "Revoke all browser authorizations and pending links. Otherwise supply one grant ID from browser list.")
 	}
 	remaining := args[1:]
@@ -83,7 +85,7 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	if action == "revoke" && len(remaining) != 0 && !strings.HasPrefix(remaining[0], "-") {
 		id, remaining = remaining[0], remaining[1:]
 	}
-	if code, done := parseFlags(flags, remaining, usage, stdout, stderr); done {
+	if code, done := parseFlags(flags, remaining, usage, stdout, stderr, required...); done {
 		return code
 	}
 	if action == "revoke" && id == "" && flags.NArg() == 1 {
@@ -135,10 +137,10 @@ func runBrowser(args []string, dependencies Dependencies, stdout, stderr io.Writ
 	return browserOutputResult(err, *jsonOutput, stderr)
 }
 
-func parseFlags(flags *flag.FlagSet, args []string, help string, stdout, stderr io.Writer) (int, bool) {
+func parseFlags(flags *flag.FlagSet, args []string, help string, stdout, stderr io.Writer, required ...requiredArgument) (int, bool) {
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			writeCommandHelp(stdout, help, flags)
+			writeCommandHelp(stdout, help, flags, required...)
 			return 0, true
 		}
 		// Flag parser errors may contain user-supplied secrets.
@@ -146,7 +148,8 @@ func parseFlags(flags *flag.FlagSet, args []string, help string, stdout, stderr 
 			if option := flags.Lookup(name); option != nil {
 				jsonFlag := flags.Lookup("json")
 				asJSON := jsonFlag != nil && jsonFlag.Value.String() == "true"
-				return argumentError(stderr, asJSON, "--"+option.Name+" requires a value. "+option.Usage), true
+				_, description := flag.UnquoteUsage(option)
+				return argumentError(stderr, asJSON, "--"+option.Name+" requires a value. "+description), true
 			}
 		}
 		fmt.Fprintln(stderr, help)

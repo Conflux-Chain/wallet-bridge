@@ -41,24 +41,49 @@ Run wallet-bridge <command> --help for arguments and defaults.`
 const dataDirHelp = "Absolute Bridge data directory. Defaults to the current user's Wallet Bridge directory."
 const outputJSONHelp = "Write JSON output. By default, print readable text."
 
-func writeCommandHelp(out io.Writer, syntax string, flags *flag.FlagSet) {
+type requiredArgument struct {
+	flagName    string // Registered flag, including the flag in a mutually exclusive choice.
+	label       string // Positional argument or choice, e.g. "<id> | --all".
+	description string
+}
+
+func writeCommandHelp(out io.Writer, syntax string, flags *flag.FlagSet, required ...requiredArgument) {
 	fmt.Fprintln(out, syntax)
+	listed := make(map[string]bool, len(required))
+	if len(required) > 0 {
+		fmt.Fprintln(out, "\nRequired arguments:")
+		table := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
+		for _, arg := range required {
+			if arg.flagName != "" {
+				listed[arg.flagName] = true
+			}
+			if arg.label != "" {
+				fmt.Fprintf(table, "  %s\t%s\n", arg.label, arg.description)
+			} else {
+				writeHelpFlag(table, flags.Lookup(arg.flagName))
+			}
+		}
+		table.Flush()
+	}
 	fmt.Fprintln(out, "\nOptions:")
 	table := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
 	flags.VisitAll(func(f *flag.Flag) {
-		if f.Usage == "" {
-			return
+		if f.Usage != "" && !listed[f.Name] {
+			writeHelpFlag(table, f)
 		}
-		valueName, description := flag.UnquoteUsage(f)
-		fmt.Fprintf(table, "  --%s", f.Name)
-		if valueName != "" {
-			fmt.Fprintf(table, " <%s>", valueName)
-		}
-		fmt.Fprintf(table, "\t%s", description)
-		if f.DefValue != "" && f.DefValue != "false" {
-			fmt.Fprintf(table, " (default: %s)", f.DefValue)
-		}
-		fmt.Fprintln(table)
 	})
 	table.Flush()
+}
+
+func writeHelpFlag(out io.Writer, f *flag.Flag) {
+	valueName, description := flag.UnquoteUsage(f)
+	fmt.Fprintf(out, "  --%s", f.Name)
+	if valueName != "" {
+		fmt.Fprintf(out, " <%s>", valueName)
+	}
+	fmt.Fprintf(out, "\t%s", description)
+	if f.DefValue != "" && f.DefValue != "false" {
+		fmt.Fprintf(out, " (default: %s)", f.DefValue)
+	}
+	fmt.Fprintln(out)
 }

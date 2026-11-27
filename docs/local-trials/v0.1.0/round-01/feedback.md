@@ -2,6 +2,8 @@
 
 截至 2026-11-27，第 1 轮反馈收集暂告一段落，共六项。用户已在 Windows 体验 CLI 和 Codex，并确认使用 `connect` 返回的 Session ID 后，CLI 能成功发送交易。同事已在 macOS 配置 MCP 后体验 Codex，首次使用时遇到的问题见第 6 项。[本轮指南与候选校验信息](guide.md)
 
+各项决定与待确认方案可按下列编号查阅。[对应的迭代设计](../../../iterations/07-round-one-feedback/design.md)
+
 ## 1. Session ID 格式错误时只显示 usage
 
 **已复现。** 在 Windows 运行 `transaction send --session-id aaa`，同时传入有效的收发地址和 `--chain-id 71`，CLI 打印整段用法并退出 2。用户无法判断缺少参数还是输入有误。期望提示具体字段、所需格式，以及从哪里取得有效 ID。

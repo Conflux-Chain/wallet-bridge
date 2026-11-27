@@ -47,8 +47,8 @@ func runSend(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	fields := make(map[string]string)
 	for _, field := range []struct{ option, key, description string }{
 		{"chain-id", "chainId", "Required Session network, in decimal or 0x hex"},
-		{"from", "from", "Required 0x-prefixed address of the Session account"},
-		{"to", "to", "Required recipient or existing contract address (0x-prefixed)"},
+		{"from", "from", "0x-prefixed `address` of the Session account"},
+		{"to", "to", "Recipient or existing contract `address` (0x-prefixed)"},
 		{"value", "value", "Native currency amount in smallest units (default: 0)"},
 		{"data", "data", "0x-prefixed calldata in whole bytes (default: 0x)"},
 		{"gas", "gas", "Gas limit in gas units. By default, the wallet estimates it."},
@@ -59,7 +59,8 @@ func runSend(args []string, deps Dependencies, stdout, stderr io.Writer) int {
 	} {
 		flags.Func(field.option, field.description, func(value string) error { fields[field.key] = value; return nil })
 	}
-	if code, done := parseFlags(flags, args, sendUsage, stdout, stderr); done {
+	required := []requiredArgument{{flagName: "session-id"}, {flagName: "from"}, {flagName: "chain-id"}, {flagName: "to"}}
+	if code, done := parseFlags(flags, args, sendUsage, stdout, stderr, required...); done {
 		return code
 	}
 	if !validResourceID(opts.input.SessionID) {

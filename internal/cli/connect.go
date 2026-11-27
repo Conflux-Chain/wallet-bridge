@@ -41,7 +41,7 @@ func runConnect(args []string, deps Dependencies, stdout, stderr io.Writer) int 
 	flags.BoolVar(&opts.noOpen, "no-open", false, "Print the link for manual opening. By default, open the browser.")
 	flags.BoolVar(&opts.asJSON, "json", false, outputJSONHelp)
 	dir := flags.String("data-dir", "", dataDirHelp)
-	if code, done := parseFlags(flags, args, connectUsage, stdout, stderr); done {
+	if code, done := parseFlags(flags, args, connectUsage, stdout, stderr, requiredArgument{flagName: "chain-id"}); done {
 		return code
 	}
 	if flags.NArg() != 0 || strings.TrimSpace(opts.input.ClientName) == "" || (*dir != "" && !filepath.IsAbs(*dir)) ||

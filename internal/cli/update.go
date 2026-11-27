@@ -16,7 +16,7 @@ import (
 	"github.com/Conflux-Chain/wallet-bridge/internal/update"
 )
 
-const downloadUsage = "Usage: wallet-bridge update download <version> [--data-dir <absolute path>] [--json]\nUse a published release tag, for example v1.2.3."
+const downloadUsage = "Usage: wallet-bridge update download <version> [--data-dir <absolute path>] [--json]"
 const checkUpdateUsage = "Usage: wallet-bridge update check [--include-preview] [--json]"
 const updateUsage = checkUpdateUsage + "\n" + downloadUsage
 
@@ -93,7 +93,8 @@ func runDownload(args []string, deps Dependencies, stdout, stderr io.Writer) int
 		versions = []string{args[0]}
 		args = args[1:]
 	}
-	if code, done := parseFlags(flags, args, downloadUsage, stdout, stderr); done {
+	versionArg := requiredArgument{label: "<version>", description: "Published release tag, for example v1.2.3."}
+	if code, done := parseFlags(flags, args, downloadUsage, stdout, stderr, versionArg); done {
 		return code
 	}
 	versions = append(versions, flags.Args()...)

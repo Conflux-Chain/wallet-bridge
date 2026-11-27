@@ -57,8 +57,8 @@ func runResource(args []string, deps Dependencies, stdout, stderr io.Writer) int
 	} else if group == "transaction" {
 		idHelp = "Use the request ID returned by wallet-bridge transaction send."
 	}
-	actionUsage := "Usage: wallet-bridge " + flags.Name() + " " + idArgument + " [--data-dir <absolute path>] [--json]\n" + idHelp
-	if code, done := parseFlags(flags, remaining, actionUsage, stdout, stderr); done {
+	actionUsage := "Usage: wallet-bridge " + flags.Name() + " " + idArgument + " [--data-dir <absolute path>] [--json]"
+	if code, done := parseFlags(flags, remaining, actionUsage, stdout, stderr, requiredArgument{label: idArgument, description: idHelp}); done {
 		return code
 	}
 	ids = append(ids, flags.Args()...)
